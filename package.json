@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "Manejo de Git multi-repositorio al estilo IntelliJ IDEA para workspaces con varios repos.",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -306,6 +306,11 @@
           "command": "multigit.changes.unshelve",
           "when": "view == multigit.changes",
           "group": "shelf@2"
+        },
+        {
+          "command": "multigit.commitFocus",
+          "when": "view == multigit.repositories",
+          "group": "z_log@-1"
         }
       ],
       "view/item/context": [
