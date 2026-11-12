@@ -19,6 +19,15 @@ async function walk<T>(provider: vscode.TreeDataProvider<T>, parent?: T, depth =
 
 const label = (item: vscode.TreeItem) => (typeof item.label === 'string' ? item.label : item.label?.label ?? '');
 
+// En GitHub Actions, cada test fallido se publica como anotación (se lee sin entrar a los logs).
+afterEach(function () {
+  const test = this.currentTest;
+  if (process.env.GITHUB_ACTIONS && test?.state === 'failed') {
+    const message = String(test.err?.message ?? 'falló').replace(/\r?\n/g, '%0A');
+    console.log(`::error title=e2e: ${test.fullTitle()}::${message}`);
+  }
+});
+
 describe('MultiGit en VS Code', () => {
   let api: MultiGitTestApi;
 
@@ -28,6 +37,10 @@ describe('MultiGit en VS Code', () => {
     api = await ext.activate();
     // initialize() ya terminó dentro de activate; por si la API de git abrió repos después:
     await api.manager.refresh();
+    if (process.env.GITHUB_ACTIONS) {
+      const repos = api.manager.all.map((r) => `${r.name}@${r.status?.branch ?? r.error ?? '?'}`).join(', ');
+      console.log(`::notice title=e2e::workspace ${vscode.workspace.workspaceFolders?.[0]?.uri.fsPath} · repos: ${repos || 'ninguno'}`);
+    }
   });
 
   it('detecta los 3 repos del workspace', () => {

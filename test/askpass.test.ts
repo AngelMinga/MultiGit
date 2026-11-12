@@ -1,7 +1,7 @@
 // Askpass de punta a punta: git real pidiendo la contraseña de un remoto HTTP con auth básica.
 import { execFile } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
-import { devNull, tmpdir } from 'node:os';
+import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -44,7 +44,7 @@ describe('askpass', () => {
 
   it('git usa GIT_ASKPASS para pedir usuario y contraseña', async () => {
     // git credential fill pide usuario y contraseña con el askpass cuando no hay helper.
-    const env = { ...process.env, ...server.env, GIT_TERMINAL_PROMPT: '0', GIT_CONFIG_GLOBAL: devNull, GIT_CONFIG_NOSYSTEM: '1' };
+    const env = { ...process.env, ...server.env, GIT_TERMINAL_PROMPT: '0', GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1' };
     const child = execFile('git', ['credential', 'fill'], { env });
     child.stdin!.end('protocol=https\nhost=example.com\n\n');
     const out = await new Promise<string>((resolve, reject) => {

@@ -1,4 +1,3 @@
-import { devNull } from 'node:os';
 // Operaciones a medias con git real: continuar un merge resuelto, abortar y saltar en un rebase.
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -29,7 +28,7 @@ function conflictRepo(): GitService {
 }
 
 beforeEach(() => {
-  process.env.GIT_CONFIG_GLOBAL = devNull;
+  process.env.GIT_CONFIG_GLOBAL = '/dev/null'; // git (también Git for Windows) entiende /dev/null
   process.env.GIT_CONFIG_NOSYSTEM = '1';
   process.env.GIT_AUTHOR_NAME = process.env.GIT_COMMITTER_NAME = 'Test';
   process.env.GIT_AUTHOR_EMAIL = process.env.GIT_COMMITTER_EMAIL = 'test@example.com';

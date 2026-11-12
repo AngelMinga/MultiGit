@@ -1,4 +1,3 @@
-import { devNull } from 'node:os';
 // Log combinado con git real: mezcla por fecha, filtros por usuario y rama, paginación y acciones.
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -31,7 +30,7 @@ function commitAt(root: string, file: string, author: string, email: string, t: 
 }
 
 beforeAll(() => {
-  process.env.GIT_CONFIG_GLOBAL = devNull;
+  process.env.GIT_CONFIG_GLOBAL = '/dev/null'; // git (también Git for Windows) entiende /dev/null
   process.env.GIT_CONFIG_NOSYSTEM = '1';
   // Identidad por defecto para los comandos que no la pasan (p. ej. git tag -a).
   process.env.GIT_AUTHOR_NAME = process.env.GIT_COMMITTER_NAME = 'Test';

@@ -1,4 +1,3 @@
-import { devNull } from 'node:os';
 // Commit parcial, amend, rollback y shelf con git real (el criterio de la Fase 5).
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -28,7 +27,7 @@ const write = (repo: GitService, f: string, content: string) => writeFileSync(pa
 const pick = (files: StatusFile[], ...paths: string[]) => files.filter((f) => paths.includes(f.path));
 
 beforeAll(() => {
-  process.env.GIT_CONFIG_GLOBAL = devNull;
+  process.env.GIT_CONFIG_GLOBAL = '/dev/null'; // git (también Git for Windows) entiende /dev/null
   process.env.GIT_CONFIG_NOSYSTEM = '1';
   process.env.GIT_AUTHOR_NAME = process.env.GIT_COMMITTER_NAME = 'Test';
   process.env.GIT_AUTHOR_EMAIL = process.env.GIT_COMMITTER_EMAIL = 'test@example.com';

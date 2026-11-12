@@ -1,4 +1,3 @@
-import { devNull } from 'node:os';
 // Integración con git real: repos temporales con un remote "origin" bare.
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -17,7 +16,7 @@ function git(cwd: string, ...args: string[]): string {
 
 beforeAll(() => {
   // Configuración aislada: no depender del ~/.gitconfig de quien corre los tests.
-  process.env.GIT_CONFIG_GLOBAL = devNull;
+  process.env.GIT_CONFIG_GLOBAL = '/dev/null'; // git (también Git for Windows) entiende /dev/null
   process.env.GIT_CONFIG_NOSYSTEM = '1';
   process.env.GIT_AUTHOR_NAME = process.env.GIT_COMMITTER_NAME = 'Test';
   process.env.GIT_AUTHOR_EMAIL = process.env.GIT_COMMITTER_EMAIL = 'test@example.com';
