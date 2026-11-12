@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import type { RollbackFile, RollbackRepo, RollbackState } from '../../../src/webview/protocol';
 import { onHostMessage, post } from '../vscode';
+import { t } from '../i18n';
 
 interface TreeNode {
   id: string;
@@ -108,7 +109,7 @@ export function RollbackDialog() {
           {n.repo && <span className="dot" style={{ background: `var(--vscode-multigit-repo${n.repo.colorIndex})` }} />}
           {!n.repo && !n.file && <span className="rb-icon">🗀</span>}
           <span className={`tree-label${n.file ? ` rb-status-${n.file.status}` : ''}`}>{n.label}</span>
-          {!n.file && <span className="muted small">{n.keys.length} archivo(s)</span>}
+          {!n.file && <span className="muted small">{t('{0} file(s)', n.keys.length)}</span>}
           {n.file?.origPath && <span className="muted small">← {n.file.origPath}</span>}
         </li>
       );
@@ -118,14 +119,14 @@ export function RollbackDialog() {
   return (
     <div className="rollback" onKeyDown={(e) => e.key === 'Escape' && post({ type: 'rollback/close', payload: {} })}>
       <div className="pane-toolbar rb-toolbar">
-        <button className="icon-btn" title="Show Diff (doble clic en un archivo)" disabled={!nodes.get(focused ?? '')?.file} onClick={() => openDiff(nodes.get(focused ?? ''))}>
+        <button className="icon-btn" title={t('Show Diff (double-click a file)')} disabled={!nodes.get(focused ?? '')?.file} onClick={() => openDiff(nodes.get(focused ?? ''))}>
           ⇄
         </button>
         <span className="spacer" />
-        <button className="icon-btn" title="Expandir todo" onClick={() => setCollapsed(new Set())}>
+        <button className="icon-btn" title={t('Expand all')} onClick={() => setCollapsed(new Set())}>
           ⊞
         </button>
-        <button className="icon-btn" title="Contraer todo" onClick={() => setCollapsed(new Set(allIds))}>
+        <button className="icon-btn" title={t('Collapse all')} onClick={() => setCollapsed(new Set(allIds))}>
           ⊟
         </button>
       </div>
@@ -142,23 +143,23 @@ export function RollbackDialog() {
                 label="Changes"
               />
               <span className="tree-label rb-strong">Changes</span>
-              <span className="muted small">{total} archivo(s)</span>
+              <span className="muted small">{t('{0} file(s)', total)}</span>
             </li>
           )}
           {render(tree, 1)}
-          {total === 0 && !state.busy && <li className="muted pad">No hay cambios versionados para revertir.</li>}
+          {total === 0 && !state.busy && <li className="muted pad">{t('There are no tracked changes to roll back.')}</li>}
         </ul>
       </div>
       <div className="rb-summary small">
         <span className="link-text">{describe(selectedFiles)}</span>
       </div>
       <footer className="push-footer">
-        <label className={`check${anyAdded ? '' : ' disabled'}`} title="Si no, los archivos añadidos quedan sin versionar">
+        <label className={`check${anyAdded ? '' : ' disabled'}`} title={t('Otherwise, added files are left untracked')}>
           <input type="checkbox" checked={deleteAdded && anyAdded} disabled={!anyAdded || state.busy} onChange={(e) => setDeleteAdded(e.target.checked)} />
           <span>Delete local copies of added files</span>
         </label>
         <span className="spacer" />
-        {state.busy && <span className="muted">Trabajando…</span>}
+        {state.busy && <span className="muted">{t('Working…')}</span>}
         <button className="secondary" onClick={() => post({ type: 'rollback/close', payload: {} })}>
           Close
         </button>
@@ -185,7 +186,7 @@ function TriCheckbox(props: { checked: boolean; indeterminate: boolean; disabled
       type="checkbox"
       checked={props.checked}
       disabled={props.disabled}
-      aria-label={`Incluir ${props.label}`}
+      aria-label={t('Include {0}', props.label)}
       onClick={(e) => e.stopPropagation()}
       onChange={() => props.onChange(!props.checked)}
     />
@@ -241,11 +242,11 @@ function buildRepoNode(repo: RollbackRepo): TreeNode {
 function describe(files: RollbackFile[]): string {
   const count = (pred: (f: RollbackFile) => boolean) => files.filter(pred).length;
   const parts = [
-    [count((f) => f.status === 'M' || f.status === 'T'), 'modificado(s)'],
-    [count(isAdded), 'añadido(s)'],
-    [count((f) => f.status === 'D'), 'eliminado(s)'],
-    [count((f) => f.status === 'R'), 'renombrado(s)'],
+    [count((f) => f.status === 'M' || f.status === 'T'), (n: number) => t('{0} modified', n)],
+    [count(isAdded), (n: number) => t('{0} added', n)],
+    [count((f) => f.status === 'D'), (n: number) => t('{0} deleted', n)],
+    [count((f) => f.status === 'R'), (n: number) => t('{0} renamed', n)],
   ] as const;
-  const text = parts.filter(([n]) => n > 0).map(([n, label]) => `${n} ${label}`);
-  return text.length ? text.join(', ') : 'ningún archivo seleccionado';
+  const text = parts.filter(([n]) => n > 0).map(([n, label]) => label(n));
+  return text.length ? text.join(', ') : t('no files selected');
 }

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CommitState } from '../../../src/webview/protocol';
 import { onHostMessage, post } from '../vscode';
+import { t } from '../i18n';
 
 const DRAFT_KEY = 'multigit.commitDraft';
 
@@ -49,26 +50,26 @@ export function CommitBox() {
         {state.generating ? (
           <button
             className="claude-btn running"
-            title="Cancelar la generación"
+            title={t('Cancel generation')}
             onClick={() => post({ type: 'commit/cancelGenerate', payload: {} })}
           >
-            <span className="spinner" /> Generando… <span className="muted">Cancelar</span>
+            <span className="spinner" /> {t('Generating…')} <span className="muted">{t('Cancel')}</span>
           </button>
         ) : (
           <button
             className="claude-btn"
-            title="Generar el mensaje con Claude a partir de los archivos marcados (⌘G). Púlsalo de nuevo para otra propuesta."
+            title={t('Write the message with Claude from the checked files (⌘G). Click again for another proposal.')}
             disabled={state.busy || state.total === 0}
             onClick={generate}
           >
-            <ClaudeIcon /> Generar con Claude
+            <ClaudeIcon /> {t('Generate with Claude')}
           </button>
         )}
       </div>
       <textarea
         ref={textarea}
         className="commit-message"
-        placeholder="Mensaje del commit (⌘Enter para commit)"
+        placeholder={t('Commit message (⌘Enter to commit)')}
         value={message}
         disabled={state.busy}
         onChange={(e) => {
@@ -104,7 +105,7 @@ export function CommitBox() {
       </div>
       <div className="commit-summary small muted">
         {state.total === 0
-          ? 'Marca archivos en la vista Changes.'
+          ? t('Check files in the Changes view.')
           : state.repos.map((r) => (
               <span key={r.name} className="commit-repo">
                 <span className="dot" style={{ background: `var(--vscode-multigit-repo${r.colorIndex})` }} />

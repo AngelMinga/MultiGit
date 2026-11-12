@@ -4,6 +4,10 @@
 repos independientes (por ejemplo, micro-frontends) que casi siempre están en la misma rama: ves
 todos los repos juntos y haces checkout, commit, push, pull o un merge en todos a la vez.
 
+**Idiomas**: inglés (por defecto) y español. MultiGit usa el idioma de VS Code (*Configure Display
+Language*) en menús, mensajes, diálogos y paneles. Los nombres de acciones heredados de IntelliJ
+(*Checkout*, *Rollback*, *Show Diff*…) se mantienen en inglés.
+
 <!--
 Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
 ![Panel MultiGit: Changes, Commit, Repositorios y Ramas](images/panel.png)
@@ -173,7 +177,12 @@ npm run dev -- <ruta>  # abre una ventana con la extensión en desarrollo
 
 O abre esta carpeta en VS Code y pulsa **F5**.
 
-**CI**: cada push a `main` y cada PR corre typecheck, tests (Linux y macOS) y empaqueta el `.vsix`.
+**Traducciones**: el texto se escribe en inglés con `t('…')` (`src/i18n.ts` en la extensión,
+`webview-ui/src/i18n.ts` en los webviews) y la traducción va en `l10n/bundle.l10n.<idioma>.json`; los
+menús y comandos están en `package.nls.<idioma>.json`. `test/i18n.test.ts` comprueba que cada clave
+del bundle tiene los mismos `{n}` que su traducción.
+
+**CI**: cada push a `main` y cada PR corre typecheck, tests (Linux, macOS y Windows), los tests e2e y empaqueta el `.vsix`.
 **Release**: con un tag `vX.Y.Z` igual a la versión de `package.json` se publica en el VS Code
 Marketplace (secreto `VSCE_PAT`), en Open VSX (`OVSX_PAT`) y se crea el GitHub Release con el `.vsix`. La hoja de ruta por fases está en [PLAN.md](PLAN.md).
 

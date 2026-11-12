@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { PushFile, PushRepoView, PushState, PushTagsMode } from '../../../src/webview/protocol';
 import { relativeDate } from '../format';
 import { onHostMessage, post } from '../vscode';
+import { t } from '../i18n';
 
 const STATE_ICON: Record<string, string> = {
   running: '⏳',
@@ -79,7 +80,7 @@ export function PushDialog() {
     <div className="push">
       <div className="push-main">
         {/* ---------------------------------------------------- repos */}
-        <section className="pane repos" aria-label="Repositorios">
+        <section className="pane repos" aria-label={t('Repositories')}>
           <header className="pane-header">
             <label className="check">
               <input
@@ -93,7 +94,7 @@ export function PushDialog() {
                   })
                 }
               />
-              <span>Repositorios</span>
+              <span>{t('Repositories')}</span>
             </label>
             <span className="muted">
               {checked.length}/{state.repos.length}
@@ -116,7 +117,7 @@ export function PushDialog() {
                   disabled={!!r.skipReason || state.busy}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) => post({ type: 'push/toggle', payload: { repoIds: [r.id], checked: e.target.checked } })}
-                  aria-label={`Incluir ${r.name}`}
+                  aria-label={t('Include {0}', r.name)}
                 />
                 <div className="repo-text">
                   <div className="repo-name">
@@ -135,7 +136,7 @@ export function PushDialog() {
                       <span className="muted"> → </span>
                       <button
                         className="link"
-                        title="Cambiar destino"
+                        title={t('Change target')}
                         disabled={state.busy}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -162,10 +163,10 @@ export function PushDialog() {
           <header className="pane-header">
             <span>
               {repo ? `${repo.name}: ` : ''}
-              {repo?.commits.length ?? 0} commit(s) por subir
-              {repo?.truncated ? ' (mostrando los primeros 500)' : ''}
+              {t('{0} commit(s) to push', repo?.commits.length ?? 0)}
+              {repo?.truncated ? t(' (showing the first 500)') : ''}
             </span>
-            {repo?.isNew && <span className="muted small">rama nueva: commits que no están en {repo.remote}</span>}
+            {repo?.isNew && <span className="muted small">{t('new branch: commits that are not on {0}', repo.remote ?? '')}</span>}
           </header>
           <ul className="list commits">
             {repo?.commits.map((c) => (
@@ -182,15 +183,15 @@ export function PushDialog() {
               </li>
             ))}
             {repo && repo.commits.length === 0 && !repo.skipReason && (
-              <li className="muted pad">{repo.isNew ? 'Sin commits nuevos: solo se creará la rama en el remote.' : 'Nada por subir.'}</li>
+              <li className="muted pad">{repo.isNew ? t('No new commits: only the branch will be created on the remote.') : t('Nothing to push.')}</li>
             )}
           </ul>
           <div className="files">
             <header className="pane-header small">
-              {selectedCommit ? 'Archivos del commit (doble clic para ver el diff)' : 'Elige un commit para ver sus archivos'}
+              {selectedCommit ? t('Commit files (double-click to see the diff)') : t('Choose a commit to see its files')}
             </header>
             <ul className="list">
-              {selectedCommit && !commitFiles && <li className="muted pad">Cargando…</li>}
+              {selectedCommit && !commitFiles && <li className="muted pad">{t('Loading…')}</li>}
               {commitFiles?.map((f) => (
                 <li
                   key={`${f.status}:${f.oldPath ?? ''}:${f.path}`}
@@ -224,14 +225,14 @@ export function PushDialog() {
           Edit all targets
         </button>
         <span className="spacer" />
-        {state.busy && <span className="muted">Trabajando…</span>}
+        {state.busy && <span className="muted">{t('Working…')}</span>}
         {rejected && !state.busy && (
           <button className="secondary" onClick={() => post({ type: 'push/pullAndRetry', payload: { tags } })}>
-            Pull y reintentar
+            {t('Pull and Retry')}
           </button>
         )}
         <button className="secondary" onClick={() => post({ type: 'push/close', payload: {} })}>
-          Cancelar
+          {t('Cancel')}
         </button>
         <div className="split">
           <button className="primary" disabled={state.busy || checked.length === 0} onClick={() => runPush(false)}>
@@ -240,7 +241,7 @@ export function PushDialog() {
           <button
             className="primary caret"
             disabled={state.busy || checked.length === 0}
-            aria-label="Más opciones de push"
+            aria-label={t('More push options')}
             onClick={() => setMenuOpen((o) => !o)}
           >
             ▾
@@ -292,7 +293,7 @@ function EditTargets(props: {
           props.onApply(value);
         }}
       >
-        <h2>{props.single ? 'Destino del push' : `Destino de ${props.edit.repoIds.length} repositorios`}</h2>
+        <h2>{props.single ? t('Push target') : t('Target of {0} repositories', props.edit.repoIds.length)}</h2>
         <label>
           Remote
           <select value={value.remote} onChange={(e) => setValue({ ...value, remote: e.target.value })}>
@@ -304,20 +305,20 @@ function EditTargets(props: {
           </select>
         </label>
         <label>
-          Rama remota
+          {t('Remote branch')}
           <input
             autoFocus
             value={value.branch}
-            placeholder={props.single ? '' : 'vacío = la de cada repo'}
+            placeholder={props.single ? '' : t('empty = each repository\'s')}
             onChange={(e) => setValue({ ...value, branch: e.target.value })}
           />
         </label>
         <div className="dialog-buttons">
           <button type="button" className="secondary" onClick={props.onCancel}>
-            Cancelar
+            {t('Cancel')}
           </button>
           <button type="submit" className="primary">
-            Aplicar
+            {t('Apply')}
           </button>
         </div>
       </form>

@@ -2,7 +2,7 @@
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { planCommit, planRollback, SHELF_PREFIX, STATUS_LABEL, type StatusFile } from '../git/changes';
+import { planCommit, planRollback, SHELF_PREFIX, statusLabel, type StatusFile } from '../git/changes';
 import { GitContentProvider } from '../git/GitContentProvider';
 import { errorText, runInRepos } from '../git/MultiRepoRunner';
 import type { StepResult } from '../git/preflight';
@@ -11,6 +11,7 @@ import type { ChangesTree, FileRef } from './ChangesTree';
 import { commonAncestorDirs, gitignoreIn, ignorePattern } from '../git/ignoreTargets';
 import { RollbackPanel, rollbackKey } from '../webview/RollbackPanel';
 import { openMergeEditor } from './conflicts';
+import { t } from '../i18n';
 
 /** Agrupa archivos por repo, en el orden de los repos. */
 function byRepo(refs: readonly FileRef[], repos: readonly Repo[]): Array<{ repo: Repo; files: StatusFile[] }> {
@@ -35,18 +36,18 @@ export class ChangesActions {
   async commit(message: string, amend: boolean): Promise<Repo[] | undefined> {
     const groups = byRepo(this.tree.checkedFiles, this.manager.all);
     if (groups.length === 0) {
-      void vscode.window.showWarningMessage('MultiGit: marca al menos un archivo en la vista Changes.');
+      void vscode.window.showWarningMessage(t('MultiGit: check at least one file in the Changes view.'));
       return undefined;
     }
     if (!message.trim()) {
-      void vscode.window.showWarningMessage('MultiGit: escribe el mensaje del commit.');
+      void vscode.window.showWarningMessage(t('MultiGit: type the commit message.'));
       return undefined;
     }
     const filesOf = new Map(groups.map((g) => [g.repo, g.files]));
     const total = groups.reduce((n, g) => n + g.files.length, 0);
 
     const results = await runInRepos(this.manager, {
-      title: `${amend ? 'Amend commit' : 'Commit'} de ${total} archivo(s)`,
+      title: t('{0} of {1} file(s)', amend ? 'Amend commit' : 'Commit', total),
       repos: groups.map((g) => g.repo),
       check: () => undefined,
       run: async (repo) => {
@@ -54,7 +55,7 @@ export class ChangesActions {
         const plan = planCommit(files);
         await repo.git.addPaths(plan.add);
         await repo.git.commitPaths(message, plan.paths, amend);
-        return `${files.length} archivo(s)`;
+        return t('{0} file(s)', files.length);
       },
     });
     await this.tree.refresh();
@@ -80,7 +81,7 @@ export class ChangesActions {
   async rollback(initial?: readonly FileRef[]): Promise<void> {
     const candidates = this.tree.trackedFiles;
     if (candidates.length === 0) {
-      void vscode.window.showInformationMessage('MultiGit: no hay cambios versionados para revertir.');
+      void vscode.window.showInformationMessage(t('MultiGit: there are no versioned changes to roll back.'));
       return;
     }
     const keys = new Set((initial ?? this.tree.checkedFiles).filter((r) => r.file.kind === 'tracked').map(rollbackKey));
@@ -99,7 +100,7 @@ export class ChangesActions {
     if (!groups.length) return false;
     const plans = new Map(groups.map((g) => [g.repo, planRollback(g.files)]));
     const results = await runInRepos(this.manager, {
-      title: `Rollback de ${selected.length} archivo(s)`,
+      title: t('Rollback of {0} file(s)', selected.length),
       repos: groups.map((g) => g.repo),
       run: async (repo) => {
         const plan = plans.get(repo)!;
@@ -108,7 +109,7 @@ export class ChangesActions {
         if (deleteAdded) {
           await Promise.all(plan.added.map((p) => fs.rm(path.join(repo.root, p), { force: true })));
         }
-        return `${plan.restore.length + plan.unstage.length} archivo(s)`;
+        return t('{0} file(s)', plan.restore.length + plan.unstage.length);
       },
     });
     await this.tree.refresh();
@@ -121,14 +122,14 @@ export class ChangesActions {
   async shelve(refs?: readonly FileRef[]): Promise<void> {
     const groups = byRepo(refs?.length ? refs : this.tree.checkedFiles, this.manager.all);
     if (groups.length === 0) {
-      void vscode.window.showWarningMessage('MultiGit: marca los archivos que quieres guardar (shelve).');
+      void vscode.window.showWarningMessage(t('MultiGit: check the files you want to shelve.'));
       return;
     }
     const name = (
       await vscode.window.showInputBox({
-        title: 'Shelve: guardar cambios aparte',
-        prompt: `Nombre del shelf (${groups.map((g) => `${g.repo.name}: ${g.files.length}`).join(', ')})`,
-        validateInput: (v) => (v.trim() ? undefined : 'Escribe un nombre'),
+        title: t('Shelve: put changes aside'),
+        prompt: t('Shelf name ({0})', groups.map((g) => `${g.repo.name}: ${g.files.length}`).join(', ')),
+        validateInput: (v) => (v.trim() ? undefined : t('Type a name')),
       })
     )?.trim();
     if (!name) return;
@@ -141,7 +142,7 @@ export class ChangesActions {
       run: async (repo) => {
         const files = filesOf.get(repo)!;
         await repo.git.stashPush(name, planCommit(files).paths);
-        return `${files.length} archivo(s)`;
+        return t('{0} file(s)', files.length);
       },
     });
     await this.tree.refresh();
@@ -163,7 +164,7 @@ export class ChangesActions {
       }
     }
     if (byName.size === 0) {
-      void vscode.window.showInformationMessage('MultiGit: no hay shelves guardados.');
+      void vscode.window.showInformationMessage(t('MultiGit: there are no saved shelves.'));
       return;
     }
     const picked = await vscode.window.showQuickPick(
@@ -173,7 +174,7 @@ export class ChangesActions {
         name,
         repos,
       })),
-      { title: 'Unshelve: aplicar cambios guardados', placeHolder: 'Elige un shelf' },
+      { title: t('Unshelve: apply saved changes'), placeHolder: t('Choose a shelf') },
     );
     if (!picked) return;
 
@@ -182,7 +183,7 @@ export class ChangesActions {
       repos: picked.repos,
       run: async (repo) => {
         const entry = (await repo.git.listStashes()).find((s) => s.message === `${SHELF_PREFIX}${picked.name}`);
-        if (!entry) throw new Error('el shelf ya no existe');
+        if (!entry) throw new Error(t('the shelf no longer exists'));
         await repo.git.stashPop(entry.ref);
       },
     });
@@ -203,7 +204,7 @@ export class ChangesActions {
     const groups = byRepo(refs.filter((r) => r.file.kind === 'untracked'), this.manager.all);
     if (!groups.length) return;
     await this.perRepo(groups, (repo, files) => repo.git.addPaths(files.map((f) => f.path)));
-    vscode.window.setStatusBarMessage(`$(add) ${groups.reduce((n, g) => n + g.files.length, 0)} archivo(s) agregados a Git`, 4000);
+    vscode.window.setStatusBarMessage(t('$(add) {0} file(s) added to Git', groups.reduce((n, g) => n + g.files.length, 0)), 4000);
   }
 
   /**
@@ -250,23 +251,23 @@ export class ChangesActions {
       for (const dir of plan.dirs) {
         items.push({
           label: `$(file) ${gitignoreIn(dir)}`,
-          description: plan.created ? 'se creará' : plan.repo.name,
+          description: plan.created ? t('will be created') : plan.repo.name,
           target: { kind: 'dir', dir },
         });
       }
     } else {
       items.push({
         label: '$(file) .gitignore',
-        description: 'el más cercano en cada repositorio (o el de la raíz)',
+        description: t('the nearest one in each repository (or the root one)'),
         target: { kind: 'dir' },
       });
     }
-    items.push({ label: '$(file) .git/info/exclude', description: 'solo en este equipo, no se sube', target: { kind: 'exclude' } });
+    items.push({ label: '$(file) .git/info/exclude', description: t('only on this machine, not committed'), target: { kind: 'exclude' } });
 
     const total = groups.reduce((n, g) => n + g.files.length, 0);
     const picked = await vscode.window.showQuickPick(items, {
       title: 'Add to .gitignore',
-      placeHolder: total === 1 ? `Ignorar ${groups[0]!.files[0]!.path} en…` : `Ignorar ${total} archivos en…`,
+      placeHolder: total === 1 ? t('Ignore {0} in…', groups[0]!.files[0]!.path) : t('Ignore {0} files in…', total),
     });
     if (!picked) return;
 
@@ -299,11 +300,11 @@ export class ChangesActions {
       .flatMap((g) => [`${g.repo.name}:`, ...g.files.map((f) => `   ${f.path}`)])
       .join('\n');
     const ok = await vscode.window.showWarningMessage(
-      `¿Eliminar ${existing.length} archivo(s)?`,
-      { modal: true, detail: `${detail}\n\nSe mueven a la papelera del sistema.` },
-      'Eliminar',
+      t('Delete {0} file(s)?', existing.length),
+      { modal: true, detail: t('{0}\n\nThey are moved to the system trash.', detail) },
+      t('Delete'),
     );
-    if (ok !== 'Eliminar') return;
+    if (ok !== t('Delete')) return;
     for (const ref of existing) {
       await vscode.workspace.fs.delete(vscode.Uri.file(path.join(ref.repo.root, ref.file.path)), { useTrash: true, recursive: true });
     }
@@ -318,14 +319,14 @@ export class ChangesActions {
       const tracked = files.filter((f) => f.kind !== 'untracked').flatMap((f) => (f.origPath ? [f.origPath, f.path] : [f.path]));
       let patch = await repo.git.patchTracked(tracked);
       for (const f of files.filter((x) => x.kind === 'untracked')) patch += await repo.git.patchUntracked(f.path);
-      if (patch.trim()) parts.push(groups.length > 1 ? `# Repositorio: ${repo.name}\n${patch}` : patch);
+      if (patch.trim()) parts.push(groups.length > 1 ? t('# Repository: {0}\n{1}', repo.name, patch) : patch);
     }
     if (!parts.length) {
-      void vscode.window.showInformationMessage('MultiGit: no hay diferencias para copiar.');
+      void vscode.window.showInformationMessage(t('MultiGit: there are no differences to copy.'));
       return;
     }
     await vscode.env.clipboard.writeText(parts.join('\n'));
-    vscode.window.setStatusBarMessage(`$(copy) Patch de ${refs.length} archivo(s) copiado`, 4000);
+    vscode.window.setStatusBarMessage(t('$(copy) Patch of {0} file(s) copied', refs.length), 4000);
   }
 
   /** Ejecuta `fn` en cada repo y muestra los errores; luego refresca la vista. */
@@ -358,7 +359,7 @@ export class ChangesActions {
     const isNew = file.kind === 'untracked' || file.status === 'A' || file.status === 'C';
     const left = GitContentProvider.uri(repo.root, isNew ? '' : 'HEAD', file.origPath ?? file.path);
     const right = file.status === 'D' ? GitContentProvider.uri(repo.root, '', file.path) : abs;
-    const title = `${path.posix.basename(file.path)} (${STATUS_LABEL[file.status]} · HEAD ↔ local)`;
+    const title = `${path.posix.basename(file.path)} (${statusLabel(file.status)} · HEAD ↔ local)`;
     try {
       await vscode.commands.executeCommand('vscode.diff', left, right, title, { preview: true });
     } catch (error) {

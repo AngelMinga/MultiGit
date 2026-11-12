@@ -9,6 +9,7 @@ import { formatSummary, isRejection } from '../git/preflight';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import type { PushRepoView, PushState, PushTagsMode, WebviewMessage } from './protocol';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from './webviewHtml';
+import { t } from '../i18n';
 
 const MAX_COMMITS = 500;
 
@@ -158,22 +159,22 @@ export class PushPanel implements vscode.Disposable {
   private async push(ids: string[], tags: PushTagsMode, force: boolean): Promise<void> {
     const targets = this.repos.filter((r) => ids.includes(r.root) && !this.views.get(r.root)?.skipReason);
     if (targets.length === 0) {
-      void vscode.window.showInformationMessage('MultiGit: marca al menos un repositorio para hacer push.');
+      void vscode.window.showInformationMessage(t('MultiGit: check at least one repository to push.'));
       return;
     }
 
     if (force) {
       const detail = [
-        'Se ejecutará "git push --force-with-lease" en:',
+        t('"git push --force-with-lease" will run in:'),
         ...targets.map((r) => {
           const v = this.views.get(r.root)!;
           return `  • ${r.name}: ${v.branch} → ${v.remote}:${v.remoteBranch}`;
         }),
         '',
-        'Los commits del remote que no tengas en local se perderán. --force-with-lease solo protege si',
-        'alguien subió algo después de tu último fetch.',
+        t('Remote commits you do not have locally will be lost. --force-with-lease only protects you if'),
+        t('someone pushed something after your last fetch.'),
       ].join('\n');
-      const ok = await vscode.window.showWarningMessage('¿Hacer force push?', { modal: true, detail }, 'Force push');
+      const ok = await vscode.window.showWarningMessage(t('Force push?'), { modal: true, detail }, 'Force push');
       if (ok !== 'Force push') return;
     }
 
@@ -192,7 +193,7 @@ export class PushPanel implements vscode.Disposable {
       silent: true,
       check: (repo) => {
         const v = this.views.get(repo.root)!;
-        return !v.isNew && v.commits.length === 0 && !force && tags === 'none' ? { skip: 'nada por subir' } : undefined;
+        return !v.isNew && v.commits.length === 0 && !force && tags === 'none' ? { skip: t('nothing to push') } : undefined;
       },
       onStart: (repo) => {
         this.views.get(repo.root)!.state = 'running';
@@ -205,8 +206,8 @@ export class PushPanel implements vscode.Disposable {
         v.rejected = result.state === 'failed' && isRejection(result.message ?? '');
         if (v.rejected) {
           v.message = /stale info/i.test(result.message ?? '')
-            ? 'rechazado: el remote cambió desde tu último fetch (--force-with-lease lo protegió)'
-            : 'rechazado: el remote tiene commits que no tienes; usa "Pull y reintentar"';
+            ? t('rejected: the remote changed since your last fetch (--force-with-lease protected it)')
+            : t('rejected: the remote has commits you don\'t have; use "Pull and Retry"');
           result.message = v.message;
         }
         this.post();
@@ -215,7 +216,7 @@ export class PushPanel implements vscode.Disposable {
         const v = this.views.get(repo.root)!;
         const setUpstream = v.isNew || !(await hasUpstream(repo, v.branch!));
         await repo.git.pushBranch(v.remote!, v.branch!, v.remoteBranch!, { setUpstream, forceWithLease: force, tags });
-        return v.isNew ? `nueva rama ${v.remote}/${v.remoteBranch}` : `↑${v.commits.length}`;
+        return v.isNew ? t('new branch {0}/{1}', v.remote, v.remoteBranch) : `↑${v.commits.length}`;
       },
     });
 
@@ -226,7 +227,7 @@ export class PushPanel implements vscode.Disposable {
     const summary = formatSummary(results);
     if (results.every((r) => r.state === 'ok' || r.state === 'skipped')) {
       const ok = results.filter((r) => r.state === 'ok').length;
-      void vscode.window.showInformationMessage(`✅ MultiGit: push completado en ${ok} repositorio(s)`, {
+      void vscode.window.showInformationMessage(t('✅ MultiGit: push completed in {0} repositories', ok), {
         modal: false,
         detail: summary,
       });
@@ -234,7 +235,7 @@ export class PushPanel implements vscode.Disposable {
       return;
     }
     const failed = results.find((r) => r.state === 'failed');
-    void vscode.window.showErrorMessage(`MultiGit: el push falló en ${failed?.repo ?? '?'}`, { modal: true, detail: summary });
+    void vscode.window.showErrorMessage(t('MultiGit: push failed in {0}', failed?.repo ?? '?'), { modal: true, detail: summary });
   }
 
   /** Pull (merge) en los repos rechazados y vuelve a hacer push de los fallidos y no ejecutados. */
@@ -247,12 +248,12 @@ export class PushPanel implements vscode.Disposable {
     if (rejected.length === 0) return;
 
     const pulled = await runInRepos(this.manager, {
-      title: 'Pull antes de reintentar el push',
+      title: t('Pull before retrying the push'),
       repos: rejected,
       check: (repo, status) => {
         const v = this.views.get(repo.root)!;
-        if (status.branch !== v.branch) return { block: `'${v.branch}' no es la rama actual; haz pull manualmente` };
-        if (!status.upstream) return { block: 'la rama no tiene upstream' };
+        if (status.branch !== v.branch) return { block: t('\'{0}\' is not the current branch; pull it manually', v.branch) };
+        if (!status.upstream) return { block: t('the branch has no upstream') };
         return undefined;
       },
       run: async (repo) => {
@@ -306,10 +307,10 @@ async function buildView(repo: Repo, branchOverride?: string, target: { remote?:
     view.branch = branch;
 
     const lb = branches.local.find((b) => b.name === branch);
-    if (!lb) return { ...view, skipReason: `no existe la rama '${branch}'` };
+    if (!lb) return { ...view, skipReason: t('branch \'{0}\' does not exist', branch) };
 
     const remote = target.remote ?? lb.upstreamRemote ?? pickRemote(branches.remotes);
-    if (!remote) return { ...view, skipReason: 'el repositorio no tiene remotes' };
+    if (!remote) return { ...view, skipReason: t('the repository has no remotes') };
     const remoteBranch = target.branch ?? (lb.upstreamRemote === remote && !lb.gone ? lb.upstreamBranch : null) ?? branch;
     view.remote = remote;
     view.remoteBranch = remoteBranch;

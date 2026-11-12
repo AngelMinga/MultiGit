@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { AnswerCache, AskpassServer, classifyPrompt } from '../git/askpass';
 import { GitService } from '../git/GitService';
+import { t } from '../i18n';
 
 export async function startCredentials(
   context: vscode.ExtensionContext,
@@ -18,18 +19,18 @@ export async function startCredentials(
     if (kind === 'confirm') {
       // ssh: "The authenticity of host … can't be established … (yes/no/[fingerprint])?"
       const choice = await vscode.window.showWarningMessage(
-        'MultiGit: SSH pide confirmar la identidad del servidor',
+        t('MultiGit: SSH asks to confirm the server identity'),
         { modal: true, detail: prompt.trim() },
-        'Confiar y continuar',
+        t('Trust and Continue'),
       );
       answer = choice ? 'yes' : 'no';
     } else {
       answer = await vscode.window.showInputBox({
-        title: 'MultiGit: credenciales de Git',
+        title: t('MultiGit: Git credentials'),
         prompt: prompt.trim(),
         password: kind === 'secret',
         ignoreFocusOut: true,
-        placeHolder: kind === 'secret' ? 'Contraseña, token de acceso o passphrase' : undefined,
+        placeHolder: kind === 'secret' ? t('Password, access token or passphrase') : undefined,
       });
     }
     if (answer !== undefined) cache.set(prompt, answer);

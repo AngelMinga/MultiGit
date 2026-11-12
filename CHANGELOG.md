@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- **Multi-idioma**: toda la interfaz (mensajes, diálogos, árboles, barra de estado, Git Log, Push,
+  Commit, Rollback y toolbar) en **inglés** por defecto y **español** según el idioma de VS Code.
+  Las fechas del Git Log usan el formato del idioma activo.
+- Las traducciones de *Generar con Claude* pasan al bundle común (`l10n/`).
+
 ## 0.3.2
 
 - Menús, comandos y ajustes en **inglés y español** según el idioma de VS Code (`package.nls`).

@@ -6,6 +6,7 @@ import { OPERATION_LABEL } from '../git/operations';
 import { computeAlignment } from '../git/alignment';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import { repoDecorationUri } from './RepoDecorations';
+import { t } from '../i18n';
 
 export class RepositoriesView implements vscode.TreeDataProvider<Repo>, vscode.Disposable {
   private readonly changeEmitter = new vscode.EventEmitter<Repo | undefined>();
@@ -36,7 +37,7 @@ export class RepositoriesView implements vscode.TreeDataProvider<Repo>, vscode.D
 
     const status = repo.status;
     if (!status) {
-      item.description = '⚠ error al leer el estado';
+      item.description = t('⚠ error reading the status');
       item.tooltip = repo.error ?? repo.root;
       return item;
     }
@@ -49,12 +50,12 @@ export class RepositoriesView implements vscode.TreeDataProvider<Repo>, vscode.D
     const alignment = computeAlignment(this.manager.all);
     if (alignment?.outliers.some((o) => o.repo === repo.name)) {
       item.description = `≠ ${item.description}`;
-      tooltip.appendMarkdown(`  \n$(warning) El resto de los repos está en \`${alignment.target}\``);
+      tooltip.appendMarkdown(t('  \n$(warning) The other repos are on `{0}`', alignment.target));
     }
     if (repo.operation) {
       // Operación a medias: primero el aviso, con botones Resolve / Continue / Abort al pasar el ratón.
       const conflicts = status.changes.conflicted;
-      item.description = `⚠ ${OPERATION_LABEL[repo.operation]}${conflicts ? ` · ${conflicts} conflicto(s)` : ''}  ${item.description}`;
+      item.description = `⚠ ${OPERATION_LABEL[repo.operation]}${conflicts ? t(' · {0} conflict(s)', conflicts) : ''}  ${item.description}`;
       item.contextValue = 'multigit.repo.operation';
     }
     item.tooltip = tooltip;
@@ -72,24 +73,24 @@ function buildTooltip(repo: Repo, head: string): vscode.MarkdownString {
   const lines = [`**${repo.name}**`, '', `$(git-branch) \`${head}\``];
 
   if (!s.upstream) {
-    lines.push('$(cloud) sin upstream (la rama no se ha subido)');
+    lines.push(t('$(cloud) no upstream (the branch has not been pushed)'));
   } else if (s.ahead === null) {
-    lines.push(`$(warning) el upstream \`${s.upstream}\` ya no existe`);
+    lines.push(t('$(warning) upstream `{0}` no longer exists', s.upstream));
   } else {
-    lines.push(`$(cloud) \`${s.upstream}\` — ↑${s.ahead} por subir, ↓${s.behind ?? 0} por bajar`);
+    lines.push(t('$(cloud) `{0}` — ↑{1} to push, ↓{2} to pull', s.upstream, s.ahead, s.behind ?? 0));
   }
 
   const c = s.changes;
   if (c.total === 0) {
-    lines.push('$(check) sin cambios');
+    lines.push(t('$(check) no changes'));
   } else {
     const parts = [
-      c.staged && `${c.staged} en stage`,
-      c.unstaged && `${c.unstaged} modificados`,
-      c.untracked && `${c.untracked} sin versionar`,
-      c.conflicted && `${c.conflicted} en conflicto`,
+      c.staged && t('{0} staged', c.staged),
+      c.unstaged && t('{0} modified', c.unstaged),
+      c.untracked && t('{0} unversioned', c.untracked),
+      c.conflicted && t('{0} conflicted', c.conflicted),
     ].filter(Boolean);
-    lines.push(`$(diff) ${c.total} cambios sin commit: ${parts.join(', ')}`);
+    lines.push(t('$(diff) {0} uncommitted changes: {1}', c.total, parts.join(', ')));
   }
 
   lines.push('', `_${repo.root}_`);

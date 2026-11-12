@@ -6,6 +6,7 @@ import { preferredColorIndex } from '../git/repoColor';
 import type { RepoManager } from '../git/RepoManager';
 import type { ToolbarState, WebviewMessage } from '../webview/protocol';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from '../webview/webviewHtml';
+import { t } from '../i18n';
 
 const COMMANDS = {
   project: 'workbench.action.openRecent',
@@ -62,7 +63,7 @@ export class ToolbarView implements vscode.WebviewViewProvider, vscode.Disposabl
       project,
       projectColor: preferredColorIndex(project),
       branch:
-        summary.kind === 'single' ? summary.branch : summary.kind === 'mixed' ? `${summary.byBranch.length} ramas` : 'sin repos',
+        summary.kind === 'single' ? summary.branch : summary.kind === 'mixed' ? t('{0} branches', summary.byBranch.length) : t('no repos'),
       mixed: summary.kind === 'mixed',
       repos: repos.length,
       ahead,

@@ -1,4 +1,5 @@
 // Archivos con cambios, plan de commit/rollback y stashes. Puro, sin `vscode`.
+import { t } from '../i18n';
 
 /** Letra de estado como en IntelliJ / VS Code. */
 export type FileStatus = 'M' | 'A' | 'D' | 'R' | 'C' | 'T' | 'U' | '?' | '!';
@@ -15,17 +16,22 @@ export interface StatusFile {
   status: FileStatus;
 }
 
-export const STATUS_LABEL: Record<FileStatus, string> = {
-  M: 'Modificado',
-  A: 'Añadido',
-  D: 'Eliminado',
-  R: 'Renombrado',
-  C: 'Copiado',
-  T: 'Cambio de tipo',
-  U: 'En conflicto',
-  '?': 'Sin versionar',
-  '!': 'Ignorado',
+const STATUS_LABEL: Record<FileStatus, string> = {
+  M: 'Modified',
+  A: 'Added',
+  D: 'Deleted',
+  R: 'Renamed',
+  C: 'Copied',
+  T: 'Type changed',
+  U: 'Conflicted',
+  '?': 'Unversioned',
+  '!': 'Ignored',
 };
+
+/** Nombre del estado en el idioma de VS Code (se traduce al usarse, no al cargar el módulo). */
+export function statusLabel(status: FileStatus): string {
+  return t(STATUS_LABEL[status]);
+}
 
 /**
  * Parsea `git status --porcelain=v2 -z` (con o sin `--branch`) a una lista de archivos.
@@ -130,18 +136,17 @@ export function planRollback(files: readonly StatusFile[]): RollbackPlan {
   return plan;
 }
 
-/** "3 modified, 1 added, 1 deleted" en español. */
+/** "3 modificado(s), 1 añadido(s)…" en el idioma de VS Code. */
 export function describeCounts(files: readonly StatusFile[]): string {
   const count = (pred: (f: StatusFile) => boolean) => files.filter(pred).length;
   const parts = [
-    [count((f) => f.status === 'M' || f.status === 'T'), 'modificado(s)'],
-    [count((f) => f.status === 'A' || f.status === 'C'), 'añadido(s)'],
-    [count((f) => f.status === 'D'), 'eliminado(s)'],
-    [count((f) => f.status === 'R'), 'renombrado(s)'],
-    [count((f) => f.status === '?'), 'sin versionar'],
-  ] as const;
-  const text = parts.filter(([n]) => n > 0).map(([n, label]) => `${n} ${label}`);
-  return text.length ? text.join(', ') : 'sin archivos';
+    t('{0} modified', count((f) => f.status === 'M' || f.status === 'T')),
+    t('{0} added', count((f) => f.status === 'A' || f.status === 'C')),
+    t('{0} deleted', count((f) => f.status === 'D')),
+    t('{0} renamed', count((f) => f.status === 'R')),
+    t('{0} unversioned', count((f) => f.status === '?')),
+  ].filter((p) => !p.startsWith('0 '));
+  return parts.length ? parts.join(', ') : t('no files');
 }
 
 // ------------------------------------------------------------------ shelf (stash)

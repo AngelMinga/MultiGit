@@ -14,6 +14,7 @@ import {
   type PullRepoInput,
 } from '../git/pull';
 import type { Repo, RepoManager } from '../git/RepoManager';
+import { t } from '../i18n';
 
 const BACK = Symbol('back');
 type Back = typeof BACK;
@@ -28,7 +29,7 @@ interface Item<T> extends vscode.QuickPickItem {
 export async function showPullDialog(manager: RepoManager, initialRepo?: Repo): Promise<void> {
   const all = manager.all;
   if (all.length === 0) {
-    void vscode.window.showInformationMessage('MultiGit: no hay repositorios detectados.');
+    void vscode.window.showInformationMessage(t('MultiGit: no repositories were found.'));
     return;
   }
 
@@ -55,7 +56,7 @@ export async function showPullDialog(manager: RepoManager, initialRepo?: Repo): 
       // ------------------------------------------------ 1. repositorio
       const picked = await pick<readonly Repo[]>(
         [
-          { label: '$(repo-clone) Todos los repositorios', description: `${all.length} repositorios`, value: all },
+          { label: t('$(repo-clone) All Repositories'), description: t('{0} repositories', all.length), value: all },
           { label: '', kind: vscode.QuickPickItemKind.Separator },
           ...all.map((r) => ({
             label: `$(repo) ${r.name}`,
@@ -65,7 +66,7 @@ export async function showPullDialog(manager: RepoManager, initialRepo?: Repo): 
             value: [r] as readonly Repo[],
           })),
         ],
-        { title: 'Pull: repositorio', step: 1, totalSteps, canGoBack },
+        { title: t('Pull: repository'), step: 1, totalSteps, canGoBack },
       );
       if (!picked) return;
       if (picked === BACK) {
@@ -82,7 +83,7 @@ export async function showPullDialog(manager: RepoManager, initialRepo?: Repo): 
       const inputs = toInputs(repos, data);
       const remotes = remotesOf(inputs);
       if (remotes.length === 0) {
-        void vscode.window.showWarningMessage('MultiGit: los repositorios elegidos no tienen remotes.');
+        void vscode.window.showWarningMessage(t('MultiGit: the chosen repositories have no remotes.'));
         return;
       }
       if (remotes.length === 1) {
@@ -93,10 +94,10 @@ export async function showPullDialog(manager: RepoManager, initialRepo?: Repo): 
       const picked = await pick<string>(
         remotes.map((r) => ({
           label: `$(cloud) ${r}`,
-          description: `${inputs.filter((i) => i.branches.remotes.includes(r)).length}/${inputs.length} repos`,
+          description: t('{0}/{1} repos', inputs.filter((i) => i.branches.remotes.includes(r)).length, inputs.length),
           value: r,
         })),
-        { title: `Pull: remote — ${scopeLabel(repos)}`, step: 2, totalSteps, canGoBack },
+        { title: t('Pull: remote — {0}', scopeLabel(repos)), step: 2, totalSteps, canGoBack },
       );
       if (!picked) return;
       if (picked === BACK) {
@@ -113,16 +114,16 @@ export async function showPullDialog(manager: RepoManager, initialRepo?: Repo): 
       const items: Item<Target>[] = [];
       if (repos.length > 1 && !common) {
         items.push({
-          label: '$(arrow-down) Upstream de cada repositorio',
-          description: 'cada repo hace pull de la rama que sigue',
+          label: t('$(arrow-down) Upstream of Each Repository'),
+          description: t('each repository pulls the branch it tracks'),
           value: { kind: 'upstream' },
         });
         items.push({ label: '', kind: vscode.QuickPickItemKind.Separator });
       }
       for (const c of choices) {
         const tags = [
-          c.upstreamFor.length === inputs.length ? 'upstream' : c.upstreamFor.length ? `upstream de ${c.upstreamFor.length}` : '',
-          c.repos.length < inputs.length ? `existe en ${c.repos.length}/${inputs.length}` : '',
+          c.upstreamFor.length === inputs.length ? 'upstream' : c.upstreamFor.length ? t('upstream of {0}', c.upstreamFor.length) : '',
+          c.repos.length < inputs.length ? t('exists in {0}/{1}', c.repos.length, inputs.length) : '',
         ].filter(Boolean);
         items.push({
           label: `${c.upstreamFor.length ? '$(arrow-down)' : '$(cloud)'} ${remote}/${c.name}`,
@@ -131,8 +132,8 @@ export async function showPullDialog(manager: RepoManager, initialRepo?: Repo): 
         });
       }
       const picked = await pick<Target>(items, {
-        title: `Pull: rama de ${remote} — ${scopeLabel(repos)}`,
-        placeholder: 'Buscar rama remota…',
+        title: t('Pull: branch of {0} — {1}', remote, scopeLabel(repos)),
+        placeholder: t('Search remote branch…'),
         step: 3,
         totalSteps,
         canGoBack,
@@ -148,9 +149,9 @@ export async function showPullDialog(manager: RepoManager, initialRepo?: Repo): 
       // ------------------------------------------------ 4. modo
       const picked = await pick<PullMode>(
         [
-          { label: '$(git-merge) Merge', description: 'por defecto: crea un commit de merge si hace falta', value: 'merge' },
-          { label: '$(git-pull-request) Rebase', description: 'reaplica tus commits encima (requiere repo limpio)', value: 'rebase' },
-          { label: '$(arrow-right) --ff-only', description: 'solo avanza si no hay commits locales divergentes', value: 'ff-only' },
+          { label: '$(git-merge) Merge', description: t('default: creates a merge commit if needed'), value: 'merge' },
+          { label: '$(git-pull-request) Rebase', description: t('replays your commits on top (requires a clean repository)'), value: 'rebase' },
+          { label: '$(arrow-right) --ff-only', description: t('only moves forward if there are no diverging local commits'), value: 'ff-only' },
         ],
         { title: `Pull: ${targetLabel(target!)} — modo`, step: 4, totalSteps, canGoBack },
       );
@@ -180,8 +181,8 @@ export async function runPull(
     check: (repo, status) => {
       if (!status.branch) return { skip: 'HEAD detached' };
       if (target.kind === 'upstream') {
-        if (!status.upstream) return { skip: 'la rama no tiene upstream' };
-        if (status.ahead === null) return { skip: `el upstream ${status.upstream} ya no existe` };
+        if (!status.upstream) return { skip: t('the branch has no upstream') };
+        if (status.ahead === null) return { skip: t('upstream {0} no longer exists', status.upstream) };
       } else if (!data.get(repo)?.remote.some((b) => b.full === `${target.remote}/${target.branch}`)) {
         return { skip: `no existe ${target.remote}/${target.branch}` };
       }
@@ -192,7 +193,7 @@ export async function runPull(
       if (target.kind === 'upstream') await repo.git.pullWith(mode);
       else await repo.git.pullWith(mode, target.remote, target.branch);
       const after = await repo.git.headSha();
-      if (!before || !after || before === after) return 'ya estaba al día';
+      if (!before || !after || before === after) return t('already up to date');
       const count = await repo.git.countCommits(`${before}..${after}`);
       return count ? `actualizado (+${count} commit(s))` : 'actualizado';
     },
@@ -204,7 +205,7 @@ export async function runPull(
 async function loadBranches(repos: readonly Repo[]): Promise<Map<Repo, RepoBranches> | undefined> {
   try {
     const entries = await vscode.window.withProgress(
-      { location: vscode.ProgressLocation.Window, title: 'MultiGit: leyendo ramas…' },
+      { location: vscode.ProgressLocation.Window, title: t('MultiGit: reading branches…') },
       () => Promise.all(repos.map(async (r) => [r, await r.git.getBranches()] as const)),
     );
     return new Map(entries);
@@ -222,11 +223,11 @@ function toInputs(repos: readonly Repo[], data: Map<Repo, RepoBranches>): PullRe
 }
 
 function scopeLabel(repos: readonly Repo[]): string {
-  return repos.length === 1 ? repos[0]!.name : `${repos.length} repositorios`;
+  return repos.length === 1 ? repos[0]!.name : t('{0} repositories', repos.length);
 }
 
 function targetLabel(target: Target): string {
-  return target.kind === 'upstream' ? 'del upstream' : `de ${target.remote}/${target.branch}`;
+  return target.kind === 'upstream' ? t('from upstream') : `de ${target.remote}/${target.branch}`;
 }
 
 /** QuickPick de un paso, con botón ← opcional. Devuelve el valor, BACK o undefined (cancelado). */

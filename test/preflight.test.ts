@@ -21,12 +21,12 @@ describe('basicBlocker', () => {
   it('cambios sin commit bloquean solo con requireClean', () => {
     const dirty = status({ unstaged: 2, total: 2 });
     expect(basicBlocker({ status: dirty, operation: null }, false)).toBeUndefined();
-    expect(basicBlocker({ status: dirty, operation: null }, true)).toMatch(/2 cambio/);
+    expect(basicBlocker({ status: dirty, operation: null }, true)).toMatch(/2 uncommitted change/);
   });
 
   it('operación en curso, conflictos y errores siempre bloquean', () => {
-    expect(basicBlocker({ status: status(), operation: 'rebase' }, false)).toMatch(/rebase en curso/);
-    expect(basicBlocker({ status: status({ conflicted: 1, total: 1 }), operation: null }, false)).toMatch(/conflicto/);
+    expect(basicBlocker({ status: status(), operation: 'rebase' }, false)).toMatch(/rebase in progress/);
+    expect(basicBlocker({ status: status({ conflicted: 1, total: 1 }), operation: null }, false)).toMatch(/conflicted/);
     expect(basicBlocker({ operation: null, error: 'not a git repository' }, false)).toMatch(/not a git repository/);
   });
 });
@@ -44,7 +44,7 @@ describe('formatSummary', () => {
         '✅ mfbankingservice',
         '⏭ mfcomponents: nada por subir',
         '❌ mftheme: Your local changes would be overwritten',
-        '⏭ shell: no ejecutado',
+        '⏭ shell: not run',
       ].join('\n'),
     );
     expect(countByState(results)).toEqual({ ok: 1, failed: 1, skipped: 1, pending: 1 });

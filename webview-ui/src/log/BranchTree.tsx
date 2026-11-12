@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import type { LogRepoInfo } from '../../../src/webview/protocol';
 import { getState, setState } from '../vscode';
+import { t } from '../i18n';
 
 /** Qué hace un clic en una rama: filtrar el log o saltar a su último commit. */
 export type ClickMode = 'filter' | 'navigate';
@@ -104,8 +105,8 @@ export function BranchTree(props: {
             </span>
           )}
           <span className="tree-label">{n.label}</span>
-          {!!n.behind && <span className="track incoming" title={`${n.behind} commit(s) entrantes por bajar`}>↓{n.behind}</span>}
-          {!!n.ahead && <span className="track outgoing" title={`${n.ahead} commit(s) salientes por subir`}>↑{n.ahead}</span>}
+          {!!n.behind && <span className="track incoming" title={t('{0} incoming commit(s) to pull', n.behind)}>↓{n.behind}</span>}
+          {!!n.ahead && <span className="track outgoing" title={t('{0} outgoing commit(s) to push', n.ahead)}>↑{n.ahead}</span>}
           {n.count && <span className="muted small">{n.count}</span>}
         </li>
       );
@@ -115,8 +116,8 @@ export function BranchTree(props: {
   return (
     <div className="branch-tree">
       <div className="pane-toolbar">
-        <span className="pane-title">Ramas</span>
-        <button className={`icon-btn${menuOpen ? ' on' : ''}`} title="Opciones" onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}>
+        <span className="pane-title">{t('Branches')}</span>
+        <button className={`icon-btn${menuOpen ? ' on' : ''}`} title={t('Options')} onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}>
           ⋮
         </button>
         {menuOpen && (
@@ -141,7 +142,7 @@ export function BranchTree(props: {
           </div>
         )}
       </div>
-      <input className="tree-search" placeholder="Rama o tag" value={query} onChange={(e) => setQuery(e.target.value)} />
+      <input className="tree-search" placeholder={t('Branch or tag')} value={query} onChange={(e) => setQuery(e.target.value)} />
       <ul className="tree">
         <li
           className={`tree-row${props.selected.branch === null ? ' selected' : ''}`}
@@ -149,7 +150,7 @@ export function BranchTree(props: {
           onClick={() => select({ branch: null, repoIds: [] })}
         >
           <span className="twisty" />
-          <span className="tree-label">Todas las ramas</span>
+          <span className="tree-label">{t('All branches')}</span>
         </li>
         <li
           className={`tree-row${props.selected.branch === 'HEAD' ? ' selected' : ''}`}
@@ -158,7 +159,7 @@ export function BranchTree(props: {
         >
           <span className="twisty" />
           <span className="branch-icon current">◆</span>
-          <span className="tree-label">HEAD (rama actual)</span>
+          <span className="tree-label">{t('HEAD (current branch)')}</span>
         </li>
         {render(tree, 0)}
       </ul>

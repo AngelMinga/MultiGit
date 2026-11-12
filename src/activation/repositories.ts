@@ -10,6 +10,7 @@ import { RepoDecorations } from '../views/RepoDecorations';
 import { RepositoriesView } from '../views/RepositoriesView';
 import { StatusBar } from '../views/StatusBar';
 import type { Core } from './core';
+import { t } from '../i18n';
 
 export function registerRepositories(core: Core, compareView: CompareView): { treeView: vscode.TreeView<Repo>; view: RepositoriesView } {
   const { manager, popup, log } = core;
@@ -32,7 +33,7 @@ export function registerRepositories(core: Core, compareView: CompareView): { tr
     vscode.commands.registerCommand('multigit.pull', (repo?: Repo) => showPullDialog(manager, repo)),
     vscode.commands.registerCommand('multigit.refresh', () =>
       vscode.window.withProgress(
-        { location: { viewId: 'multigit.repositories' }, title: 'Refrescando repositorios…' },
+        { location: { viewId: 'multigit.repositories' }, title: t('Refreshing repositories…') },
         () => manager.refresh(),
       ),
     ),
@@ -44,7 +45,7 @@ export function registerRepositories(core: Core, compareView: CompareView): { tr
     // Enfocar una vista oculta la vuelve visible.
     vscode.commands.registerCommand('multigit.showBranchesView', () => vscode.commands.executeCommand('multigit.branches.focus')),
     vscode.commands.registerCommand('multigit.updateProject', () =>
-      core.actions.updateProject({ repos: manager.all, label: 'todos los repositorios' }),
+      core.actions.updateProject({ repos: manager.all, label: t('all repositories') }),
     ),
   );
   return { treeView, view };
@@ -60,11 +61,11 @@ async function fetchWithProgress(manager: RepoManager): Promise<void> {
   );
   const failed = results.filter((r) => r.error);
   if (failed.length === 0) {
-    vscode.window.setStatusBarMessage(`$(check) MultiGit: fetch completado en ${results.length} repos`, 4000);
+    vscode.window.setStatusBarMessage(t('$(check) MultiGit: fetch completed in {0} repos', results.length), 4000);
     return;
   }
   const lines = results.map((r) => (r.error ? `❌ ${r.repo.name}: ${firstLine(r.error)}` : `✅ ${r.repo.name}`));
-  void vscode.window.showWarningMessage(`MultiGit: el fetch falló en ${failed.length} repo(s).`, {
+  void vscode.window.showWarningMessage(t('MultiGit: fetch failed in {0} repo(s).', failed.length), {
     modal: true,
     detail: lines.join('\n'),
   });

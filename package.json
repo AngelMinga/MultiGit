@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -1804,5 +1804,6 @@
   "homepage": "https://github.com/AngelMinga/MultiGit#readme",
   "bugs": {
     "url": "https://github.com/AngelMinga/MultiGit/issues"
-  }
+  },
+  "l10n": "./l10n"
 }

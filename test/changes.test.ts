@@ -66,7 +66,7 @@ describe('planRollback', () => {
       unstage: ['nuevo.ts', 'renombrado.ts'],
       added: ['nuevo.ts', 'renombrado.ts'],
     });
-    expect(describeCounts(files)).toBe('1 modificado(s), 1 añadido(s), 1 eliminado(s), 1 renombrado(s), 1 sin versionar');
+    expect(describeCounts(files)).toBe('1 modified, 1 added, 1 deleted, 1 renamed, 1 unversioned');
   });
 });
 

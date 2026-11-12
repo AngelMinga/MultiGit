@@ -4,6 +4,7 @@ import { computeAlignment } from '../git/alignment';
 import type { Repo } from '../git/RepoManager';
 import { OperationsBar } from '../views/OperationsBar';
 import type { Core } from './core';
+import { t } from '../i18n';
 
 export function registerOperations(core: Core, repositories: vscode.TreeView<Repo>): void {
   const { manager, actions } = core;
@@ -27,7 +28,7 @@ export function registerOperations(core: Core, repositories: vscode.TreeView<Rep
     vscode.commands.registerCommand('multigit.alignBranches', async () => {
       const alignment = computeAlignment(manager.all);
       if (!alignment) {
-        void vscode.window.showInformationMessage('MultiGit: todos los repos están en la misma rama.');
+        void vscode.window.showInformationMessage(t('MultiGit: all repos are on the same branch.'));
         return;
       }
       await actions.alignTo(alignment.target, manager.all.filter((r) => alignment.outliers.some((o) => o.repo === r.name)));

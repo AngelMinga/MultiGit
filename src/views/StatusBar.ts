@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { alignmentKey, computeAlignment } from '../git/alignment';
 import { summarizeBranches, sumCounters } from '../git/branchSummary';
 import type { RepoManager } from '../git/RepoManager';
+import { t } from '../i18n';
 
 export class StatusBar implements vscode.Disposable {
   private readonly item: vscode.StatusBarItem;
@@ -17,7 +18,7 @@ export class StatusBar implements vscode.Disposable {
     this.project.name = 'MultiGit: proyecto';
     this.project.command = 'workbench.action.openRecent';
     this.item = vscode.window.createStatusBarItem('multigit.branch', vscode.StatusBarAlignment.Left, 1000);
-    this.item.name = 'MultiGit: rama';
+    this.item.name = t('MultiGit: branch');
     this.item.command = 'multigit.branches';
     this.subscription = manager.onDidChange(() => this.update());
     this.update();
@@ -34,7 +35,7 @@ export class StatusBar implements vscode.Disposable {
     }
     const projectName = vscode.workspace.name?.replace(/ \(Workspace\)$/, '') ?? 'MultiGit';
     this.project.text = `$(root-folder) ${projectName}`;
-    this.project.tooltip = `${projectName} — ${repos.length} repositorios\nClic: abrir proyecto reciente`;
+    this.project.tooltip = t('{0} — {1} repositories\nClick: open a recent project', projectName, repos.length);
     this.project.show();
 
     const { ahead, behind, dirtyRepos } = sumCounters(repos.map((r) => r.status));
@@ -45,14 +46,14 @@ export class StatusBar implements vscode.Disposable {
       ? `${alignment.target} $(warning)${alignment.outliers.length}`
       : summary.kind === 'single'
         ? summary.branch
-        : `${summary.byBranch.length} ramas`;
+        : t('{0} branches', summary.byBranch.length);
     this.item.text = `$(git-branch) ${label}${counters ? ` ${counters}` : ''}`;
     this.notifyMisalignment(alignment);
 
     const md = new vscode.MarkdownString('', true);
-    md.appendMarkdown(`**MultiGit** — ${repos.length} repositorios\n\n`);
+    md.appendMarkdown(t('**MultiGit** — {0} repositories\n\n', repos.length));
     if (summary.kind === 'single') {
-      md.appendMarkdown(`Todos en \`${summary.branch}\`\n\n`);
+      md.appendMarkdown(t('All on `{0}`\n\n', summary.branch));
     } else {
       for (const group of summary.byBranch) {
         md.appendMarkdown(`$(git-branch) \`${group.branch}\`: ${group.repos.join(', ')}\n\n`);
@@ -60,12 +61,12 @@ export class StatusBar implements vscode.Disposable {
     }
     if (alignment) {
       md.appendMarkdown(
-        `$(warning) ${alignment.outliers.length} repo(s) fuera de \`${alignment.target}\`: ${alignment.outliers.map((o) => o.repo).join(', ')}\n\n`,
+        t('$(warning) {0} repo(s) off `{1}`: {2}\n\n', alignment.outliers.length, alignment.target, alignment.outliers.map((o) => o.repo).join(', ')),
       );
     }
-    if (ahead || behind) md.appendMarkdown(`↑${ahead} por subir · ↓${behind} por bajar\n\n`);
-    if (dirtyRepos) md.appendMarkdown(`${dirtyRepos} repo(s) con cambios sin commit\n\n`);
-    md.appendMarkdown('_Clic para ver las ramas_');
+    if (ahead || behind) md.appendMarkdown(t('↑{0} to push · ↓{1} to pull\n\n', ahead, behind));
+    if (dirtyRepos) md.appendMarkdown(t('{0} repo(s) with uncommitted changes\n\n', dirtyRepos));
+    md.appendMarkdown(t('_Click to see the branches_'));
     this.item.tooltip = md;
     this.item.show();
   }
@@ -78,11 +79,12 @@ export class StatusBar implements vscode.Disposable {
     if (key === this.lastAlignment) return;
     this.lastAlignment = key;
     if (!alignment || !vscode.workspace.getConfiguration('multigit').get<boolean>('warnBranchMismatch', true)) return;
-    const ALIGN = `Alinear con '${alignment.target}'`;
-    const NEVER = 'No avisar más';
+    const ALIGN = t('Align with \'{0}\'', alignment.target);
+    const NEVER = t('Don\'t Warn Again');
+    const where = alignment.outliers.map((o) => t('{0} is on \'{1}\'', o.repo, o.branch)).join(', ');
     void vscode.window
       .showWarningMessage(
-        `MultiGit: ${alignment.outliers.map((o) => `${o.repo} está en '${o.branch}'`).join(', ')}; el resto en '${alignment.target}'.`,
+        t('MultiGit: {0}; the rest are on \'{1}\'.', where, alignment.target),
         ALIGN,
         NEVER,
       )

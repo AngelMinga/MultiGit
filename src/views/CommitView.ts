@@ -13,6 +13,7 @@ import type { CommitState, WebviewMessage } from '../webview/protocol';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from '../webview/webviewHtml';
 import type { ChangesActions } from './changesActions';
 import type { ChangesTree } from './ChangesTree';
+import { t } from '../i18n';
 
 export class CommitView implements vscode.WebviewViewProvider, vscode.Disposable {
   static readonly viewId = 'multigit.commit';
@@ -104,7 +105,7 @@ export class CommitView implements vscode.WebviewViewProvider, vscode.Disposable
       }))
       .filter((r) => r.files.length > 0);
     if (repos.length === 0) {
-      void vscode.window.showWarningMessage('MultiGit: marca los archivos del commit en la vista Changes.');
+      void vscode.window.showWarningMessage(t('MultiGit: check the files to commit in the Changes view.'));
       return;
     }
 
@@ -113,11 +114,11 @@ export class CommitView implements vscode.WebviewViewProvider, vscode.Disposable
     const isRetry = this.lastSuggestion !== null && current.trim() === this.lastSuggestion.trim();
     if (current.trim() && !isRetry && !settings.overwriteWithoutAsking) {
       const ok = await vscode.window.showWarningMessage(
-        '¿Reemplazar el mensaje actual por uno generado por Claude?',
+        t('Replace the current message with one written by Claude?'),
         { modal: true },
-        'Reemplazar',
+        t('Replace'),
       );
-      if (ok !== 'Reemplazar') return;
+      if (ok !== t('Replace')) return;
     }
 
     const controller = new AbortController();
@@ -151,15 +152,16 @@ export class CommitView implements vscode.WebviewViewProvider, vscode.Disposable
       );
       this.lastSuggestion = result.message;
       post({ type: 'commit/replaceMessage', payload: { message: result.message } });
+      const reason = result.reason ? ` — ${result.reason}` : '';
       vscode.window.setStatusBarMessage(
-        `$(sparkle) Tipo detectado: ${result.type}${result.reason ? ` — ${result.reason}` : ''}`,
+        t('$(sparkle) Detected type: {0}{1}', result.type, reason),
         8000,
       );
     } catch (error) {
       post({ type: 'commit/replaceMessage', payload: { message: current } });
       if (error instanceof CancelledError) return;
       if (error instanceof NoChangesError) {
-        void vscode.window.showWarningMessage('MultiGit: no hay cambios en los archivos marcados.');
+        void vscode.window.showWarningMessage(t('MultiGit: the checked files have no changes.'));
         return;
       }
       const text = error instanceof Error ? error.message : String(error);

@@ -9,6 +9,7 @@ import { describeHead } from '../git/parsers';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import { currentLabel, refName, type BranchActions, type BranchRef, type Scope } from './branchActions';
 import type { RepoIcons } from './repoIcons';
+import { t } from '../i18n';
 
 const CONTEXT_KEY = 'multigit.branchPopupOpen';
 
@@ -31,14 +32,14 @@ export class BranchPopup {
   async show(repo?: Repo): Promise<void> {
     const repos = repo ? [repo] : [...this.manager.all];
     if (repos.length === 0) {
-      void vscode.window.showInformationMessage('MultiGit: no hay repositorios detectados.');
+      void vscode.window.showInformationMessage(t('MultiGit: no repositories were found.'));
       return;
     }
-    const scope: Scope = { repos, label: repo ? repo.name : 'todos los repositorios' };
+    const scope: Scope = { repos, label: repo ? repo.name : t('all repositories') };
 
     const qp = vscode.window.createQuickPick<PopupItem>();
-    qp.title = repo ? `MultiGit: ramas de ${repo.name}` : `MultiGit: ramas (${repos.length} repositorios)`;
-    qp.placeholder = 'Buscar ramas, acciones y repositorios';
+    qp.title = repo ? t('MultiGit: branches of {0}', repo.name) : t('MultiGit: branches ({0} repositories)', repos.length);
+    qp.placeholder = t('Search branches, actions and repositories');
     qp.matchOnDescription = true;
     qp.busy = true;
     if (repo) qp.buttons = [vscode.QuickInputButtons.Back];
@@ -79,7 +80,7 @@ export class BranchPopup {
     );
     const data = loaded.filter((d): d is RepoBranchesInput => !!d);
     const failed = repos.filter((_, i) => !loaded[i]).map((r) => r.name);
-    if (failed.length) qp.title += ` — sin datos de: ${failed.join(', ')}`;
+    if (failed.length) qp.title += t(' — no data from: {0}', failed.join(', '));
 
     qp.items = this.buildItems(scope, data, !repo);
     qp.busy = false;
@@ -107,7 +108,7 @@ export class BranchPopup {
     const alignment = allRepos ? computeAlignment(scope.repos) : null;
     if (alignment) {
       items.push({
-        label: `Alinear ${alignment.outliers.length} repo(s) con '${alignment.target}'`,
+        label: t('Align {0} repo(s) with \'{1}\'', alignment.outliers.length, alignment.target),
         iconPath: new vscode.ThemeIcon('warning'),
         description: alignment.outliers.map((o) => `${o.repo}: ${o.branch}`).join(' · '),
         action: () => a.alignTo(alignment.target, scope.repos.filter((r) => alignment.outliers.some((o) => o.repo === r.name))),
@@ -121,7 +122,7 @@ export class BranchPopup {
         ? [{ label: 'Commit…', iconPath: new vscode.ThemeIcon('git-commit'), description: key.commit, action: () => a.commit() }]
         : []),
       { label: 'Push…', iconPath: new vscode.ThemeIcon('repo-push'), description: key.push, action: () => a.push(scope) },
-      { label: 'Pull…', iconPath: new vscode.ThemeIcon('arrow-down'), description: 'remote, rama y modo', action: () => a.pull(scope) },
+      { label: 'Pull…', iconPath: new vscode.ThemeIcon('arrow-down'), description: t('remote, branch and mode'), action: () => a.pull(scope) },
     );
     sep();
     items.push(
@@ -132,14 +133,14 @@ export class BranchPopup {
 
     // ---- Repositorios: cuadrado de color + rama actual + ›
     if (allRepos && scope.repos.length > 1) {
-      sep('Repositorios');
+      sep(t('Repositories'));
       for (const repo of scope.repos) {
         const s = repo.status;
         const counters = s ? formatAheadBehind(s) : '';
         items.push({
           label: repo.name,
           iconPath: this.icons.iconFor(repo.colorIndex),
-          description: s ? `${describeHead(s)}${counters ? `  ${counters}` : ''}  ›` : '⚠ sin estado',
+          description: s ? `${describeHead(s)}${counters ? `  ${counters}` : ''}  ›` : t('⚠ no status'),
           repo,
         });
       }
@@ -157,7 +158,7 @@ export class BranchPopup {
       const upstream = commonUpstreamOf(data, b.name);
       const single = !allRepos ? data[0]?.branches.local.find((x) => x.name === b.name) : undefined;
       const desc = [
-        !isCurrent && b.currentIn.length ? `actual en ${b.currentIn.length}/${total}` : '',
+        !isCurrent && b.currentIn.length ? t('current in {0}/{1}', b.currentIn.length, total) : '',
         single ? formatAheadBehind(single) : '',
         upstream ?? '',
         '›',
@@ -186,7 +187,7 @@ export class BranchPopup {
 
     if (allRepos && locals.length === 0 && data.length > 1) {
       sep('Common Local Branches');
-      items.push({ label: 'No hay ramas locales comunes a todos los repos', iconPath: new vscode.ThemeIcon('info'), description: 'elige un repositorio arriba' });
+      items.push({ label: t('There are no local branches common to all repos'), iconPath: new vscode.ThemeIcon('info'), description: t('choose a repository above') });
     }
     return items;
   }
@@ -210,7 +211,7 @@ export class BranchPopup {
         });
       }
     }
-    const picked = await vscode.window.showQuickPick(items, { title: `New Worktree — ${scope.label}`, placeHolder: 'Rama del worktree' });
+    const picked = await vscode.window.showQuickPick(items, { title: `New Worktree — ${scope.label}`, placeHolder: t('Worktree branch') });
     if (picked?.ref) await this.actions.newWorktree(scope, picked.ref);
   }
 
@@ -245,7 +246,7 @@ export class BranchPopup {
     add(!isCurrentEverywhere, `$(git-merge) Merge '${name}' into '${cur}'`, () => a.merge(scope, ref));
     items.push({ label: '', kind: vscode.QuickPickItemKind.Separator });
     add(!isCurrentSomewhere, `$(folder-opened) New Worktree from '${name}'…`, () => a.newWorktree(scope, ref));
-    add(true, '$(sync) Update', () => a.update(scope, ref), ref.type === 'local' ? 'pull de esta rama' : 'fetch de esta rama');
+    add(true, '$(sync) Update', () => a.update(scope, ref), ref.type === 'local' ? t('pull this branch') : t('fetch this branch'));
     if (ref.type === 'local') {
       add(true, '$(repo-push) Push…', () => a.push(scope, ref.name));
       items.push({ label: '', kind: vscode.QuickPickItemKind.Separator });
@@ -253,7 +254,7 @@ export class BranchPopup {
       add(!isCurrentSomewhere, '$(trash) Delete', () => a.deleteLocal(scope, ref));
     } else {
       items.push({ label: '', kind: vscode.QuickPickItemKind.Separator });
-      add(true, '$(trash) Delete', () => a.deleteRemote(scope, ref), 'elimina la rama del remote');
+      add(true, '$(trash) Delete', () => a.deleteRemote(scope, ref), t('deletes the branch from the remote'));
     }
 
     const picked = await vscode.window.showQuickPick(items, { title: `'${name}' — ${scope.label}` });

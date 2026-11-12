@@ -7,20 +7,24 @@ import * as vscode from 'vscode';
 import { commitSection, parseRecentCommits, RECENT_COMMITS, suggest, type ClientSettings } from '../ai/client';
 import { git } from '../ai/diff';
 import { setTranslator } from '../ai/l10n';
+import { setTranslator as setAppTranslator } from '../i18n';
 import { resolveLanguage } from '../ai/language';
 import { buildMultiRepoDiff, multiRepoInstruction, type RepoSelection } from '../ai/multiRepoDiff';
 import { partialMessage, type CommitSuggestion } from '../ai/parser';
 import { CancelledError } from '../ai/shell';
-import { SPANISH } from '../ai/translations';
+import { t } from '../i18n';
 
 const MAX_EXTRA_INSTRUCTIONS = 1000;
 
-/** Textos de los módulos copiados en español si VS Code está en español. */
+/**
+ * Traducciones: los textos de MultiGit (src/i18n) y los de los módulos copiados de Claude Commit
+ * (src/ai/l10n) usan vscode.l10n y el bundle l10n/bundle.l10n.<idioma>.json.
+ */
 export function installTranslations(): void {
-  if (!vscode.env.language.toLowerCase().startsWith('es')) return;
-  setTranslator((message, ...args) =>
-    (SPANISH[message] ?? message).replace(/\{(\d+)\}/g, (m, i: string) => (Number(i) < args.length ? String(args[Number(i)]) : m)),
-  );
+  const translate = (message: string, ...args: Array<string | number | boolean | null | undefined>) =>
+    vscode.l10n.t(message, ...args.map((a) => (typeof a === 'number' || typeof a === 'boolean' ? a : String(a))));
+  setTranslator(translate);
+  setAppTranslator(translate);
 }
 
 export type ClaudeSettings = ClientSettings & { imitateRepoStyle: boolean; overwriteWithoutAsking: boolean };
@@ -67,7 +71,7 @@ export { CancelledError };
 
 /** Arma el diff de los repos elegidos y pide el mensaje a Claude. */
 export async function generateCommitMessage(settings: ClaudeSettings, req: GenerateRequest): Promise<CommitSuggestion> {
-  req.onStep('Preparando el diff…');
+  req.onStep(t('Preparing the diff…'));
   await saveDirtyEditors(req.repos.map((r) => r.root));
   const collected = await buildMultiRepoDiff(req.repos, req.signal);
   if (collected.fileCount === 0) throw new NoChangesError();
@@ -82,7 +86,7 @@ export async function generateCommitMessage(settings: ClaudeSettings, req: Gener
     .filter(Boolean)
     .join('\n');
 
-  req.onStep('Claude está escribiendo el mensaje…');
+  req.onStep(t('Claude is writing the message…'));
   return suggest(
     { ...settings, extraInstructions: extra },
     {
@@ -92,7 +96,7 @@ export async function generateCommitMessage(settings: ClaudeSettings, req: Gener
       previousSuggestion: req.previousSuggestion,
       projectCommitRules: settings.fastMode ? findProjectCommitRules(req.repos.map((r) => r.root)) : null,
       signal: req.signal,
-      onFastModeUnsupported: () => void vscode.window.showWarningMessage('MultiGit: actualiza Claude Code para usar el modo rápido.'),
+      onFastModeUnsupported: () => void vscode.window.showWarningMessage(t('MultiGit: update Claude Code to use fast mode.')),
       onPartialText: (raw) => {
         const text = partialMessage(raw);
         if (text !== null) req.onPartialMessage(text);

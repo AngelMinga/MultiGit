@@ -18,6 +18,7 @@ import type { Repo, RepoManager } from '../git/RepoManager';
 import type { BranchActions } from '../views/branchActions';
 import type { LogAction, LogRepoInfo, LogRow, WebviewMessage } from './protocol';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from './webviewHtml';
+import { t } from '../i18n';
 
 const PAGE_SIZE = 300;
 
@@ -87,7 +88,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         return;
       }
     }
-    this.post({ type: 'error', payload: { message: `No se encontró '${ref}'.` } });
+    this.post({ type: 'error', payload: { message: t('\'{0}\' was not found.', ref) } });
   }
 
   /** Archivo del "Show History": al elegir un commit se abre el diff de ese archivo. */
@@ -379,7 +380,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         return;
       case 'checkout':
         await runInRepos(this.manager, {
-          title: `Checkout de ${short} en ${repo.name}`,
+          title: t('Checkout of {0} in {1}', short, repo.name),
           repos: [repo],
           run: async (r) => {
             await r.git.checkoutDetached(hash);
@@ -388,7 +389,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         break;
       case 'cherryPick':
         await runInRepos(this.manager, {
-          title: `Cherry-pick de ${short} en ${repo.name}`,
+          title: t('Cherry-pick of {0} in {1}', short, repo.name),
           repos: [repo],
           requireClean: true,
           run: async (r) => {
@@ -398,7 +399,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         break;
       case 'revert':
         await runInRepos(this.manager, {
-          title: `Revert de ${short} en ${repo.name}`,
+          title: t('Revert of {0} in {1}', short, repo.name),
           repos: [repo],
           requireClean: true,
           run: async (r) => {
@@ -424,42 +425,42 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
   private async reset(repo: Repo, hash: string): Promise<boolean> {
     const status = await repo.git.getStatus();
     if (!status.branch) {
-      void vscode.window.showWarningMessage(`MultiGit: ${repo.name} tiene HEAD detached; no hay rama que mover.`);
+      void vscode.window.showWarningMessage(t('MultiGit: {0} has a detached HEAD; there is no branch to move.', repo.name));
       return false;
     }
     const mode = await vscode.window.showQuickPick(
       [
-        { label: 'Soft', description: 'mueve la rama; los cambios de los commits quedan en stage', mode: 'soft' as const },
-        { label: 'Mixed', description: 'mueve la rama; los cambios quedan sin stage (por defecto)', mode: 'mixed' as const },
-        { label: 'Hard', description: 'mueve la rama y DESCARTA todos los cambios', mode: 'hard' as const },
+        { label: 'Soft', description: t('moves the branch; the commits\' changes stay staged'), mode: 'soft' as const },
+        { label: 'Mixed', description: t('moves the branch; the changes stay unstaged (default)'), mode: 'mixed' as const },
+        { label: 'Hard', description: t('moves the branch and DISCARDS all changes'), mode: 'hard' as const },
       ],
-      { title: `Reset de '${status.branch}' a ${hash.slice(0, 7)} — ${repo.name}`, placeHolder: 'Modo del reset' },
+      { title: `Reset de '${status.branch}' a ${hash.slice(0, 7)} — ${repo.name}`, placeHolder: t('Reset mode') },
     );
     if (!mode) return false;
 
     const removed = await repo.git.logOneline(`${hash}..HEAD`, 30);
     const total = await repo.git.countCommits(`${hash}..HEAD`);
     const lines = [
-      `Rama '${status.branch}' de ${repo.name} → ${hash.slice(0, 7)} (reset --${mode.mode}).`,
+      t('Branch \'{0}\' of {1} → {2} (reset --{3}).', status.branch, repo.name, hash.slice(0, 7), mode.mode),
       '',
-      total ? `${total} commit(s) dejarán de estar en la rama:` : 'Ningún commit sale de la rama (el destino es posterior o igual).',
+      total ? t('{0} commit(s) will leave the branch:', total) : t('No commit leaves the branch (the target is later or the same).'),
       ...removed.map((l) => `  • ${l}`),
-      ...(total > removed.length ? [`  … y ${total - removed.length} más`] : []),
+      ...(total > removed.length ? [t('  … and {0} more', total - removed.length)] : []),
     ];
     if (mode.mode === 'hard') {
-      lines.push('', status.changes.total ? `⚠ Se perderán además ${status.changes.total} cambio(s) sin commit.` : 'No hay cambios sin commit.');
+      lines.push('', status.changes.total ? t('⚠ {0} uncommitted change(s) will also be lost.', status.changes.total) : t('There are no uncommitted changes.'));
     } else {
-      lines.push('', 'Los cambios de esos commits se conservan en tu working tree.');
+      lines.push('', t('The changes of those commits are kept in your working tree.'));
     }
     const ok = await vscode.window.showWarningMessage(
-      `¿Reset --${mode.mode} de '${status.branch}'?`,
+      t('Reset --{0} of \'{1}\'?', mode.mode, status.branch),
       { modal: true, detail: lines.join('\n') },
       `Reset --${mode.mode}`,
     );
     if (!ok) return false;
 
     await runInRepos(this.manager, {
-      title: `Reset --${mode.mode} de '${status.branch}' en ${repo.name}`,
+      title: t('Reset --{0} of \'{1}\' in {2}', mode.mode, status.branch, repo.name),
       repos: [repo],
       run: async (r) => {
         await r.git.reset(mode.mode, hash);
@@ -471,20 +472,20 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
   private async newTag(repo: Repo, hash: string): Promise<boolean> {
     const name = (
       await vscode.window.showInputBox({
-        title: `Nuevo tag en ${hash.slice(0, 7)} — ${repo.name}`,
-        prompt: 'Nombre del tag (p. ej. v1.4.0)',
+        title: t('New tag at {0} — {1}', hash.slice(0, 7), repo.name),
+        prompt: t('Tag name (e.g. v1.4.0)'),
         validateInput: async (v) =>
-          !v.trim() ? 'Escribe un nombre' : (await repo.git.isValidTagName(v.trim())) ? undefined : 'Nombre de tag no válido',
+          !v.trim() ? t('Type a name') : (await repo.git.isValidTagName(v.trim())) ? undefined : t('Invalid tag name'),
       })
     )?.trim();
     if (!name) return false;
     const message = await vscode.window.showInputBox({
       title: `Tag '${name}'`,
-      prompt: 'Mensaje (opcional): con mensaje se crea un tag anotado',
+      prompt: t('Message (optional): with a message an annotated tag is created'),
     });
     if (message === undefined) return false;
     await runInRepos(this.manager, {
-      title: `Tag '${name}' en ${repo.name}`,
+      title: t('Tag \'{0}\' in {1}', name, repo.name),
       repos: [repo],
       run: async (r) => {
         await r.git.createTag(name, hash, message.trim() || undefined);

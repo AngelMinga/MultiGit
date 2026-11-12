@@ -4,6 +4,7 @@ import type { BranchRef, Scope } from '../views/branchActions';
 import { BranchesTree, type BranchNode } from '../views/BranchesTree';
 import type { LogView } from '../webview/LogView';
 import type { Core } from './core';
+import { t } from '../i18n';
 
 export function registerBranches(core: Core, logView: LogView): { tree: BranchesTree; view: vscode.TreeView<BranchNode> } {
   const { manager, actions, popup, context } = core;
@@ -89,7 +90,7 @@ export function registerBranches(core: Core, logView: LogView): { tree: Branches
       const target = logTarget(node);
       if (!target || node?.kind !== 'tag') return;
       const repos = node.repos;
-      const scopeLabel = repos.length === 1 ? repos[0]!.name : `${repos.length} repositorios`;
+      const scopeLabel = repos.length === 1 ? repos[0]!.name : t('{0} repositories', repos.length);
       const picked = await vscode.window.showQuickPick(
         [
           { label: '$(check) Checkout (HEAD detached)', id: 'checkout' },

@@ -84,6 +84,6 @@ describe('describeHead', () => {
   it('rama, detached y sin commits', () => {
     expect(describeHead({ branch: 'develop', oid: 'abc' })).toBe('develop');
     expect(describeHead({ branch: null, oid: '1234567890' })).toBe('(detached 1234567)');
-    expect(describeHead({ branch: null, oid: null })).toBe('(sin commits)');
+    expect(describeHead({ branch: null, oid: null })).toBe('(no commits)');
   });
 });

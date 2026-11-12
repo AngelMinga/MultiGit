@@ -6,6 +6,7 @@ import { ChangesTree, filesOf, type ChangeNode, type FileRef } from '../views/Ch
 import { CommitView } from '../views/CommitView';
 import type { LogView } from '../webview/LogView';
 import type { Core } from './core';
+import { t } from '../i18n';
 
 export function registerChanges(
   core: Core,
@@ -33,7 +34,7 @@ export function registerChanges(
   };
   const updateBadge = () => {
     const n = tree.trackedFiles.length;
-    view.badge = n ? { value: n, tooltip: `${n} archivo(s) con cambios` } : undefined;
+    view.badge = n ? { value: n, tooltip: t('{0} file(s) with changes', n) } : undefined;
   };
   const fileNode = (node?: ChangeNode) => (node?.kind === 'file' ? node.ref : undefined);
   /** Nodo del clic y, con selección múltiple, todos los elegidos (o la selección si es un atajo). */

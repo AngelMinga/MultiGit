@@ -10,6 +10,7 @@ import type { Repo, RepoManager } from '../git/RepoManager';
 import { GitContentProvider } from '../git/GitContentProvider';
 import type { CompareView } from './compareView';
 import { showPullDialog } from './pullDialog';
+import { t } from '../i18n';
 
 /** Repos sobre los que actúa una acción: todos, o uno elegido en "Repositorios". */
 export interface Scope {
@@ -29,7 +30,7 @@ export function refName(ref: BranchRef): string {
 /** Nombre de la rama actual para los textos: la común, o "rama actual" si difieren. */
 export function currentLabel(scope: Scope): string {
   const s = summarizeBranches(scope.repos);
-  return s.kind === 'single' ? s.branch : 'rama actual';
+  return s.kind === 'single' ? s.branch : t('current branch');
 }
 
 export class BranchActions {
@@ -48,16 +49,16 @@ export class BranchActions {
       repos: scope.repos,
       check: (_repo, status) => {
         if (!status.branch) return { skip: 'HEAD detached' };
-        if (!status.upstream) return { skip: 'la rama no tiene upstream' };
-        if (status.ahead === null) return { skip: `el upstream ${status.upstream} ya no existe` };
+        if (!status.upstream) return { skip: t('the branch has no upstream') };
+        if (status.ahead === null) return { skip: t('upstream {0} no longer exists', status.upstream) };
         return undefined;
       },
       run: async (repo) => {
         await repo.git.fetchAll();
         const after = await repo.git.getStatus();
-        if (!after.behind) return 'ya estaba al día';
+        if (!after.behind) return t('already up to date');
         await repo.git.pull();
-        return `actualizado (↓${after.behind})`;
+        return t('updated (↓{0})', after.behind);
       },
     });
   }
@@ -77,27 +78,27 @@ export class BranchActions {
     const startRef = start ? refName(start) : 'HEAD';
     const name = await this.askBranchName(
       scope,
-      start ? `Nueva rama desde '${startRef}' — ${scope.label}` : `Nueva rama desde '${currentLabel(scope)}' — ${scope.label}`,
+      start ? t('New branch from \'{0}\' — {1}', startRef, scope.label) : t('New branch from \'{0}\' — {1}', currentLabel(scope), scope.label),
     );
     if (!name) return;
 
     const mode = await vscode.window.showQuickPick(
       [
-        { label: '$(check) Crear y hacer checkout', checkout: true },
-        { label: '$(add) Solo crear', checkout: false },
+        { label: t('$(check) Create and check out'), checkout: true },
+        { label: t('$(add) Create only'), checkout: false },
       ],
-      { title: `Nueva rama '${name}'`, placeHolder: '¿Hacer checkout de la nueva rama?' },
+      { title: t('New branch \'{0}\'', name), placeHolder: t('Check out the new branch?') },
     );
     if (!mode) return;
 
     await runInRepos(this.manager, {
-      title: `Nueva rama '${name}'${start ? ` desde '${startRef}'` : ''}`,
+      title: start ? t('New branch \'{0}\' from \'{1}\'', name, startRef) : t('New branch \'{0}\'', name),
       repos: scope.repos,
       check: async (repo, status) => {
         const branches = await repo.git.getBranches();
-        if (branches.local.some((b) => b.name === name)) return { block: `la rama '${name}' ya existe` };
-        if (start && !(await repo.git.revisionExists(startRef))) return { block: `no existe '${startRef}'` };
-        if (!status.oid) return { block: 'el repositorio no tiene commits' };
+        if (branches.local.some((b) => b.name === name)) return { block: t('branch \'{0}\' already exists', name) };
+        if (start && !(await repo.git.revisionExists(startRef))) return { block: t('\'{0}\' does not exist', startRef) };
+        if (!status.oid) return { block: t('the repository has no commits') };
         return undefined;
       },
       run: async (repo) => {
@@ -111,18 +112,18 @@ export class BranchActions {
    * se crea siguiendo a la remota). Los repos sin esa rama se omiten.
    */
   async alignTo(target: string, repos: readonly Repo[]): Promise<void> {
-    const scope: Scope = { repos, label: `${repos.length} repositorio(s)` };
-    if (!(await this.confirmDirty(scope, `Checkout de '${target}'`))) return;
+    const scope: Scope = { repos, label: t('{0} repositories', repos.length) };
+    if (!(await this.confirmDirty(scope, t('Checkout of \'{0}\'', target)))) return;
     const remoteRef = new Map<Repo, string>();
     await runInRepos(this.manager, {
-      title: `Alinear con '${target}'`,
+      title: t('Align with \'{0}\'', target),
       repos,
       check: async (repo, status) => {
-        if (status.branch === target) return { skip: 'ya está en esa rama' };
+        if (status.branch === target) return { skip: t('already on that branch') };
         const b = await repo.git.getBranches();
         if (b.local.some((l) => l.name === target)) return undefined;
         const remote = b.remote.find((r) => r.name === target && r.remote === 'origin') ?? b.remote.find((r) => r.name === target);
-        if (!remote) return { skip: `no existe '${target}' (ni local ni remota)` };
+        if (!remote) return { skip: t('\'{0}\' does not exist (neither local nor remote)', target) };
         remoteRef.set(repo, remote.full);
         return undefined;
       },
@@ -130,7 +131,7 @@ export class BranchActions {
         const remote = remoteRef.get(repo);
         if (remote) {
           await repo.git.checkoutTracking(target, remote);
-          return `nueva rama local desde ${remote}`;
+          return t('new local branch from {0}', remote);
         }
         await repo.git.checkout(target);
       },
@@ -139,11 +140,11 @@ export class BranchActions {
 
   /** Checkout de un tag o revisión conocida (HEAD queda detached). */
   async checkoutRef(scope: Scope, ref: string): Promise<void> {
-    if (!(await this.confirmDirty(scope, `Checkout de '${ref}'`))) return;
+    if (!(await this.confirmDirty(scope, t('Checkout of \'{0}\'', ref)))) return;
     await runInRepos(this.manager, {
-      title: `Checkout de '${ref.replace(/^refs\/tags\//, '')}'`,
+      title: t('Checkout of \'{0}\'', ref.replace(/^refs\/tags\//, '')),
       repos: scope.repos,
-      check: async (repo) => ((await repo.git.revisionExists(ref)) ? undefined : { skip: `no existe '${ref}'` }),
+      check: async (repo) => ((await repo.git.revisionExists(ref)) ? undefined : { skip: t('\'{0}\' does not exist', ref) }),
       run: async (repo) => {
         await repo.git.checkoutDetached(ref);
       },
@@ -154,17 +155,17 @@ export class BranchActions {
   async checkoutRevision(scope: Scope): Promise<void> {
     const ref = (
       await vscode.window.showInputBox({
-        title: `Checkout de tag o revisión — ${scope.label}`,
-        prompt: 'Tag, hash de commit o cualquier revisión (p. ej. v1.4.0, a1b2c3d, HEAD~2)',
-        validateInput: (v) => (!v.trim() ? 'Escribe una revisión' : v.trim().startsWith('-') ? 'Revisión no válida' : undefined),
+        title: t('Checkout tag or revision — {0}', scope.label),
+        prompt: t('Tag, commit hash or any revision (e.g. v1.4.0, a1b2c3d, HEAD~2)'),
+        validateInput: (v) => (!v.trim() ? t('Type a revision') : v.trim().startsWith('-') ? t('Invalid revision') : undefined),
       })
     )?.trim();
-    if (!ref || !(await this.confirmDirty(scope, `Checkout de '${ref}'`))) return;
+    if (!ref || !(await this.confirmDirty(scope, t('Checkout of \'{0}\'', ref)))) return;
 
     await runInRepos(this.manager, {
-      title: `Checkout de '${ref}'`,
+      title: t('Checkout of \'{0}\'', ref),
       repos: scope.repos,
-      check: async (repo) => ((await repo.git.revisionExists(ref)) ? undefined : { block: `no existe la revisión '${ref}'` }),
+      check: async (repo) => ((await repo.git.revisionExists(ref)) ? undefined : { block: t('revision \'{0}\' does not exist', ref) }),
       run: async (repo) => {
         await repo.git.checkoutDetached(ref);
       },
@@ -179,13 +180,13 @@ export class BranchActions {
   // ------------------------------------------------------------------ acciones sobre una rama
 
   async checkout(scope: Scope, ref: BranchRef): Promise<void> {
-    if (!(await this.confirmDirty(scope, `Checkout de '${refName(ref)}'`))) return;
+    if (!(await this.confirmDirty(scope, t('Checkout of \'{0}\'', refName(ref))))) return;
 
     await runInRepos(this.manager, {
-      title: `Checkout de '${refName(ref)}'`,
+      title: t('Checkout of \'{0}\'', refName(ref)),
       repos: scope.repos,
       check: (_repo, status) =>
-        ref.type === 'local' && status.branch === ref.name ? { skip: 'ya está en esa rama' } : undefined,
+        ref.type === 'local' && status.branch === ref.name ? { skip: t('already on that branch') } : undefined,
       run: async (repo) => {
         if (ref.type === 'local') {
           await repo.git.checkout(ref.name);
@@ -194,10 +195,10 @@ export class BranchActions {
         const branches = await repo.git.getBranches();
         if (branches.local.some((b) => b.name === ref.name)) {
           await repo.git.checkout(ref.name);
-          return `usó la rama local '${ref.name}' existente`;
+          return t('used the existing local branch \'{0}\'', ref.name);
         }
         await repo.git.checkoutTracking(ref.name, ref.full);
-        return `nueva rama local '${ref.name}' → ${ref.full}`;
+        return t('new local branch \'{0}\' → {1}', ref.name, ref.full);
       },
     });
   }
@@ -206,12 +207,12 @@ export class BranchActions {
   async checkoutAndRebase(scope: Scope, ref: BranchRef & { type: 'local' }): Promise<void> {
     const current = new Map<Repo, string>();
     await runInRepos(this.manager, {
-      title: `Checkout de '${ref.name}' y rebase sobre '${currentLabel(scope)}'`,
+      title: t('Checkout of \'{0}\' and rebase onto \'{1}\'', ref.name, currentLabel(scope)),
       repos: scope.repos,
       requireClean: true,
       check: (repo, status) => {
         if (!status.branch) return { block: 'HEAD detached' };
-        if (status.branch === ref.name) return { skip: 'ya está en esa rama' };
+        if (status.branch === ref.name) return { skip: t('already on that branch') };
         current.set(repo, status.branch);
         return undefined;
       },
@@ -225,13 +226,13 @@ export class BranchActions {
   async rebaseOnto(scope: Scope, ref: BranchRef): Promise<void> {
     const target = refName(ref);
     await runInRepos(this.manager, {
-      title: `Rebase de '${currentLabel(scope)}' sobre '${target}'`,
+      title: t('Rebase of \'{0}\' onto \'{1}\'', currentLabel(scope), target),
       repos: scope.repos,
       requireClean: true,
       check: async (repo, status) => {
         if (!status.branch) return { block: 'HEAD detached' };
-        if (status.branch === target) return { skip: 'es la rama actual' };
-        if (!(await repo.git.revisionExists(target))) return { block: `no existe '${target}'` };
+        if (status.branch === target) return { skip: t('it is the current branch') };
+        if (!(await repo.git.revisionExists(target))) return { block: t('\'{0}\' does not exist', target) };
         return undefined;
       },
       run: async (repo) => {
@@ -244,13 +245,13 @@ export class BranchActions {
   async merge(scope: Scope, ref: BranchRef): Promise<void> {
     const source = refName(ref);
     await runInRepos(this.manager, {
-      title: `Merge de '${source}' en '${currentLabel(scope)}'`,
+      title: t('Merge of \'{0}\' into \'{1}\'', source, currentLabel(scope)),
       repos: scope.repos,
       requireClean: true,
       check: async (repo, status) => {
         if (!status.branch) return { block: 'HEAD detached' };
-        if (status.branch === source) return { skip: 'es la rama actual' };
-        if (!(await repo.git.revisionExists(source))) return { block: `no existe '${source}'` };
+        if (status.branch === source) return { skip: t('it is the current branch') };
+        if (!(await repo.git.revisionExists(source))) return { block: t('\'{0}\' does not exist', source) };
         return undefined;
       },
       run: async (repo) => {
@@ -264,7 +265,7 @@ export class BranchActions {
     const other = refName(ref);
     const label = currentLabel(scope);
     const sections = await vscode.window.withProgress(
-      { location: vscode.ProgressLocation.Notification, title: `MultiGit: comparando '${other}' con '${label}'…` },
+      { location: vscode.ProgressLocation.Notification, title: t('MultiGit: comparing \'{0}\' with \'{1}\'…', other, label) },
       () =>
         Promise.all(
           scope.repos.map(async (repo) => {
@@ -295,12 +296,12 @@ export class BranchActions {
         continue;
       }
       lines.push(`## ${s.repo.name}`, '');
-      lines.push(`### En '${other}' y no en '${s.cur}' (${s.incoming.length})`, '');
+      lines.push(t('### In \'{0}\' but not in \'{1}\' ({2})', other, s.cur, s.incoming.length), '');
       lines.push(...(s.incoming.length ? s.incoming.map((l) => `- ${l}`) : ['_ninguno_']), '');
-      lines.push(`### En '${s.cur}' y no en '${other}' (${s.outgoing.length})`, '');
+      lines.push(t('### In \'{0}\' but not in \'{1}\' ({2})', s.cur, other, s.outgoing.length), '');
       lines.push(...(s.outgoing.length ? s.outgoing.map((l) => `- ${l}`) : ['_ninguno_']), '');
     }
-    if (same.length) lines.push(`## Sin diferencias`, '', same.join(', '), '');
+    if (same.length) lines.push(t('## No differences'), '', same.join(', '), '');
     await this.compareView.show(`compare ${other} vs ${label}`, lines.join('\n'));
   }
 
@@ -308,7 +309,7 @@ export class BranchActions {
   async diffWithWorkingTree(scope: Scope, ref: BranchRef): Promise<void> {
     const name = refName(ref);
     const groups = await vscode.window.withProgress(
-      { location: vscode.ProgressLocation.Window, title: `MultiGit: comparando '${name}' con el working tree…` },
+      { location: vscode.ProgressLocation.Window, title: t('MultiGit: comparing \'{0}\' with the working tree…', name) },
       () =>
         Promise.all(
           scope.repos.map(async (repo) => ({ repo, files: await repo.git.diffWithWorkingTree(name).catch(() => []) })),
@@ -330,12 +331,12 @@ export class BranchActions {
       }
     }
     if (items.length === 0) {
-      void vscode.window.showInformationMessage(`MultiGit: '${name}' no tiene diferencias con el working tree.`);
+      void vscode.window.showInformationMessage(t('MultiGit: \'{0}\' has no differences with the working tree.', name));
       return;
     }
     const picked = await vscode.window.showQuickPick(items, {
-      title: `Diff de '${name}' con el working tree — ${scope.label}`,
-      placeHolder: 'Elige un archivo para ver el diff',
+      title: t('Diff of \'{0}\' with the working tree — {1}', name, scope.label),
+      placeHolder: t('Choose a file to see its diff'),
       matchOnDescription: true,
     });
     if (!picked?.repo || !picked.file) return;
@@ -358,23 +359,23 @@ export class BranchActions {
     const anchor = single ? repos[0]!.root : ancestor;
     const folder = branchToFolderName(ref.name);
     const base = await vscode.window.showInputBox({
-      title: `Nuevo worktree de '${refName(ref)}' — ${scope.label}`,
+      title: t('New worktree from \'{0}\' — {1}', refName(ref), scope.label),
       prompt: single
-        ? 'Carpeta del worktree'
-        : 'Carpeta base: cada repo irá en una subcarpeta con su ruta relativa (p. ej. <base>/mftheme)',
+        ? t('Worktree folder')
+        : t('Base folder: each repository goes in a subfolder with its relative path (e.g. <base>/mftheme)'),
       value: `${anchor}-worktrees${path.sep}${folder}`,
-      validateInput: (v) => (path.isAbsolute(v.trim()) ? undefined : 'Usa una ruta absoluta'),
+      validateInput: (v) => (path.isAbsolute(v.trim()) ? undefined : t('Use an absolute path')),
     });
     if (!base) return;
     const dirOf = (repo: Repo) => (single ? base.trim() : path.join(base.trim(), path.relative(ancestor, repo.root)));
 
     const results = await runInRepos(this.manager, {
-      title: `Nuevo worktree de '${refName(ref)}'`,
+      title: t('New worktree from \'{0}\'', refName(ref)),
       repos,
       check: async (repo, status) => {
         if (await pathExists(dirOf(repo))) return { block: `ya existe ${dirOf(repo)}` };
         if (ref.type === 'local' && status.branch === ref.name) {
-          return { block: `'${ref.name}' es la rama actual de este repo (un worktree no puede usarla)` };
+          return { block: t('\'{0}\' is the current branch of this repository (a worktree cannot use it)', ref.name) };
         }
         return undefined;
       },
@@ -392,7 +393,7 @@ export class BranchActions {
     });
 
     if (results?.every((r) => r.state === 'ok' || r.state === 'skipped')) {
-      const open = await vscode.window.showInformationMessage(`Worktree creado en ${base}`, 'Abrir en ventana nueva');
+      const open = await vscode.window.showInformationMessage(t('Worktree created in {0}', base), t('Open in New Window'));
       if (open) await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(base.trim()), { forceNewWindow: true });
     }
   }
@@ -401,7 +402,7 @@ export class BranchActions {
   async update(scope: Scope, ref: BranchRef): Promise<void> {
     if (ref.type === 'remote') {
       await runInRepos(this.manager, {
-        title: `Update de '${ref.full}'`,
+        title: t('Update of \'{0}\'', ref.full),
         repos: scope.repos,
         run: async (repo) => {
           await repo.git.fetchBranch(ref.remote, ref.name);
@@ -412,13 +413,13 @@ export class BranchActions {
 
     const info = new Map<Repo, LocalBranch>();
     await runInRepos(this.manager, {
-      title: `Update de '${ref.name}'`,
+      title: t('Update of \'{0}\'', ref.name),
       repos: scope.repos,
       check: async (repo) => {
         const lb = (await repo.git.getBranches()).local.find((b) => b.name === ref.name);
-        if (!lb) return { block: `no existe la rama '${ref.name}'` };
-        if (!lb.upstreamRemote || !lb.upstreamBranch) return { skip: 'la rama no tiene upstream' };
-        if (lb.gone) return { skip: `el upstream ${lb.upstream} ya no existe` };
+        if (!lb) return { block: t('branch \'{0}\' does not exist', ref.name) };
+        if (!lb.upstreamRemote || !lb.upstreamBranch) return { skip: t('the branch has no upstream') };
+        if (lb.gone) return { skip: t('upstream {0} no longer exists', lb.upstream) };
         info.set(repo, lb);
         return undefined;
       },
@@ -432,16 +433,16 @@ export class BranchActions {
 
   /** Rename… (F2). */
   async rename(scope: Scope, ref: BranchRef & { type: 'local' }): Promise<void> {
-    const newName = await this.askBranchName(scope, `Renombrar '${ref.name}' — ${scope.label}`, ref.name);
+    const newName = await this.askBranchName(scope, t('Rename \'{0}\' — {1}', ref.name, scope.label), ref.name);
     if (!newName || newName === ref.name) return;
 
     await runInRepos(this.manager, {
-      title: `Renombrar '${ref.name}' a '${newName}'`,
+      title: t('Rename \'{0}\' to \'{1}\'', ref.name, newName),
       repos: scope.repos,
       check: async (repo) => {
         const branches = await repo.git.getBranches();
-        if (!branches.local.some((b) => b.name === ref.name)) return { skip: `no existe '${ref.name}'` };
-        if (branches.local.some((b) => b.name === newName)) return { block: `la rama '${newName}' ya existe` };
+        if (!branches.local.some((b) => b.name === ref.name)) return { skip: t('\'{0}\' does not exist', ref.name) };
+        if (branches.local.some((b) => b.name === newName)) return { block: t('branch \'{0}\' already exists', newName) };
         return undefined;
       },
       run: async (repo) => {
@@ -457,7 +458,7 @@ export class BranchActions {
     const currentIn: string[] = [];
     const missing = new Set<Repo>();
 
-    await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'MultiGit: revisando ramas…' }, () =>
+    await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: t('MultiGit: checking branches…') }, () =>
       Promise.all(
         scope.repos.map(async (repo) => {
           const lb = (await repo.git.getBranches()).local.find((b) => b.name === name);
@@ -472,23 +473,23 @@ export class BranchActions {
     );
 
     if (currentIn.length) {
-      void vscode.window.showErrorMessage(`MultiGit: no se puede eliminar '${name}'`, {
+      void vscode.window.showErrorMessage(t('MultiGit: \'{0}\' cannot be deleted', name), {
         modal: true,
-        detail: `Es la rama actual en: ${currentIn.join(', ')}.\nHaz checkout de otra rama primero.\n\nNo se modificó ningún repositorio.`,
+        detail: t('It is the current branch in: {0}.\nCheck out another branch first.\n\nNo repository was modified.', currentIn.join(', ')),
       });
       return;
     }
 
     const targets = scope.repos.filter((r) => !missing.has(r));
-    const detailLines = [`Se eliminará la rama local '${name}' en:`, ...targets.map((r) => `  • ${r.name}`)];
+    const detailLines = [t('Local branch \'{0}\' will be deleted in:', name), ...targets.map((r) => `  • ${r.name}`)];
     if (unmerged.size) {
-      detailLines.push('', '⚠ No está mergeada (se perderán commits si se fuerza con -D):');
-      for (const [repo, count] of unmerged) detailLines.push(`  • ${repo.name}: ${count} commit(s) que solo están en '${name}'`);
+      detailLines.push('', t('⚠ Not merged (commits will be lost if forced with -D):'));
+      for (const [repo, count] of unmerged) detailLines.push(t('  • {0}: {1} commit(s) only in \'{2}\'', repo.name, count, name));
     }
-    const FORCE = 'Eliminar y forzar (-D) las no mergeadas';
-    const SAFE = unmerged.size ? 'Eliminar solo las mergeadas' : 'Eliminar';
+    const FORCE = t('Delete and Force (-D) Unmerged');
+    const SAFE = unmerged.size ? t('Delete Merged Only') : t('Delete');
     const choice = await vscode.window.showWarningMessage(
-      `¿Eliminar la rama '${name}' en ${targets.length} repositorio(s)?`,
+      t('Delete branch \'{0}\' in {1} repositories?', name, targets.length),
       { modal: true, detail: detailLines.join('\n') },
       ...(unmerged.size ? [SAFE, FORCE] : [SAFE]),
     );
@@ -496,9 +497,9 @@ export class BranchActions {
     const force = choice === FORCE;
 
     await runInRepos(this.manager, {
-      title: `Eliminar la rama '${name}'`,
+      title: t('Delete branch \'{0}\'', name),
       repos: targets,
-      check: (repo) => (unmerged.has(repo) && !force ? { skip: 'no está mergeada (no se forzó)' } : undefined),
+      check: (repo) => (unmerged.has(repo) && !force ? { skip: t('not merged (not forced)') } : undefined),
       run: async (repo) => {
         await repo.git.deleteBranch(name, unmerged.has(repo));
       },
@@ -508,22 +509,22 @@ export class BranchActions {
   /** Delete de una rama remota (`git push <remote> --delete`), con confirmación. */
   async deleteRemote(scope: Scope, ref: BranchRef & { type: 'remote' }): Promise<void> {
     const choice = await vscode.window.showWarningMessage(
-      `¿Eliminar la rama remota '${ref.full}' del servidor?`,
+      t('Delete remote branch \'{0}\' from the server?', ref.full),
       {
         modal: true,
         detail: [
-          `Se ejecutará "git push ${ref.remote} --delete ${ref.name}" en:`,
+          t('"git push {0} --delete {1}" will run in:', ref.remote, ref.name),
           ...scope.repos.map((r) => `  • ${r.name}`),
           '',
-          'La rama desaparecerá del remote para todo el equipo. Los commits que solo estén en ella se perderán.',
+          t('The branch will disappear from the remote for the whole team. Commits that only exist in it will be lost.'),
         ].join('\n'),
       },
-      'Eliminar del remote',
+      t('Delete from Remote'),
     );
     if (!choice) return;
 
     await runInRepos(this.manager, {
-      title: `Eliminar '${ref.full}' del remote`,
+      title: t('Delete \'{0}\' from the remote', ref.full),
       repos: scope.repos,
       run: async (repo) => {
         await repo.git.deleteRemoteBranch(ref.remote, ref.name);
@@ -539,11 +540,11 @@ export class BranchActions {
     const name = await vscode.window.showInputBox({
       title,
       value,
-      prompt: 'Nombre de la rama',
+      prompt: t('Branch name'),
       validateInput: async (v) => {
         const n = v.trim();
-        if (!n) return 'Escribe un nombre';
-        return (await probe.git.isValidBranchName(n)) ? undefined : `"${n}" no es un nombre de rama válido`;
+        if (!n) return t('Type a name');
+        return (await probe.git.isValidBranchName(n)) ? undefined : t('"{0}" is not a valid branch name', n);
       },
     });
     return name?.trim() || undefined;
@@ -555,18 +556,18 @@ export class BranchActions {
     const dirty = scope.repos.filter((r) => (r.status?.changes.total ?? 0) > 0);
     if (dirty.length === 0) return true;
     const choice = await vscode.window.showWarningMessage(
-      `${title}: hay cambios sin commit`,
+      t('{0}: there are uncommitted changes', title),
       {
         modal: true,
         detail: [
-          ...dirty.map((r) => `  • ${r.name}: ${r.status!.changes.total} cambio(s)`),
+          ...dirty.map((r) => t('  • {0}: {1} change(s)', r.name, r.status!.changes.total)),
           '',
-          'Git intentará conservarlos. Si chocan con la otra rama, el checkout fallará en ese repo y la operación se detendrá.',
+          t('Git will try to keep them. If they conflict with the other branch, the checkout fails in that repository and the operation stops.'),
         ].join('\n'),
       },
-      'Continuar',
+      t('Continue'),
     );
-    return choice === 'Continuar';
+    return choice === t('Continue');
   }
 }
 

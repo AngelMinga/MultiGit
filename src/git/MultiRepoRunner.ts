@@ -8,6 +8,7 @@ import type { RepoStatus } from './parsers';
 import { basicBlocker, conflictMessage, countByState, formatSummary, type StepResult } from './preflight';
 import { resolveConflicts } from '../views/conflicts';
 import type { Repo, RepoManager } from './RepoManager';
+import { t } from '../i18n';
 
 /** Resultado del chequeo propio de una operación para un repo. */
 export type Verdict = { block: string } | { skip: string } | undefined;
@@ -33,7 +34,7 @@ export interface MultiRepoOperation {
 export async function runInRepos(manager: RepoManager, op: MultiRepoOperation): Promise<StepResult[] | undefined> {
   const repos = op.repos;
   if (repos.length === 0) {
-    void vscode.window.showInformationMessage(`MultiGit: ${op.title}: no hay repositorios.`);
+    void vscode.window.showInformationMessage(t('MultiGit: {0}: there are no repositories.', op.title));
     return undefined;
   }
 
@@ -41,7 +42,7 @@ export async function runInRepos(manager: RepoManager, op: MultiRepoOperation): 
     { location: vscode.ProgressLocation.Notification, title: `MultiGit: ${op.title}`, cancellable: true },
     async (progress, token) => {
       // 1. Preflight
-      progress.report({ message: `comprobando ${repos.length} repositorio(s)…` });
+      progress.report({ message: t('checking {0} repositories…', repos.length) });
       const verdicts = await Promise.all(repos.map((repo) => preflight(repo, op)));
       const blockers = repos.flatMap((repo, i) => {
         const v = verdicts[i];
@@ -92,9 +93,9 @@ export async function runInRepos(manager: RepoManager, op: MultiRepoOperation): 
     const detail = [
       ...outcome.blockers.map((b) => `❌ ${b.repo.name}: ${b.reason}`),
       '',
-      'No se modificó ningún repositorio.',
+      t('No repository was modified.'),
     ].join('\n');
-    void vscode.window.showErrorMessage(`MultiGit: no se puede ejecutar "${op.title}"`, { modal: true, detail });
+    void vscode.window.showErrorMessage(t('MultiGit: "{0}" cannot run', op.title), { modal: true, detail });
     return undefined;
   }
 
@@ -105,12 +106,12 @@ export async function runInRepos(manager: RepoManager, op: MultiRepoOperation): 
   if (counts.failed > 0 || counts.pending > 0) {
     const failed = results.find((r) => r.state === 'failed');
     const head = failed
-      ? `MultiGit: "${op.title}" falló en ${failed.repo}`
-      : `MultiGit: "${op.title}" cancelado`;
+      ? t('MultiGit: "{0}" failed in {1}', op.title, failed.repo)
+      : t('MultiGit: "{0}" cancelled', op.title);
     const conflictRepo = failed?.conflicts?.length ? repos.find((r) => r.name === failed.repo) : undefined;
-    const RESOLVE = 'Resolver conflictos';
+    const RESOLVE = t('Resolve Conflicts');
     const detail = conflictRepo
-      ? `${summary}\n\nResuelve los conflictos de ${conflictRepo.name} y continúa (o aborta) la operación desde Source Control.`
+      ? t('{0}\n\nResolve the conflicts in {1} and continue (or abort) the operation.', summary, conflictRepo.name)
       : summary;
     void vscode.window
       .showErrorMessage(head, { modal: true, detail }, ...(conflictRepo ? [RESOLVE] : []))
@@ -119,13 +120,13 @@ export async function runInRepos(manager: RepoManager, op: MultiRepoOperation): 
       });
   } else if (counts.skipped > 0) {
     void vscode.window.showInformationMessage(
-      `MultiGit: "${op.title}" — ${counts.ok} ok, ${counts.skipped} omitido(s)`,
-      'Ver detalle',
+      t('MultiGit: "{0}" — {1} ok, {2} skipped', op.title, counts.ok, counts.skipped),
+      t('Show Details'),
     ).then((choice) => {
       if (choice) void vscode.window.showInformationMessage(op.title, { modal: true, detail: summary });
     });
   } else {
-    void vscode.window.showInformationMessage(`✅ MultiGit: "${op.title}" en ${counts.ok} repositorio(s)`);
+    void vscode.window.showInformationMessage(t('✅ MultiGit: "{0}" in {1} repositories', op.title, counts.ok));
   }
   return results;
 }

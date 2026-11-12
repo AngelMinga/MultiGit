@@ -25,7 +25,7 @@ export function renderWebviewHtml(webview: vscode.Webview, extensionUri: vscode.
   ].join('; ');
 
   return `<!doctype html>
-<html lang="es">
+<html lang="${escapeHtml(vscode.env.language)}">
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy" content="${csp}">
@@ -34,10 +34,16 @@ export function renderWebviewHtml(webview: vscode.Webview, extensionUri: vscode.
   <link rel="stylesheet" href="${styleUri.toString()}">
 </head>
 <body data-kind="${kind}">
+  <script type="application/json" id="multigit-l10n">${l10nJson()}</script>
   <div id="root"></div>
   <script type="module" nonce="${nonce}" src="${scriptUri.toString()}"></script>
 </body>
 </html>`;
+}
+
+/** Traducciones del idioma de VS Code para la app web (vacío en inglés). `<` escapado para no cerrar el <script>. */
+function l10nJson(): string {
+  return JSON.stringify(vscode.l10n.bundle ?? {}).replace(/</g, '\\u003c');
 }
 
 /** Envío tipado host → webview. */

@@ -5,6 +5,7 @@ import type { LogRepoInfo, LogRow } from '../../../src/webview/protocol';
 import { computeGraph, type GraphRow } from '../../../src/git/graph';
 import { relativeDate } from '../format';
 import { GraphCell, graphWidth } from './GraphCell';
+import { t } from '../i18n';
 
 export const ROW_HEIGHT = 24;
 
@@ -77,7 +78,7 @@ export function CommitList(props: {
 
   return (
     <div className="commit-list" ref={container} tabIndex={0} onKeyDown={onKeyDown}>
-      {props.rows.length === 0 && !props.loading && <div className="muted pad">No hay commits con estos filtros.</div>}
+      {props.rows.length === 0 && !props.loading && <div className="muted pad">{t('There are no commits with these filters.')}</div>}
       {size.height > 0 && (
         <FixedSizeList
           ref={list}

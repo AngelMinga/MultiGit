@@ -10,6 +10,7 @@ import type { LogView } from '../webview/LogView';
 import type { ChangesActions } from './changesActions';
 import type { ChangesTree } from './ChangesTree';
 import { filesOf, type ChangeNode } from './ChangesTree';
+import { t } from '../i18n';
 
 /** Archivo resuelto: su repo y la ruta relativa (con `/`). */
 interface Target {
@@ -41,7 +42,7 @@ export class FileActions {
       .filter((r) => !path.relative(r.root, uri!.fsPath).startsWith('..') && !path.isAbsolute(path.relative(r.root, uri!.fsPath)))
       .sort((a, b) => b.root.length - a.root.length)[0];
     if (!repo) {
-      void vscode.window.showWarningMessage('MultiGit: el archivo no está en ningún repositorio detectado.');
+      void vscode.window.showWarningMessage(t('MultiGit: the file is not in any detected repository.'));
       return undefined;
     }
     return { repo, rel: path.relative(repo.root, uri.fsPath).split(path.sep).join('/'), uri };
@@ -49,43 +50,43 @@ export class FileActions {
 
   /** Show History: Git Log de ese archivo; al elegir un commit se abre su diff. */
   async showHistory(arg?: vscode.Uri | ChangeNode): Promise<void> {
-    const t = this.resolve(arg);
-    if (t) await this.log.showFileHistory(t.repo.root, t.rel);
+    const target = this.resolve(arg);
+    if (target) await this.log.showFileHistory(target.repo.root, target.rel);
   }
 
   /** Annotate with Git Blame: el blame integrado de VS Code en el editor. */
   async blame(arg?: vscode.Uri | ChangeNode): Promise<void> {
-    const t = this.resolve(arg);
-    if (!t) return;
-    await vscode.window.showTextDocument(t.uri, { preview: false });
+    const target = this.resolve(arg);
+    if (!target) return;
+    await vscode.window.showTextDocument(target.uri, { preview: false });
     try {
       await vscode.commands.executeCommand('git.blame.toggleEditorDecoration');
     } catch {
       void vscode.window.showWarningMessage(
-        'MultiGit: esta versión de VS Code no tiene blame integrado. Actualiza VS Code o usa Show History.',
+        t('MultiGit: this VS Code version has no built-in blame. Update VS Code or use Show History.'),
       );
     }
   }
 
   /** Show Diff: cambios locales del archivo contra HEAD. */
   async showDiff(arg?: vscode.Uri | ChangeNode): Promise<void> {
-    const t = this.resolve(arg);
-    if (!t) return;
-    const file = (await t.repo.git.getChanges()).find((f) => f.path === t.rel);
+    const target = this.resolve(arg);
+    if (!target) return;
+    const file = (await target.repo.git.getChanges()).find((f) => f.path === target.rel);
     if (!file) {
-      void vscode.window.showInformationMessage(`MultiGit: ${path.posix.basename(t.rel)} no tiene cambios locales.`);
+      void vscode.window.showInformationMessage(t('MultiGit: {0} has no local changes.', path.posix.basename(target.rel)));
       return;
     }
-    await this.changes.openDiff({ repo: t.repo, file });
+    await this.changes.openDiff({ repo: target.repo, file });
   }
 
   /** Compare with Revision…: elegir un commit que tocó el archivo y compararlo con la versión local. */
   async compareWithRevision(arg?: vscode.Uri | ChangeNode): Promise<void> {
-    const t = this.resolve(arg);
-    if (!t) return;
-    const commits = await t.repo.git.fileHistory(t.rel).catch(() => []);
+    const target = this.resolve(arg);
+    if (!target) return;
+    const commits = await target.repo.git.fileHistory(target.rel).catch(() => []);
     if (!commits.length) {
-      void vscode.window.showInformationMessage('MultiGit: el archivo no tiene historial en Git.');
+      void vscode.window.showInformationMessage(t('MultiGit: the file has no Git history.'));
       return;
     }
     const picked = await vscode.window.showQuickPick(
@@ -95,16 +96,16 @@ export class FileActions {
         hash: c.hash,
         short: c.shortHash,
       })),
-      { title: `Compare with Revision — ${path.posix.basename(t.rel)}`, placeHolder: 'Elige la revisión', matchOnDescription: true },
+      { title: `Compare with Revision — ${path.posix.basename(target.rel)}`, placeHolder: t('Choose the revision'), matchOnDescription: true },
     );
-    if (picked) await this.diffAgainstLocal(t, picked.hash, picked.short);
+    if (picked) await this.diffAgainstLocal(target, picked.hash, picked.short);
   }
 
   /** Compare with Branch or Tag…: el archivo en esa rama o tag contra la versión local. */
   async compareWithRef(arg?: vscode.Uri | ChangeNode): Promise<void> {
-    const t = this.resolve(arg);
-    if (!t) return;
-    const [branches, tags] = await Promise.all([t.repo.git.getBranches(), t.repo.git.listTags().catch(() => [])]);
+    const target = this.resolve(arg);
+    if (!target) return;
+    const [branches, tags] = await Promise.all([target.repo.git.getBranches(), target.repo.git.listTags().catch(() => [])]);
     const items: Array<vscode.QuickPickItem & { ref?: string }> = [
       { label: 'Local', kind: vscode.QuickPickItemKind.Separator },
       ...branches.local.map((b) => ({ label: b.name, iconPath: new vscode.ThemeIcon(b.current ? 'tag' : 'git-branch'), ref: b.name })),
@@ -114,33 +115,33 @@ export class FileActions {
       ...tags.map((tag) => ({ label: tag, iconPath: new vscode.ThemeIcon('tag'), ref: `refs/tags/${tag}` })),
     ];
     const picked = await vscode.window.showQuickPick(items, {
-      title: `Compare with Branch or Tag — ${path.posix.basename(t.rel)}`,
-      placeHolder: 'Rama o tag',
+      title: `Compare with Branch or Tag — ${path.posix.basename(target.rel)}`,
+      placeHolder: t('Branch or tag'),
     });
-    if (picked?.ref) await this.diffAgainstLocal(t, picked.ref, picked.label);
+    if (picked?.ref) await this.diffAgainstLocal(target, picked.ref, picked.label);
   }
 
   /** Show Current Revision: el último commit que tocó el archivo, en el Git Log. */
   async showCurrentRevision(arg?: vscode.Uri | ChangeNode): Promise<void> {
-    const t = this.resolve(arg);
-    if (!t) return;
-    const [last] = await t.repo.git.fileHistory(t.rel, 1).catch(() => []);
+    const target = this.resolve(arg);
+    if (!target) return;
+    const [last] = await target.repo.git.fileHistory(target.rel, 1).catch(() => []);
     if (!last) {
-      void vscode.window.showInformationMessage('MultiGit: el archivo no tiene historial en Git.');
+      void vscode.window.showInformationMessage(t('MultiGit: the file has no Git history.'));
       return;
     }
-    await this.log.showFileHistory(t.repo.root, t.rel);
+    await this.log.showFileHistory(target.repo.root, target.rel);
     void vscode.window.setStatusBarMessage(`$(git-commit) ${last.shortHash} ${last.subject} — ${last.author}`, 8000);
   }
 
   /** Add: `git add` del archivo. */
   async add(arg?: vscode.Uri | ChangeNode): Promise<void> {
-    const t = this.resolve(arg);
-    if (!t) return;
+    const target = this.resolve(arg);
+    if (!target) return;
     try {
-      await t.repo.git.addPaths([t.rel]);
+      await target.repo.git.addPaths([target.rel]);
       await this.tree.refresh();
-      vscode.window.setStatusBarMessage(`$(add) ${t.rel} agregado a Git`, 4000);
+      vscode.window.setStatusBarMessage(`$(add) ${target.rel} agregado a Git`, 4000);
     } catch (error) {
       void vscode.window.showErrorMessage(`MultiGit: ${errorText(error)}`);
     }
@@ -148,40 +149,40 @@ export class FileActions {
 
   /** Rollback…: el mismo flujo de la vista Changes (con confirmación). */
   async rollback(arg?: vscode.Uri | ChangeNode): Promise<void> {
-    const t = this.resolve(arg);
-    if (!t) return;
-    const file = (await t.repo.git.getChanges()).find((f) => f.path === t.rel);
+    const target = this.resolve(arg);
+    if (!target) return;
+    const file = (await target.repo.git.getChanges()).find((f) => f.path === target.rel);
     if (!file || file.kind !== 'tracked') {
-      void vscode.window.showInformationMessage(`MultiGit: ${path.posix.basename(t.rel)} no tiene cambios para revertir.`);
+      void vscode.window.showInformationMessage(t('MultiGit: {0} has no changes to roll back.', path.posix.basename(target.rel)));
       return;
     }
-    await this.changes.rollback([{ repo: t.repo, file }]);
+    await this.changes.rollback([{ repo: target.repo, file }]);
   }
 
   // ------------------------------------------------------------------ Local History (de VS Code)
 
   async localHistory(action: 'show' | 'project' | 'label', arg?: vscode.Uri | ChangeNode): Promise<void> {
-    const t = action === 'project' ? undefined : this.resolve(arg);
-    if (action !== 'project' && !t) return;
+    const target = action === 'project' ? undefined : this.resolve(arg);
+    if (action !== 'project' && !target) return;
     try {
       if (action === 'show') {
         // El historial local de VS Code se ve en la vista Timeline del archivo abierto.
-        await vscode.window.showTextDocument(t!.uri, { preview: false });
+        await vscode.window.showTextDocument(target!.uri, { preview: false });
         await vscode.commands.executeCommand('timeline.focus');
       } else if (action === 'project') {
         await vscode.commands.executeCommand('workbench.action.localHistory.restoreViaPicker');
       } else {
-        await vscode.window.showTextDocument(t!.uri, { preview: false });
+        await vscode.window.showTextDocument(target!.uri, { preview: false });
         await vscode.commands.executeCommand('workbench.action.localHistory.create');
       }
     } catch (error) {
-      void vscode.window.showWarningMessage(`MultiGit: Local History no está disponible (${errorText(error)}).`);
+      void vscode.window.showWarningMessage(t('MultiGit: Local History is not available ({0}).', errorText(error)));
     }
   }
 
-  private async diffAgainstLocal(t: Target, ref: string, label: string): Promise<void> {
-    const left = GitContentProvider.uri(t.repo.root, ref, t.rel);
-    const title = `${path.posix.basename(t.rel)} (${label} ↔ local)`;
-    await vscode.commands.executeCommand('vscode.diff', left, t.uri, title, { preview: true });
+  private async diffAgainstLocal(target: Target, ref: string, label: string): Promise<void> {
+    const left = GitContentProvider.uri(target.repo.root, ref, target.rel);
+    const title = `${path.posix.basename(target.rel)} (${label} ↔ local)`;
+    await vscode.commands.executeCommand('vscode.diff', left, target.uri, title, { preview: true });
   }
 }

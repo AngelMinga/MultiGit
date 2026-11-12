@@ -2,6 +2,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { Repo } from '../git/RepoManager';
+import { t } from '../i18n';
 
 export async function resolveConflicts(repo: Repo, files: readonly string[]): Promise<void> {
   if (files.length === 0) return;
@@ -9,7 +10,7 @@ export async function resolveConflicts(repo: Repo, files: readonly string[]): Pr
   if (files.length > 1) {
     const picked = await vscode.window.showQuickPick(
       files.map((f) => ({ label: `$(warning) ${path.posix.basename(f)}`, description: path.posix.dirname(f), file: f })),
-      { title: `Conflictos en ${repo.name} (${files.length})`, placeHolder: 'Elige un archivo para abrirlo en el merge editor' },
+      { title: t('Conflicts in {0} ({1})', repo.name, files.length), placeHolder: t('Choose a file to open it in the merge editor') },
     );
     if (!picked) return;
     file = picked.file;

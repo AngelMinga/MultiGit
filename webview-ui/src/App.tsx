@@ -6,6 +6,7 @@ import { Toolbar } from './toolbar/Toolbar';
 import { PushDialog } from './push/PushDialog';
 import { RollbackDialog } from './rollback/RollbackDialog';
 import { onHostMessage, post } from './vscode';
+import { t } from './i18n';
 
 export function App() {
   const [kind, setKind] = useState<WebviewKind | null>(
@@ -27,12 +28,12 @@ export function App() {
       {error && (
         <div className="banner error" role="alert">
           {error}
-          <button className="link" onClick={() => setError(null)} aria-label="Cerrar">
+          <button className="link" onClick={() => setError(null)} aria-label={t('Close')}>
             ✕
           </button>
         </div>
       )}
-      {kind === 'push' ? <PushDialog /> : kind === 'commit' ? <CommitBox /> : kind === 'log' ? <LogApp /> : kind === 'toolbar' ? <Toolbar /> : kind === 'rollback' ? <RollbackDialog /> : <p className="muted pad">Cargando…</p>}
+      {kind === 'push' ? <PushDialog /> : kind === 'commit' ? <CommitBox /> : kind === 'log' ? <LogApp /> : kind === 'toolbar' ? <Toolbar /> : kind === 'rollback' ? <RollbackDialog /> : <p className="muted pad">{t('Loading…')}</p>}
     </>
   );
 }

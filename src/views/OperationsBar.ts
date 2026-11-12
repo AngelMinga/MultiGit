@@ -5,6 +5,7 @@ import { errorText } from '../git/MultiRepoRunner';
 import { canSkip, OPERATION_LABEL, type Operation } from '../git/operations';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import { resolveConflicts } from './conflicts';
+import { t } from '../i18n';
 
 export class OperationsBar implements vscode.Disposable {
   private readonly item: vscode.StatusBarItem;
@@ -12,7 +13,7 @@ export class OperationsBar implements vscode.Disposable {
 
   constructor(private readonly manager: RepoManager) {
     this.item = vscode.window.createStatusBarItem('multigit.operation', vscode.StatusBarAlignment.Left, 999);
-    this.item.name = 'MultiGit: operación en curso';
+    this.item.name = t('MultiGit: operation in progress');
     this.item.command = 'multigit.operation.menu';
     this.item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
     this.subscription = manager.onDidChange(() => this.update());
@@ -35,9 +36,10 @@ export class OperationsBar implements vscode.Disposable {
     const first = repos[0]!;
     this.item.text =
       repos.length === 1
-        ? `$(warning) ${OPERATION_LABEL[first.operation]} en curso: ${first.name}${conflicts ? ` · ${conflicts} conflicto(s)` : ''}`
-        : `$(warning) ${repos.length} repos con operaciones en curso${conflicts ? ` · ${conflicts} conflicto(s)` : ''}`;
-    this.item.tooltip = `${repos.map((r) => `${r.name}: ${OPERATION_LABEL[r.operation]}`).join('\n')}\nClic: resolver, continuar o abortar`;
+        ? t('$(warning) {0} in progress: {1}{2}', OPERATION_LABEL[first.operation], first.name, conflictsText(conflicts))
+        : t('$(warning) {0} repos with operations in progress{1}', repos.length, conflictsText(conflicts));
+    const lines = repos.map((r) => `${r.name}: ${OPERATION_LABEL[r.operation]}`).join('\n');
+    this.item.tooltip = t('{0}\nClick: resolve, continue or abort', lines);
     this.item.show();
   }
 
@@ -45,7 +47,7 @@ export class OperationsBar implements vscode.Disposable {
   async showMenu(): Promise<void> {
     const repos = this.inProgress;
     if (!repos.length) {
-      void vscode.window.showInformationMessage('MultiGit: no hay operaciones en curso.');
+      void vscode.window.showInformationMessage(t('MultiGit: there are no operations in progress.'));
       return;
     }
     type Item = vscode.QuickPickItem & { run?: () => Promise<unknown> };
@@ -53,25 +55,25 @@ export class OperationsBar implements vscode.Disposable {
     for (const repo of repos) {
       const op = repo.operation;
       const conflicts = repo.status?.changes.conflicted ?? 0;
-      items.push({ label: `${repo.name} — ${OPERATION_LABEL[op]}${conflicts ? ` · ${conflicts} conflicto(s)` : ''}`, kind: vscode.QuickPickItemKind.Separator });
+      items.push({ label: `${repo.name} — ${OPERATION_LABEL[op]}${conflictsText(conflicts)}`, kind: vscode.QuickPickItemKind.Separator });
       if (conflicts) items.push({ label: '$(git-merge) Resolve Conflicts…', run: () => this.resolve(repo) });
-      items.push({ label: '$(debug-continue) Continue', description: 'marca los resueltos y continúa', run: () => this.continue(repo) });
-      if (canSkip(op)) items.push({ label: '$(debug-step-over) Skip', description: 'salta el commit actual', run: () => this.skip(repo) });
-      items.push({ label: '$(debug-stop) Abort', description: `vuelve a como estaba antes del ${op}`, run: () => this.abort(repo) });
+      items.push({ label: '$(debug-continue) Continue', description: t('marks the resolved files and continues'), run: () => this.continue(repo) });
+      if (canSkip(op)) items.push({ label: '$(debug-step-over) Skip', description: t('skips the current commit'), run: () => this.skip(repo) });
+      items.push({ label: '$(debug-stop) Abort', description: t('goes back to how it was before the {0}', op), run: () => this.abort(repo) });
     }
     if (repos.length > 1) {
-      items.push({ label: 'Todos', kind: vscode.QuickPickItemKind.Separator });
-      items.push({ label: '$(debug-continue) Continue en todos', run: () => this.forAll('continue') });
-      items.push({ label: '$(debug-stop) Abort en todos', run: () => this.forAll('abort') });
+      items.push({ label: t('All'), kind: vscode.QuickPickItemKind.Separator });
+      items.push({ label: t('$(debug-continue) Continue in All'), run: () => this.forAll('continue') });
+      items.push({ label: t('$(debug-stop) Abort in All'), run: () => this.forAll('abort') });
     }
-    const picked = await vscode.window.showQuickPick(items, { title: 'MultiGit: operaciones en curso' });
+    const picked = await vscode.window.showQuickPick(items, { title: t('MultiGit: operations in progress') });
     await picked?.run?.();
   }
 
   async resolve(repo: Repo): Promise<void> {
     const files = await repo.git.getConflictedFiles();
     if (!files.length) {
-      void vscode.window.showInformationMessage(`MultiGit: ${repo.name} no tiene conflictos pendientes. Usa Continue.`);
+      void vscode.window.showInformationMessage(t('MultiGit: {0} has no pending conflicts. Use Continue.', repo.name));
       return;
     }
     await resolveConflicts(repo, files);
@@ -85,9 +87,9 @@ export class OperationsBar implements vscode.Disposable {
       const conflicted = await repo.git.getConflictedFiles();
       const unresolved = await repo.git.filesWithConflictMarkers(conflicted);
       if (unresolved.length) {
-        const RESOLVE = 'Resolver conflictos';
+        const RESOLVE = t('Resolve Conflicts');
         const choice = await vscode.window.showWarningMessage(
-          `MultiGit: ${repo.name} todavía tiene ${unresolved.length} archivo(s) con conflictos`,
+          t('MultiGit: {0} still has {1} file(s) with conflicts', repo.name, unresolved.length),
           { modal: true, detail: unresolved.map((f) => `  • ${f}`).join('\n') },
           RESOLVE,
         );
@@ -110,8 +112,8 @@ export class OperationsBar implements vscode.Disposable {
     const op = repo.operation;
     if (!op || !canSkip(op)) return;
     const ok = await vscode.window.showWarningMessage(
-      `¿Saltar el commit actual del ${op} en ${repo.name}?`,
-      { modal: true, detail: 'Ese commit no se aplicará y se perderán los cambios que hayas hecho al resolverlo.' },
+      t('Skip the current commit of the {0} in {1}?', op, repo.name),
+      { modal: true, detail: t('That commit will not be applied and the changes you made while resolving it will be lost.') },
       'Skip',
     );
     if (ok !== 'Skip') return;
@@ -129,8 +131,8 @@ export class OperationsBar implements vscode.Disposable {
     if (!op) return true;
     if (!confirmed) {
       const ok = await vscode.window.showWarningMessage(
-        `¿Abortar el ${op} en ${repo.name}?`,
-        { modal: true, detail: `El repo vuelve a como estaba antes del ${op}. Se pierde lo que hayas resuelto hasta ahora.` },
+        t('Abort the {0} in {1}?', op, repo.name),
+        { modal: true, detail: t('The repository goes back to how it was before the {0}. What you resolved so far is lost.', op) },
         'Abort',
       );
       if (ok !== 'Abort') return false;
@@ -151,9 +153,9 @@ export class OperationsBar implements vscode.Disposable {
     const repos = this.inProgress;
     if (action === 'abort') {
       const ok = await vscode.window.showWarningMessage(
-        `¿Abortar las operaciones en curso de ${repos.length} repos?`,
+        t('Abort the operations in progress in {0} repos?', repos.length),
         { modal: true, detail: repos.map((r) => `  • ${r.name}: ${r.operation}`).join('\n') },
-        'Abort en todos',
+        t('Abort in All'),
       );
       if (!ok) return;
     }
@@ -167,9 +169,9 @@ export class OperationsBar implements vscode.Disposable {
   private async afterFailure(repo: Repo, error: unknown): Promise<void> {
     const conflicts = await repo.git.getConflictedFiles().catch(() => []);
     if (conflicts.length) {
-      const RESOLVE = 'Resolver conflictos';
+      const RESOLVE = t('Resolve Conflicts');
       const choice = await vscode.window.showWarningMessage(
-        `MultiGit: ${repo.name} tiene ${conflicts.length} conflicto(s) nuevos`,
+        t('MultiGit: {0} has {1} new conflict(s)', repo.name, conflicts.length),
         RESOLVE,
       );
       if (choice) await resolveConflicts(repo, conflicts);
@@ -182,4 +184,9 @@ export class OperationsBar implements vscode.Disposable {
     this.subscription.dispose();
     this.item.dispose();
   }
+}
+
+/** " · 2 conflicto(s)" o vacío. */
+function conflictsText(conflicts: number): string {
+  return conflicts ? t(' · {0} conflict(s)', conflicts) : '';
 }

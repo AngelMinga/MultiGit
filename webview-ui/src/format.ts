@@ -1,20 +1,21 @@
-// Formatos de fecha como IntelliJ: "Hoy 08:51", "Ayer 17:20", "20/10/26, 12:04".
+// Formatos de fecha como IntelliJ: "Hoy 08:51", "Ayer 17:20", "20/10/26, 12:04" (en el idioma de VS Code).
+import { locale, t } from './i18n';
 
 export function relativeDate(value: string | number, now = new Date()): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  const time = date.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  const time = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const day = 24 * 60 * 60 * 1000;
-  if (date.getTime() >= startOfToday) return `Hoy ${time}`;
-  if (date.getTime() >= startOfToday - day) return `Ayer ${time}`;
-  const d = date.toLocaleDateString('es', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  if (date.getTime() >= startOfToday) return t('Today {0}', time);
+  if (date.getTime() >= startOfToday - day) return t('Yesterday {0}', time);
+  const d = date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: '2-digit' });
   return `${d}, ${time}`;
 }
 
 /** Fecha completa para el detalle: "11 nov 2026, 08:51". */
 export function fullDate(ms: number): string {
-  return new Date(ms).toLocaleString('es', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return new Date(ms).toLocaleString(locale, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 /** `YYYY-MM-DD` local de hace `days` días. */

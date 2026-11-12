@@ -7,9 +7,10 @@ import { existsSync } from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { commonAncestor } from '../git/branches';
-import { STATUS_LABEL, type StatusFile } from '../git/changes';
+import { statusLabel, type StatusFile } from '../git/changes';
 import { describeHead } from '../git/parsers';
 import type { Repo, RepoManager } from '../git/RepoManager';
+import { t } from '../i18n';
 
 export interface ChangesGrouping {
   repo: boolean;
@@ -265,7 +266,7 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
           node.section === 'ignored' ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.Expanded,
         );
         item.id = `section/${node.section}/${this.modeId}`;
-        item.description = `${node.files.length} archivo(s)`;
+        item.description = t('{0} file(s)', node.files.length);
         if (node.section !== 'ignored') item.checkboxState = this.containerState(node.files);
         item.contextValue = `multigit.changes.section.${node.section}`;
         return item;
@@ -312,17 +313,17 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
           : this.relativeToWorkspace(node.ref);
         const parts = [where, file.origPath ? `← ${file.origPath}` : ''];
         item.description = parts.filter(Boolean).join('  ');
-        item.tooltip = `${STATUS_LABEL[file.status]}: ${repo.name}/${file.path}`;
+        item.tooltip = `${statusLabel(file.status)}: ${repo.name}/${file.path}`;
         item.contextValue = `multigit.changes.file.${file.kind}`;
         if (file.kind === 'ignored') {
           // Los ignorados no se commitean: sin checkbox; clic → mostrarlo en el Explorer.
-          item.command = { command: 'revealInExplorer', title: 'Mostrar', arguments: [item.resourceUri] };
+          item.command = { command: 'revealInExplorer', title: t('Show'), arguments: [item.resourceUri] };
           return item;
         }
         item.checkboxState = this.isChecked(node.ref)
           ? vscode.TreeItemCheckboxState.Checked
           : vscode.TreeItemCheckboxState.Unchecked;
-        item.command = { command: 'multigit.changes.openDiff', title: 'Ver diff', arguments: [node] };
+        item.command = { command: 'multigit.changes.openDiff', title: t('Show Diff'), arguments: [node] };
         return item;
       }
     }

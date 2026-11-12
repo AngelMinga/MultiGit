@@ -19,6 +19,7 @@ import { startCredentials } from './views/credentials';
 import { RepoIcons } from './views/repoIcons';
 import type { RepositoriesView } from './views/RepositoriesView';
 import { PushPanel } from './webview/PushPanel';
+import { t } from './i18n';
 
 /** Lo que devuelve `activate`: solo para los tests de la extensión (no es una API pública). */
 export interface MultiGitTestApi {
@@ -67,7 +68,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
     await manager.initialize();
   } catch (error) {
     log.error('Error al inicializar MultiGit', error);
-    void vscode.window.showErrorMessage(`MultiGit: no se pudieron cargar los repositorios. ${String(error)}`);
+    void vscode.window.showErrorMessage(t('MultiGit: the repositories could not be loaded. {0}', String(error)));
   }
   return { manager, repositories: repositories.view, branches: branches.tree, changes: changes.tree };
 }

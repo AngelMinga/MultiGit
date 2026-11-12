@@ -6,3 +6,4 @@ dist/
 *.iml
 .vscode-test/
 out-e2e/
+__pycache__/

@@ -1,14 +1,22 @@
 // Reglas de preflight y resumen de operaciones multi-repo. Puro, sin `vscode`.
+import { t } from '../i18n';
 import type { RepoStatus } from './parsers';
 
 export type OperationInProgress = 'merge' | 'rebase' | 'cherry-pick' | 'revert' | null;
 
-const OPERATION_LABEL: Record<Exclude<OperationInProgress, null>, string> = {
-  merge: 'un merge',
-  rebase: 'un rebase',
-  'cherry-pick': 'un cherry-pick',
-  revert: 'un revert',
-};
+/** "tiene un merge en curso…" (frase completa por operación: cada idioma tiene su gramática). */
+function operationBlocker(op: Exclude<OperationInProgress, null>): string {
+  switch (op) {
+    case 'merge':
+      return t('has a merge in progress; finish or abort it first');
+    case 'rebase':
+      return t('has a rebase in progress; finish or abort it first');
+    case 'cherry-pick':
+      return t('has a cherry-pick in progress; finish or abort it first');
+    case 'revert':
+      return t('has a revert in progress; finish or abort it first');
+  }
+}
 
 export interface PreflightInput {
   status?: RepoStatus;
@@ -23,11 +31,11 @@ export interface PreflightInput {
  * Con `requireClean`, también los cambios sin commit.
  */
 export function basicBlocker(input: PreflightInput, requireClean: boolean): string | undefined {
-  if (input.error || !input.status) return `no se pudo leer el estado (${input.error ?? 'desconocido'})`;
-  if (input.operation) return `tiene ${OPERATION_LABEL[input.operation]} en curso; termínalo o abórtalo primero`;
+  if (input.error || !input.status) return t('could not read the status ({0})', input.error ?? t('unknown'));
+  if (input.operation) return operationBlocker(input.operation);
   const c = input.status.changes;
-  if (c.conflicted > 0) return `tiene ${c.conflicted} archivo(s) en conflicto`;
-  if (requireClean && c.total > 0) return `tiene ${c.total} cambio(s) sin commit; haz commit o stash primero`;
+  if (c.conflicted > 0) return t('has {0} conflicted file(s)', c.conflicted);
+  if (requireClean && c.total > 0) return t('has {0} uncommitted change(s); commit or stash them first', c.total);
   return undefined;
 }
 
@@ -44,8 +52,8 @@ export interface StepResult {
 /** Mensaje corto para un repo que quedó con conflictos. */
 export function conflictMessage(files: readonly string[]): string {
   const shown = files.slice(0, 3).join(', ');
-  const more = files.length > 3 ? ` y ${files.length - 3} más` : '';
-  return `conflictos en ${files.length} archivo(s): ${shown}${more}`;
+  const more = files.length > 3 ? t(' and {0} more', files.length - 3) : '';
+  return t('conflicts in {0} file(s): {1}{2}', files.length, shown, more);
 }
 
 const ICON: Record<StepState, string> = { ok: '✅', failed: '❌', skipped: '⏭', pending: '⏭' };
@@ -54,7 +62,7 @@ const ICON: Record<StepState, string> = { ok: '✅', failed: '❌', skipped: '�
 export function formatSummary(results: readonly StepResult[]): string {
   return results
     .map((r) => {
-      const detail = r.state === 'pending' ? 'no ejecutado' : r.message ? firstLine(r.message) : '';
+      const detail = r.state === 'pending' ? t('not run') : r.message ? firstLine(r.message) : '';
       return `${ICON[r.state]} ${r.repo}${detail ? `: ${detail}` : ''}`;
     })
     .join('\n');

@@ -12,7 +12,7 @@ declare function acquireVsCodeApi(): VsCodeApi;
 const api: VsCodeApi =
   typeof acquireVsCodeApi === 'function'
     ? acquireVsCodeApi()
-    : { postMessage: (m) => console.log('[sin host]', m), getState: () => undefined, setState: () => undefined };
+    : { postMessage: (m) => console.log('[no host]', m), getState: () => undefined, setState: () => undefined };
 
 export function post(message: WebviewMessage): void {
   api.postMessage(message);

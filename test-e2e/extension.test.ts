@@ -74,7 +74,7 @@ describe('MultiGit en VS Code', () => {
     const items = await walk(api.branches);
     const labels = items.map((i) => label(i.item));
     assert.ok(labels.includes('Local') && labels.includes('Remote'));
-    const current = items.filter((i) => i.item.description === 'actual').map((i) => label(i.item));
+    const current = items.filter((i) => i.item.description === 'current').map((i) => label(i.item));
     assert.ok(current.includes('dev-x') && current.includes('develop'), `ramas actuales: ${current.join(', ')}`);
   });
 

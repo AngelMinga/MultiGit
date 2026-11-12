@@ -20,6 +20,7 @@ import {
 } from './parsers';
 import type { OperationInProgress } from './preflight';
 import { hasConflictMarkers, type Operation } from './operations';
+import { t } from '../i18n';
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 const NETWORK_TIMEOUT_MS = 180_000;
@@ -102,7 +103,7 @@ export class GitService {
             if (/Authentication failed|Invalid username or password|Permission denied \(publickey|could not read (Username|Password)/i.test(stderr)) {
               GitService.onAuthFailure?.();
             }
-            reject(new GitError(`git ${args.join(' ')} falló en ${this.name}: ${detail}`, args, code, stderr, stdout));
+            reject(new GitError(t('git {0} failed in {1}: {2}', args.join(' '), this.name, detail), args, code, stderr, stdout));
             return;
           }
           resolve(stdout);

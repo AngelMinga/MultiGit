@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 // Parsers puros de salidas de git. No importan `vscode` para poder testearlos con vitest.
 
 /** Contadores de cambios sin commit, derivados de `git status --porcelain=v2`. */
@@ -121,7 +122,7 @@ export interface AheadBehind {
 export function parseLeftRightCount(output: string): AheadBehind {
   const match = /^\s*(\d+)\s+(\d+)\s*$/.exec(output);
   if (!match) {
-    throw new Error(`Salida inesperada de rev-list --left-right --count: ${JSON.stringify(output)}`);
+    throw new Error(t('Unexpected rev-list --left-right --count output: {0}', JSON.stringify(output)));
   }
   return { behind: Number(match[1]), ahead: Number(match[2]) };
 }
@@ -130,7 +131,7 @@ export function parseLeftRightCount(output: string): AheadBehind {
 export function describeHead(status: Pick<RepoStatus, 'branch' | 'oid'>): string {
   if (status.branch) return status.branch;
   if (status.oid) return `(detached ${status.oid.slice(0, 7)})`;
-  return '(sin commits)';
+  return t('(no commits)');
 }
 
 // ------------------------------------------------------------------ log y archivos de commit

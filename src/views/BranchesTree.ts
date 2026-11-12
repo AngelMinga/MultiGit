@@ -11,6 +11,7 @@ import { orderBranches, type RepoBranches } from '../git/branches';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import { branchDecorationUri } from './BranchDecorations';
 import type { BranchRef, Scope } from './branchActions';
+import { t } from '../i18n';
 
 type Section = 'local' | 'remote' | 'tags';
 export type ClickMode = 'actions' | 'filter' | 'navigate';
@@ -94,7 +95,7 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
   /** Repos y rama sobre los que actúa un nodo (para el menú de acciones y F2). */
   scopeOf(node: BranchNode): { scope: Scope; ref: BranchRef } | undefined {
     if (node.kind === 'branch') {
-      const label = node.repos.length === 1 ? node.repos[0]!.name : `${node.repos.length} repositorios`;
+      const label = node.repos.length === 1 ? node.repos[0]!.name : t('{0} repositories', node.repos.length);
       return { scope: { repos: node.repos, label }, ref: node.ref };
     }
     if (node.kind === 'branchRepo') return { scope: { repos: [node.repo], label: node.repo.name }, ref: node.ref };
@@ -138,7 +139,7 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
       }
       case 'repo': {
         const d = data.get(node.repo);
-        if (!d) return [{ kind: 'message', text: 'no se pudieron leer las ramas' }];
+        if (!d) return [{ kind: 'message', text: t('the branches could not be read') }];
         return this.leaves(node.section, this.entriesOfRepo(node.section, node.repo, d), node.repo.root);
       }
       case 'folder':
@@ -197,10 +198,10 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
         const counters = node.track ? formatAheadBehind(node.track) : '';
         if (!this.options.byRepo) {
           const where = `${node.repos.length}/${total}`;
-          item.description = joinDesc(counters, current ? `${where} · actual en ${node.currentIn.length}` : where);
+          item.description = joinDesc(counters, current ? t('{0} · current in {1}', where, node.currentIn.length) : where);
           item.tooltip = `${name}\n${node.repos.map((r) => r.name).join(', ')}${trackTooltip(node.track)}`;
         } else {
-          item.description = joinDesc(counters, current ? 'actual' : '');
+          item.description = joinDesc(counters, current ? t('current') : '');
           item.tooltip = `${name}${trackTooltip(node.track)}`;
         }
         // local.current = rama actual en todos sus repos (oculta Checkout, Merge, Delete…).
@@ -224,7 +225,7 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
         const item = new vscode.TreeItem(node.repo.name, vscode.TreeItemCollapsibleState.None);
         item.id = `branchRepo/${node.repo.root}/${node.ref.type === 'local' ? node.ref.name : node.ref.full}`;
         item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor(this.manager.colorIdOf(node.repo)));
-        item.description = joinDesc(node.track ? formatAheadBehind(node.track) : '', node.current ? 'actual' : '');
+        item.description = joinDesc(node.track ? formatAheadBehind(node.track) : '', node.current ? t('current') : '');
         if (node.track) {
           item.tooltip = `${node.repo.name}${trackTooltip(node.track)}`;
           item.resourceUri = branchDecorationUri(item.id, node.track);
@@ -250,7 +251,7 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
         : this.options.clickMode === 'navigate'
           ? 'multigit.branchesTree.navigateLog'
           : actionsCommand;
-    return { command, title: 'Abrir', arguments: [node] };
+    return { command, title: t('Open'), arguments: [node] };
   }
 
   private load(): Promise<Map<Repo, RepoData>> {
@@ -407,7 +408,7 @@ function joinDesc(...parts: string[]): string | undefined {
 function trackTooltip(track: Track | undefined): string {
   if (!track || (!track.ahead && !track.behind)) return '';
   const lines: string[] = [];
-  if (track.behind) lines.push(`↓ ${track.behind} commit(s) entrantes por bajar`);
-  if (track.ahead) lines.push(`↑ ${track.ahead} commit(s) salientes por subir`);
+  if (track.behind) lines.push(t('↓ {0} incoming commit(s) to pull', track.behind));
+  if (track.ahead) lines.push(t('↑ {0} outgoing commit(s) to push', track.ahead));
   return `\n${lines.join('\n')}`;
 }

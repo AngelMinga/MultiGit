@@ -5,6 +5,7 @@ import type { ChangeNode, ChangesTree } from '../views/ChangesTree';
 import { FileActions } from '../views/fileActions';
 import type { LogView } from '../webview/LogView';
 import type { Core } from './core';
+import { t } from '../i18n';
 
 type FileArg = vscode.Uri | ChangeNode | undefined;
 
@@ -27,14 +28,14 @@ export function registerFileActions(core: Core, logView: LogView, changes: { tre
         [
           'commitFile',
           async (a) => {
-            const t = fileActions.resolve(a);
-            if (!t) return;
+            const target = fileActions.resolve(a);
+            if (!target) return;
             await changes.tree.refresh();
             const ref =
-              changes.tree.checkedFiles.concat(changes.tree.trackedFiles).find((r) => r.repo === t.repo && r.file.path === t.rel) ??
-              (await t.repo.git.getChanges()).map((file) => ({ repo: t.repo, file })).find((r) => r.file.path === t.rel);
+              changes.tree.checkedFiles.concat(changes.tree.trackedFiles).find((r) => r.repo === target.repo && r.file.path === target.rel) ??
+              (await target.repo.git.getChanges()).map((file) => ({ repo: target.repo, file })).find((r) => r.file.path === target.rel);
             if (!ref) {
-              void vscode.window.showInformationMessage('MultiGit: el archivo no tiene cambios para commitear.');
+              void vscode.window.showInformationMessage(t('MultiGit: the file has no changes to commit.'));
               return;
             }
             await changes.actions.commitOnly([ref]);

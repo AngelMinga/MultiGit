@@ -3,6 +3,7 @@
 // (`multigit-branch:/<id>?ahead=N&behind=M`), así que cada render del árbol trae los suyos.
 // VS Code tiñe también el nombre de la rama con el color del badge.
 import * as vscode from 'vscode';
+import { t } from '../i18n';
 
 const SCHEME = 'multigit-branch';
 
@@ -24,7 +25,7 @@ export class BranchDecorations implements vscode.FileDecorationProvider {
     return {
       // Badge de hasta 2 caracteres: solo la flecha; el número va en la descripción.
       badge: behind && ahead ? '↕' : behind ? '↓' : '↑',
-      tooltip: [behind ? `${behind} commit(s) entrantes por bajar` : '', ahead ? `${ahead} commit(s) salientes por subir` : '']
+      tooltip: [behind ? t('{0} incoming commit(s) to pull', behind) : '', ahead ? t('{0} outgoing commit(s) to push', ahead) : '']
         .filter(Boolean)
         .join(' · '),
       // Lo entrante manda (es lo que hay que hacer primero: bajar).

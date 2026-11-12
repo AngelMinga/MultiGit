@@ -5,6 +5,7 @@ import { fullDate, isoDaysAgo } from '../format';
 import { onHostMessage, post } from '../vscode';
 import { BranchTree } from './BranchTree';
 import { CommitList, key } from './CommitList';
+import { t } from '../i18n';
 
 const EMPTY: LogFilters = {
   text: '',
@@ -163,20 +164,20 @@ export function LogApp() {
     <div className="log" onClick={() => setMenu(null)}>
       {/* ---------------------------------------------------- filtros */}
       <div className="log-filters">
-        <button className={`icon-btn${showBranches ? ' on' : ''}`} title="Mostrar ramas" onClick={() => setShowBranches((v) => !v)}>
+        <button className={`icon-btn${showBranches ? ' on' : ''}`} title={t('Show branches')} onClick={() => setShowBranches((v) => !v)}>
           ☰
         </button>
         <div className="search">
           <input
             value={text}
-            placeholder="Texto o hash"
+            placeholder={t('Text or hash')}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && apply({ text })}
           />
-          <button className={`toggle${filters.regex ? ' on' : ''}`} title="Expresión regular" onClick={() => apply({ regex: !filters.regex })}>
+          <button className={`toggle${filters.regex ? ' on' : ''}`} title={t('Regular expression')} onClick={() => apply({ regex: !filters.regex })}>
             .*
           </button>
-          <button className={`toggle${filters.matchCase ? ' on' : ''}`} title="Distinguir mayúsculas" onClick={() => apply({ matchCase: !filters.matchCase })}>
+          <button className={`toggle${filters.matchCase ? ' on' : ''}`} title={t('Match case')} onClick={() => apply({ matchCase: !filters.matchCase })}>
             Aa
           </button>
         </div>
@@ -186,8 +187,8 @@ export function LogApp() {
             value={filters.branch ?? ''}
             onChange={(e) => apply({ branch: e.target.value || null, repoIds: [] })}
           >
-            <option value="">Todas</option>
-            <option value="HEAD">HEAD (actual)</option>
+            <option value="">{t('All')}</option>
+            <option value="HEAD">{t('HEAD (current)')}</option>
             <optgroup label="Local">
               {branchOptions.local.map((b) => (
                 <option key={`l:${b}`} value={b}>
@@ -209,7 +210,7 @@ export function LogApp() {
           <input
             list="log-authors"
             value={user}
-            placeholder="Todos"
+            placeholder={t('All')}
             onChange={(e) => setUser(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && apply({ user })}
             onBlur={() => user !== filters.user && apply({ user })}
@@ -222,25 +223,25 @@ export function LogApp() {
           {me.email && (
             <button
               className={`toggle${filters.user === me.email ? ' on' : ''}`}
-              title={`Solo mis commits (${me.email})`}
+              title={t('Only my commits ({0})', me.email)}
               onClick={() => {
                 const next = filters.user === me.email ? '' : me.email;
                 setUser(next);
                 apply({ user: next });
               }}
             >
-              Yo
+              {t('Me')}
             </button>
           )}
         </label>
         <label className="filter">
           <span className="muted">Date</span>
           <select value={datePreset} onChange={(e) => setDate(e.target.value as DatePreset)}>
-            <option value="all">Todo</option>
-            <option value="today">Hoy</option>
-            <option value="7">Últimos 7 días</option>
-            <option value="30">Últimos 30 días</option>
-            <option value="custom">Rango…</option>
+            <option value="all">{t('All')}</option>
+            <option value="today">{t('Today')}</option>
+            <option value="7">{t('Last 7 days')}</option>
+            <option value="30">{t('Last 30 days')}</option>
+            <option value="custom">{t('Range…')}</option>
           </select>
           {datePreset === 'custom' && (
             <>
@@ -253,7 +254,7 @@ export function LogApp() {
           <span className="muted">Paths</span>
           <input
             value={paths}
-            placeholder="Rutas…"
+            placeholder={t('Paths…')}
             onChange={(e) => setPaths(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && apply({ paths: splitPaths(paths) })}
             onBlur={() => paths !== filters.paths.join(', ') && apply({ paths: splitPaths(paths) })}
@@ -265,7 +266,7 @@ export function LogApp() {
             value={filters.repoIds.length === 1 ? filters.repoIds[0] : ''}
             onChange={(e) => apply({ repoIds: e.target.value ? [e.target.value] : [] })}
           >
-            <option value="">Todos</option>
+            <option value="">{t('All')}</option>
             {repos.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.name}
@@ -274,15 +275,15 @@ export function LogApp() {
           </select>
         </label>
         <span className="spacer" />
-        {loading && <span className="muted small">Cargando…</span>}
-        <span className="muted small">{rows.length}{hasMore ? '+' : ''} commits</span>
-        <button className="icon-btn" title="Restablecer filtros" onClick={() => { syncFilters(EMPTY); setDatePreset('all'); post({ type: 'log/setFilters', payload: EMPTY }); }}>
+        {loading && <span className="muted small">{t('Loading…')}</span>}
+        <span className="muted small">{t('{0} commits', `${rows.length}${hasMore ? '+' : ''}`)}</span>
+        <button className="icon-btn" title={t('Reset filters')} onClick={() => { syncFilters(EMPTY); setDatePreset('all'); post({ type: 'log/setFilters', payload: EMPTY }); }}>
           ✕
         </button>
-        <button className="icon-btn" title="Refrescar" onClick={() => post({ type: 'log/refresh', payload: {} })}>
+        <button className="icon-btn" title={t('Refresh')} onClick={() => post({ type: 'log/refresh', payload: {} })}>
           ↻
         </button>
-        <button className={`icon-btn${showDetails ? ' on' : ''}`} title="Mostrar detalle" onClick={() => setShowDetails((v) => !v)}>
+        <button className={`icon-btn${showDetails ? ' on' : ''}`} title={t('Show details')} onClick={() => setShowDetails((v) => !v)}>
           ▤
         </button>
       </div>
@@ -316,13 +317,13 @@ export function LogApp() {
         />
         {showDetails && (
           <aside className="log-details">
-            {!selected && <div className="muted pad">Elige un commit para ver su detalle.</div>}
+            {!selected && <div className="muted pad">{t('Choose a commit to see its details.')}</div>}
             {selected && (
               <>
                 <div className="detail-head">
                   <span className="dot" style={{ background: `var(--vscode-multigit-repo${repoMap.get(selected.repoId)?.colorIndex ?? 0})` }} />
                   <strong>{repoMap.get(selected.repoId)?.name}</strong>
-                  <button className="link hash-link" title="Copiar hash" onClick={() => post({ type: 'log/action', payload: { action: 'copyHash', repoId: selected.repoId, hash: selected.hash } })}>
+                  <button className="link hash-link" title={t('Copy hash')} onClick={() => post({ type: 'log/action', payload: { action: 'copyHash', repoId: selected.repoId, hash: selected.hash } })}>
                     {selected.shortHash}
                   </button>
                 </div>
@@ -347,7 +348,7 @@ export function LogApp() {
                   )}
                 </div>
                 <div className="pane-header small">
-                  {detailsMatch ? `${details!.files.length} archivo(s) — doble clic para ver el diff` : 'Cargando archivos…'}
+                  {detailsMatch ? t('{0} file(s) — double-click to see the diff', details!.files.length) : t('Loading files…')}
                 </div>
                 <ul className="list">
                   {detailsMatch &&

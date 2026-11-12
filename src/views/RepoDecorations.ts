@@ -3,6 +3,7 @@
 // las decoraciones de archivos del git integrado.
 import * as vscode from 'vscode';
 import type { RepoManager } from '../git/RepoManager';
+import { t } from '../i18n';
 
 const SCHEME = 'multigit-repo';
 
@@ -32,8 +33,8 @@ export class RepoDecorations implements vscode.FileDecorationProvider, vscode.Di
       // FileDecoration admite badges de hasta 2 caracteres.
       badge: badge.length > 2 ? '●' : badge,
       tooltip: conflicted
-        ? `${changes.conflicted} archivo(s) en conflicto`
-        : `${changes.total} cambio(s) sin commit`,
+        ? t('{0} conflicted file(s)', changes.conflicted)
+        : t('{0} uncommitted change(s)', changes.total),
       color: new vscode.ThemeColor(
         conflicted ? 'gitDecoration.conflictingResourceForeground' : 'gitDecoration.modifiedResourceForeground',
       ),
