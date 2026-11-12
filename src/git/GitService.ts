@@ -489,6 +489,13 @@ export class GitService {
   }
 
   /** Mensaje completo del último commit (para Amend). */
+  /** Mensajes completos de los últimos `count` commits de un autor (email). */
+  async recentMessages(email: string, count: number): Promise<string[]> {
+    if (!email) return [];
+    const out = await this.exec(['log', `-${count}`, '--no-merges', '--fixed-strings', `--author=<${email}>`, '--format=%B%x1e']);
+    return out.split('\x1e').map((m) => m.trim()).filter(Boolean);
+  }
+
   async lastCommitMessage(): Promise<string> {
     return (await this.exec(['log', '-1', '--format=%B'])).trim();
   }

@@ -35,6 +35,11 @@ Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
   El mensaje aparece mientras se genera; púlsalo otra vez para pedir otra propuesta. Usa la misma
   lógica que la extensión *Commit Messages for Claude Code* y, si la tienes configurada, su
   configuración (`claudeCommit.*`); la propia de MultiGit está en `multigit.claude.*`.
+- **Historial de mensajes** (botón 🕘 o `Ctrl+M` en la caja, o *Commit Message History…*): los
+  mensajes usados en MultiGit y tus últimos commits en los repos; elige uno para reutilizarlo.
+- **Ticket de la rama**: si la rama es `feature/ABC-123-login`, la caja vacía empieza con `ABC-123 `
+  y los mensajes de Claude lo llevan. Se configura con `multigit.commit.ticketTemplate` (por
+  ejemplo `{ticket}: {message}` o `{message} [{ticket}]`) y `multigit.commit.ticketPattern`.
 - **Rollback…** (con selección de archivos y confirmación que lista lo que se pierde) y
   **Shelve / Unshelve** con nombre.
 - **Repositorios**: cada repo con su color, rama actual, `↑` commits por subir / `↓` por bajar
@@ -136,6 +141,8 @@ Para usarlos en todas partes, cámbialos en *Preferences → Keyboard Shortcuts*
 | `multigit.autoFetchMinutes` | `0` | `git fetch --all --prune` periódico (`0` = desactivado). |
 | `multigit.confirmCheckoutWithChanges` | `true` | Avisar antes de un checkout en repos con cambios. |
 | `multigit.warnBranchMismatch` | `true` | Avisar cuando algún repo queda en otra rama que la mayoría. |
+| `multigit.commit.ticketPattern` | `[A-Z][A-Z0-9]+-\d+` | Regex que saca el ticket del nombre de la rama (`feature/ABC-123-login` → `ABC-123`). Vacío: sin ticket. |
+| `multigit.commit.ticketTemplate` | `{ticket} {message}` | Dónde va el ticket en el mensaje (`{ticket}`, `{branch}`, `{message}`). Vacío: desactivado. |
 | `multigit.claude.*` | — | Modelo, esfuerzo, idioma, modo rápido, estilo del repo, scope, instrucciones, timeout y ruta de `claude` para *Generar con Claude*. |
 
 Los colores de los repos (`multigit.repo0` … `multigit.repo11`) se pueden cambiar en

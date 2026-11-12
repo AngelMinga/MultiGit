@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0
+
+- **Historial de mensajes de commit** (botón en la caja, `Ctrl+M` o *Commit Message History…*): los
+  últimos mensajes usados en MultiGit y tus commits recientes en los repos.
+- **Ticket de la rama** en el mensaje: `feature/ABC-123-login` → la caja vacía empieza con `ABC-123 `
+  y los mensajes de *Generar con Claude* lo incluyen. Plantilla y patrón configurables
+  (`multigit.commit.ticketTemplate`, `multigit.commit.ticketPattern`).
+- Faltaban dos traducciones al español en el diálogo de Pull.
+
 ## 0.5.0
 
 - Vista **Stashes**: los stashes de todos los repos, agrupando los que se crearon juntos en varios

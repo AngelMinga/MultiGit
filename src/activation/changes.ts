@@ -21,7 +21,7 @@ export function registerChanges(
     showCollapseAll: true,
   });
   const actions = new ChangesActions(manager, tree, context.extensionUri);
-  const commitView = new CommitView(context.extensionUri, manager, tree, actions, (repos) => core.openPush(repos));
+  const commitView = new CommitView(context.extensionUri, manager, tree, actions, (repos) => core.openPush(repos), context.workspaceState);
 
   let stale = true;
   const refresh = () => {
@@ -53,6 +53,7 @@ export function registerChanges(
     }),
     view.onDidChangeCheckboxState((e) => tree.onCheckboxChange(e)),
     vscode.commands.registerCommand('multigit.commitFocus', () => commitView.focus()),
+    vscode.commands.registerCommand('multigit.commit.history', () => popup.safely(() => commitView.requestHistory())),
     vscode.commands.registerCommand('multigit.changes.refresh', () => tree.refresh()),
     vscode.commands.registerCommand('multigit.changes.toggleGroupByRepo', () => tree.toggleGrouping('repo')),
     vscode.commands.registerCommand('multigit.changes.toggleGroupByDir', () => tree.toggleGrouping('directory')),

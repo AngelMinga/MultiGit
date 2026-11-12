@@ -95,6 +95,8 @@ export interface CommitState {
   busy: boolean;
   /** Claude está generando el mensaje. */
   generating: boolean;
+  /** Texto con el que se rellena la caja vacía (ticket de la rama según la plantilla), o ''. */
+  prefix: string;
 }
 
 // ------------------------------------------------------------------ Log
@@ -170,6 +172,7 @@ export type HostMessage =
   | { type: 'commit/done'; payload: Record<string, never> }
   | { type: 'commit/partial'; payload: { text: string } }
   | { type: 'commit/replaceMessage'; payload: { message: string } }
+  | { type: 'commit/requestHistory'; payload: Record<string, never> }
   | {
       type: 'log/init';
       payload: { repos: LogRepoInfo[]; me: { name: string; email: string }; filters: LogFilters; favorites: string[] };
@@ -199,6 +202,7 @@ export type WebviewMessage =
   | { type: 'commit/requestLastMessage'; payload: Record<string, never> }
   | { type: 'commit/generate'; payload: { current: string } }
   | { type: 'commit/cancelGenerate'; payload: Record<string, never> }
+  | { type: 'commit/history'; payload: { current: string } }
   | { type: 'log/setFilters'; payload: LogFilters }
   | { type: 'log/loadMore'; payload: { generation: number } }
   | { type: 'log/select'; payload: { repoId: string; hash: string } }

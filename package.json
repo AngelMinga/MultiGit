@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -635,6 +635,12 @@
         "title": "%command.stashes.openDiff%",
         "category": "MultiGit",
         "icon": "$(diff)"
+      },
+      {
+        "command": "multigit.commit.history",
+        "title": "%command.commit.history%",
+        "category": "MultiGit",
+        "icon": "$(history)"
       }
     ],
     "menus": {
@@ -783,6 +789,11 @@
           "command": "multigit.stashes.create",
           "when": "view == multigit.changes",
           "group": "shelf@0"
+        },
+        {
+          "command": "multigit.commit.history",
+          "when": "view == multigit.commit",
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [
@@ -1681,6 +1692,18 @@
           "default": true,
           "order": 5,
           "markdownDescription": "%setting.warnBranchMismatch%"
+        },
+        "multigit.commit.ticketPattern": {
+          "type": "string",
+          "default": "[A-Z][A-Z0-9]+-\\d+",
+          "order": 21,
+          "markdownDescription": "%setting.commit.ticketPattern%"
+        },
+        "multigit.commit.ticketTemplate": {
+          "type": "string",
+          "default": "{ticket} {message}",
+          "order": 22,
+          "markdownDescription": "%setting.commit.ticketTemplate%"
         }
       }
     },

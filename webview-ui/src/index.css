@@ -889,6 +889,8 @@ button.toolbar-summary:hover {
 .commit-toolbar {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
 }
 button.claude-btn {
   display: inline-flex;
