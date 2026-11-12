@@ -7,8 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/AngelMinga/claude-commit",
-    "directory": "MultiGit"
+    "url": "https://github.com/AngelMinga/MultiGit"
   },
   "engines": {
     "vscode": "^1.100.0"
@@ -907,5 +906,9 @@
   "galleryBanner": {
     "color": "#11182B",
     "theme": "dark"
+  },
+  "homepage": "https://github.com/AngelMinga/MultiGit#readme",
+  "bugs": {
+    "url": "https://github.com/AngelMinga/MultiGit/issues"
   }
 }
