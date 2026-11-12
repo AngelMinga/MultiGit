@@ -103,6 +103,7 @@ export class BranchPopup {
     items.push(
       { label: '$(sync) Update Project…', description: 'fetch + pull del upstream', action: () => a.updateProject(scope) },
       ...(allRepos ? [{ label: '$(git-commit) Commit…', description: 'abre Source Control', action: () => a.commit() }] : []),
+      { label: '$(repo-pull) Pull…', description: 'elige remote, rama y modo', action: () => a.pull(scope) },
       { label: '$(repo-push) Push…', action: () => a.push(scope) },
       { label: '$(add) New Branch…', description: `desde '${currentLabel(scope)}'`, action: () => a.newBranch(scope) },
       { label: '$(tag) Checkout Tag or Revision…', action: () => a.checkoutRevision(scope) },

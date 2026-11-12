@@ -10,6 +10,7 @@ import { RepositoriesView } from './views/RepositoriesView';
 import { StatusBar } from './views/StatusBar';
 import { GitContentProvider } from './git/GitContentProvider';
 import { PushPanel } from './webview/PushPanel';
+import { showPullDialog } from './views/pullDialog';
 import type { Repo } from './git/RepoManager';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
@@ -52,7 +53,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     compareView,
     vscode.workspace.registerTextDocumentContentProvider(CompareView.scheme, compareView),
     vscode.workspace.registerTextDocumentContentProvider(GitContentProvider.scheme, new GitContentProvider(manager)),
-    vscode.commands.registerCommand('multigit.push', () => openPush()),
+    vscode.commands.registerCommand('multigit.push', (repo?: Repo) => openPush(repo ? [repo] : undefined)),
+    vscode.commands.registerCommand('multigit.pull', (repo?: Repo) => showPullDialog(manager, repo)),
     branchesTree,
     branchesView,
     manager.onDidChange(refreshBranches),

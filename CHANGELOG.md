@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.7
+
+- Fase 4: diálogo de Pull (repositorio → remote → rama → merge/rebase/--ff-only) y resolución de conflictos con el merge editor.
+- Los resúmenes de merge/rebase/pull indican los archivos en conflicto.
+
 ## 0.0.4
 
 - Vista de árbol **Ramas** (Local / Remote), agrupada por repositorio o por rama.

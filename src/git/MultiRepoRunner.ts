@@ -5,7 +5,8 @@
 import * as vscode from 'vscode';
 import { GitError } from './GitService';
 import type { RepoStatus } from './parsers';
-import { basicBlocker, countByState, formatSummary, type StepResult } from './preflight';
+import { basicBlocker, conflictMessage, countByState, formatSummary, type StepResult } from './preflight';
+import { resolveConflicts } from '../views/conflicts';
 import type { Repo, RepoManager } from './RepoManager';
 
 /** Resultado del chequeo propio de una operación para un repo. */
@@ -69,6 +70,11 @@ export async function runInRepos(manager: RepoManager, op: MultiRepoOperation): 
         } catch (error) {
           result.state = 'failed';
           result.message = errorText(error);
+          const conflicts = await repo.git.getConflictedFiles().catch(() => []);
+          if (conflicts.length) {
+            result.conflicts = conflicts;
+            result.message = conflictMessage(conflicts);
+          }
         }
         op.onStep?.(repo, result);
         if (result.state === 'failed') break; // 3. se detiene al primer fallo
@@ -101,10 +107,16 @@ export async function runInRepos(manager: RepoManager, op: MultiRepoOperation): 
     const head = failed
       ? `MultiGit: "${op.title}" falló en ${failed.repo}`
       : `MultiGit: "${op.title}" cancelado`;
-    const actions = failed && /conflict/i.test(failed.message ?? '') ? ['Abrir Source Control'] : [];
-    void vscode.window.showErrorMessage(head, { modal: true, detail: summary }, ...actions).then((choice) => {
-      if (choice) void vscode.commands.executeCommand('workbench.view.scm');
-    });
+    const conflictRepo = failed?.conflicts?.length ? repos.find((r) => r.name === failed.repo) : undefined;
+    const RESOLVE = 'Resolver conflictos';
+    const detail = conflictRepo
+      ? `${summary}\n\nResuelve los conflictos de ${conflictRepo.name} y continúa (o aborta) la operación desde Source Control.`
+      : summary;
+    void vscode.window
+      .showErrorMessage(head, { modal: true, detail }, ...(conflictRepo ? [RESOLVE] : []))
+      .then((choice) => {
+        if (choice === RESOLVE && conflictRepo) void resolveConflicts(conflictRepo, failed!.conflicts!);
+      });
   } else if (counts.skipped > 0) {
     void vscode.window.showInformationMessage(
       `MultiGit: "${op.title}" — ${counts.ok} ok, ${counts.skipped} omitido(s)`,
@@ -131,6 +143,6 @@ async function preflight(repo: Repo, op: MultiRepoOperation): Promise<Verdict> {
 
 /** Texto de error para el usuario: stderr de git si lo hay. */
 export function errorText(error: unknown): string {
-  if (error instanceof GitError) return error.stderr.trim() || error.message;
+  if (error instanceof GitError) return error.stderr.trim() || error.stdout.trim() || error.message;
   return error instanceof Error ? error.message : String(error);
 }

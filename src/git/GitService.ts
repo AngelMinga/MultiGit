@@ -4,6 +4,7 @@ import { execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import { parseRefs, REF_FORMAT, type RepoBranches } from './branches';
+import { pullArgs, type PullMode } from './pull';
 import {
   LOG_FORMAT,
   parseLeftRightCount,
@@ -33,6 +34,8 @@ export class GitError extends Error {
     readonly args: readonly string[],
     readonly exitCode: number | null,
     readonly stderr: string,
+    /** Algunos errores (p. ej. CONFLICT de merge) salen por stdout. */
+    readonly stdout = '',
   ) {
     super(message);
     this.name = 'GitError';
@@ -81,8 +84,8 @@ export class GitService {
         (error, stdout, stderr) => {
           if (error) {
             const code = typeof error.code === 'number' ? error.code : null;
-            const detail = stderr.trim() || error.message;
-            reject(new GitError(`git ${args.join(' ')} falló en ${this.name}: ${detail}`, args, code, stderr));
+            const detail = stderr.trim() || stdout.trim() || error.message;
+            reject(new GitError(`git ${args.join(' ')} falló en ${this.name}: ${detail}`, args, code, stderr, stdout));
             return;
           }
           resolve(stdout);
@@ -263,7 +266,27 @@ export class GitService {
 
   /** Pull del upstream con merge. */
   pull(): Promise<string> {
-    return this.exec(['pull', '--no-rebase'], { timeoutMs: NETWORK_TIMEOUT_MS });
+    return this.pullWith('merge');
+  }
+
+  /** Pull con modo (merge / rebase / ff-only) desde el upstream o desde `remote`/`branch`. */
+  pullWith(mode: PullMode, remote?: string, branch?: string): Promise<string> {
+    return this.exec(pullArgs(mode, remote, branch), { timeoutMs: NETWORK_TIMEOUT_MS });
+  }
+
+  /** SHA de HEAD (o `null` si el repo no tiene commits). */
+  async headSha(): Promise<string | null> {
+    try {
+      return (await this.exec(['rev-parse', '--verify', '--quiet', 'HEAD'])).trim() || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Archivos en conflicto (rutas relativas a la raíz del repo). */
+  async getConflictedFiles(): Promise<string[]> {
+    const out = await this.exec(['diff', '--name-only', '--diff-filter=U', '-z']);
+    return [...new Set(out.split('\0').filter(Boolean))];
   }
 
   /** Actualiza una rama local que NO es la actual (solo fast-forward). */

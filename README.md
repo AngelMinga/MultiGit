@@ -3,7 +3,7 @@
 Manejo de Git **multi-repositorio** al estilo IntelliJ IDEA para VS Code: pensado para workspaces
 con varios repos independientes (por ejemplo, micro-frontends) que suelen estar en la misma rama.
 
-> Estado: en desarrollo (Fase 3: diálogo de Push). Ver [PLAN.md](PLAN.md) para la hoja de ruta.
+> Estado: en desarrollo (Fase 4: diálogo de Pull). Ver [PLAN.md](PLAN.md) para la hoja de ruta.
 
 ## Qué hace hoy
 
@@ -24,6 +24,9 @@ con varios repos independientes (por ejemplo, micro-frontends) que suelen estar 
   commits por subir y sus archivos (doble clic → diff), *Edit all targets*, *Push tags*
   (Current Branch / All), *Force push (with lease)* con confirmación y *Pull y reintentar* si el
   remote rechaza el push.
+- **Pull…** (botón ⬇ de la vista, menú contextual de un repo o *Pull…* del popup): QuickPick
+  encadenado Repositorio (o Todos) → Remote → Rama (por defecto el upstream) → Merge / Rebase /
+  `--ff-only`. Si quedan conflictos, *Resolver conflictos* abre el merge editor de VS Code.
 - Toda operación multi-repo hace un *preflight* (si un repo lo impide no se toca ninguno), muestra
   el progreso repo por repo y, si algo falla, se detiene con un resumen ✅ / ❌ / ⏭.
 - Detecta los repos con la API de la extensión integrada `vscode.git` y, además, escaneando las

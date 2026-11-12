@@ -8,6 +8,7 @@ import { branchToFolderName, commonAncestor, type LocalBranch } from '../git/bra
 import { errorText, runInRepos } from '../git/MultiRepoRunner';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import type { CompareView } from './compareView';
+import { showPullDialog } from './pullDialog';
 
 /** Repos sobre los que actúa una acción: todos, o uno elegido en "Repositorios". */
 export interface Scope {
@@ -58,6 +59,11 @@ export class BranchActions {
         return `actualizado (↓${after.behind})`;
       },
     });
+  }
+
+  /** Pull…: diálogo Repositorio → Remote → Rama → Modo (con el repo ya elegido si el alcance es uno). */
+  async pull(scope: Scope): Promise<void> {
+    await showPullDialog(this.manager, scope.repos.length === 1 ? scope.repos[0] : undefined);
   }
 
   /** Commit…: por ahora abre Source Control (la caja de commit propia llega en la Fase 5). */

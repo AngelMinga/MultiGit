@@ -37,6 +37,15 @@ export interface StepResult {
   repo: string;
   state: StepState;
   message?: string;
+  /** Archivos en conflicto que dejó la operación (merge/rebase/pull fallidos). */
+  conflicts?: string[];
+}
+
+/** Mensaje corto para un repo que quedó con conflictos. */
+export function conflictMessage(files: readonly string[]): string {
+  const shown = files.slice(0, 3).join(', ');
+  const more = files.length > 3 ? ` y ${files.length - 3} más` : '';
+  return `conflictos en ${files.length} archivo(s): ${shown}${more}`;
 }
 
 const ICON: Record<StepState, string> = { ok: '✅', failed: '❌', skipped: '⏭', pending: '⏭' };

@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "Manejo de Git multi-repositorio al estilo IntelliJ IDEA para workspaces con varios repos.",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -139,6 +139,12 @@
         "title": "Mostrar vista Ramas",
         "category": "MultiGit",
         "icon": "$(list-tree)"
+      },
+      {
+        "command": "multigit.pull",
+        "title": "Pull…",
+        "category": "MultiGit",
+        "icon": "$(repo-pull)"
       }
     ],
     "menus": {
@@ -152,6 +158,11 @@
           "command": "multigit.fetch",
           "when": "view == multigit.repositories",
           "group": "navigation@2"
+        },
+        {
+          "command": "multigit.pull",
+          "when": "view == multigit.repositories",
+          "group": "navigation@2.5"
         },
         {
           "command": "multigit.push",
@@ -209,6 +220,16 @@
           "command": "multigit.branchesTree.rename",
           "when": "view == multigit.branches && viewItem == multigit.branch.local",
           "group": "navigation"
+        },
+        {
+          "command": "multigit.pull",
+          "when": "view == multigit.repositories && viewItem == multigit.repo",
+          "group": "navigation@2"
+        },
+        {
+          "command": "multigit.push",
+          "when": "view == multigit.repositories && viewItem == multigit.repo",
+          "group": "navigation@3"
         }
       ],
       "commandPalette": [
