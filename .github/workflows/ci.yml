@@ -74,6 +74,15 @@ jobs:
           git config --global user.email "ci@example.com"
           git config --global init.defaultBranch main
 
-      # VS Code necesita una pantalla: xvfb crea una virtual.
+      # VS Code necesita una pantalla: xvfb crea una virtual. Si falla, el final de la salida se
+      # publica como anotación (visible sin abrir los logs).
       - name: Extension tests
-        run: xvfb-run -a npm run test:e2e
+        shell: bash
+        run: |
+          set +e
+          xvfb-run -a npm run test:e2e 2>&1 | tee e2e.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            echo "::error title=e2e (últimas líneas)::$(tail -40 e2e.log | sed 's/%/%25/g' | tr '\n' '\r' | sed 's/\r/%0A/g')"
+          fi
+          exit "$status"
