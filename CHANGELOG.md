@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Popup de ramas al estilo IntelliJ: acciones con sus atajos, New Worktree…, repos con su cuadrado de color y la rama con ›, rama actual primero con 🏷 y tracking (`origin/develop`), remotas agrupadas por remote.
+- Barra de estado: nombre del proyecto (abre los recientes) junto a la rama, al principio a la izquierda.
+
 ## 0.1.0
 
 Primera versión completa (Fases 0 a 8 de PLAN.md).

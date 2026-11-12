@@ -6,10 +6,16 @@ import type { RepoManager } from '../git/RepoManager';
 
 export class StatusBar implements vscode.Disposable {
   private readonly item: vscode.StatusBarItem;
+  /** Nombre del proyecto (como el widget de proyecto de IntelliJ): abre los recientes. */
+  private readonly project: vscode.StatusBarItem;
   private readonly subscription: vscode.Disposable;
 
   constructor(private readonly manager: RepoManager) {
-    this.item = vscode.window.createStatusBarItem('multigit.branch', vscode.StatusBarAlignment.Left, 100);
+    // Prioridad alta: los dos quedan al principio de la barra de estado, a la izquierda.
+    this.project = vscode.window.createStatusBarItem('multigit.project', vscode.StatusBarAlignment.Left, 1001);
+    this.project.name = 'MultiGit: proyecto';
+    this.project.command = 'workbench.action.openRecent';
+    this.item = vscode.window.createStatusBarItem('multigit.branch', vscode.StatusBarAlignment.Left, 1000);
     this.item.name = 'MultiGit: rama';
     this.item.command = 'multigit.branches';
     this.subscription = manager.onDidChange(() => this.update());
@@ -21,8 +27,13 @@ export class StatusBar implements vscode.Disposable {
     const summary = summarizeBranches(repos);
     if (summary.kind === 'empty') {
       this.item.hide();
+      this.project.hide();
       return;
     }
+    const projectName = vscode.workspace.name?.replace(/ \(Workspace\)$/, '') ?? 'MultiGit';
+    this.project.text = `$(root-folder) ${projectName}`;
+    this.project.tooltip = `${projectName} — ${repos.length} repositorios\nClic: abrir proyecto reciente`;
+    this.project.show();
 
     const { ahead, behind, dirtyRepos } = sumCounters(repos.map((r) => r.status));
     const counters = [ahead && `↑${ahead}`, behind && `↓${behind}`].filter(Boolean).join(' ');
@@ -48,5 +59,6 @@ export class StatusBar implements vscode.Disposable {
   dispose(): void {
     this.subscription.dispose();
     this.item.dispose();
+    this.project.dispose();
   }
 }

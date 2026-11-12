@@ -8,6 +8,7 @@ import { CompareView } from './views/compareView';
 import { RepoDecorations } from './views/RepoDecorations';
 import { RepositoriesView } from './views/RepositoriesView';
 import { StatusBar } from './views/StatusBar';
+import { RepoIcons } from './views/repoIcons';
 import { GitContentProvider } from './git/GitContentProvider';
 import { PushPanel } from './webview/PushPanel';
 import { LogView } from './webview/LogView';
@@ -26,7 +27,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const openPush = (repos?: readonly Repo[], branch?: string) =>
     PushPanel.open(context.extensionUri, manager, { repos, branch });
   const actions = new BranchActions(manager, compareView, (scope, branch) => openPush(scope.repos, branch));
-  const popup = new BranchPopup(manager, actions);
+  const repoIcons = new RepoIcons(context.globalStorageUri, context.extension.packageJSON);
+  void repoIcons.init();
+  const popup = new BranchPopup(manager, actions, repoIcons);
   const treeView = vscode.window.createTreeView('multigit.repositories', {
     treeDataProvider: repositoriesView,
     showCollapseAll: false,

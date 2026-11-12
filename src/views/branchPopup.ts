@@ -7,6 +7,7 @@ import { errorText } from '../git/MultiRepoRunner';
 import { describeHead } from '../git/parsers';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import { currentLabel, refName, type BranchActions, type BranchRef, type Scope } from './branchActions';
+import type { RepoIcons } from './repoIcons';
 
 const CONTEXT_KEY = 'multigit.branchPopupOpen';
 
@@ -22,6 +23,7 @@ export class BranchPopup {
   constructor(
     private readonly manager: RepoManager,
     private readonly actions: BranchActions,
+    private readonly icons: RepoIcons,
   ) {}
 
   /** Abre el popup para todos los repos, o solo para `repo`. */
@@ -35,7 +37,7 @@ export class BranchPopup {
 
     const qp = vscode.window.createQuickPick<PopupItem>();
     qp.title = repo ? `MultiGit: ramas de ${repo.name}` : `MultiGit: ramas (${repos.length} repositorios)`;
-    qp.placeholder = 'Buscar rama o acción…';
+    qp.placeholder = 'Buscar ramas, acciones y repositorios';
     qp.matchOnDescription = true;
     qp.busy = true;
     if (repo) qp.buttons = [vscode.QuickInputButtons.Back];
@@ -91,63 +93,80 @@ export class BranchPopup {
     void this.safely(() => this.actions.rename(active.scope, ref));
   }
 
+  /** Ítems del popup, en el orden y con el aspecto del popup de ramas de IntelliJ. */
   private buildItems(scope: Scope, data: RepoBranchesInput[], allRepos: boolean): PopupItem[] {
     const items: PopupItem[] = [];
-    const sep = (label: string) => items.push({ label, kind: vscode.QuickPickItemKind.Separator });
+    const sep = (label = '') => items.push({ label, kind: vscode.QuickPickItemKind.Separator });
     const favorites = this.manager.favoriteBranches;
     const total = scope.repos.length;
     const a = this.actions;
+    const key = shortcutLabels();
 
-    // Acciones
-    sep('Acciones');
+    // ---- Acciones (con los atajos, como IntelliJ)
     items.push(
-      { label: '$(sync) Update Project…', description: 'fetch + pull del upstream', action: () => a.updateProject(scope) },
-      ...(allRepos ? [{ label: '$(git-commit) Commit…', description: 'archivos marcados en Changes', action: () => a.commit() }] : []),
-      { label: '$(repo-pull) Pull…', description: 'elige remote, rama y modo', action: () => a.pull(scope) },
-      { label: '$(repo-push) Push…', action: () => a.push(scope) },
-      { label: '$(add) New Branch…', description: `desde '${currentLabel(scope)}'`, action: () => a.newBranch(scope) },
-      { label: '$(tag) Checkout Tag or Revision…', action: () => a.checkoutRevision(scope) },
+      { label: 'Update Project…', iconPath: new vscode.ThemeIcon('repo-pull'), description: key.update, action: () => a.updateProject(scope) },
+      ...(allRepos
+        ? [{ label: 'Commit…', iconPath: new vscode.ThemeIcon('git-commit'), description: key.commit, action: () => a.commit() }]
+        : []),
+      { label: 'Push…', iconPath: new vscode.ThemeIcon('repo-push'), description: key.push, action: () => a.push(scope) },
+      { label: 'Pull…', iconPath: new vscode.ThemeIcon('arrow-down'), description: 'remote, rama y modo', action: () => a.pull(scope) },
+    );
+    sep();
+    items.push(
+      { label: 'New Branch…', iconPath: new vscode.ThemeIcon('add'), description: `desde '${currentLabel(scope)}'`, action: () => a.newBranch(scope) },
+      { label: 'New Worktree…', iconPath: new vscode.ThemeIcon('folder-opened'), action: () => this.pickWorktreeBranch(scope, data) },
+      { label: 'Checkout Tag or Revision…', iconPath: new vscode.ThemeIcon('tag'), action: () => a.checkoutRevision(scope) },
     );
 
-    // Repositorios
+    // ---- Repositorios: cuadrado de color + rama actual + ›
     if (allRepos && scope.repos.length > 1) {
       sep('Repositorios');
       for (const repo of scope.repos) {
         const s = repo.status;
+        const counters = s ? formatAheadBehind(s) : '';
         items.push({
-          label: `$(repo) ${repo.name}`,
-          description: s ? `⎇ ${describeHead(s)}  ${formatAheadBehind(s)}` : '⚠ sin estado',
+          label: repo.name,
+          iconPath: this.icons.iconFor(repo.colorIndex),
+          description: s ? `${describeHead(s)}${counters ? `  ${counters}` : ''}  ›` : '⚠ sin estado',
           repo,
         });
       }
     }
 
-    // Ramas locales
-    const singleLocal = !allRepos ? data[0]?.branches.local : undefined;
+    // ---- Ramas locales: actual primero (🏷), favoritas (★), tracking a la derecha
     const locals = commonLocalBranches(data, favorites);
-    if (locals.length) sep(allRepos ? 'Common Local Branches' : 'Local Branches');
-    for (const b of locals) {
-      const lb = singleLocal?.find((x) => x.name === b.name);
+    const ordered = [
+      ...locals.filter((b) => b.currentIn.length === total),
+      ...locals.filter((b) => b.currentIn.length !== total),
+    ];
+    if (ordered.length) sep(allRepos ? 'Common Local Branches' : 'Local Branches');
+    for (const b of ordered) {
       const isCurrent = b.currentIn.length === total;
+      const upstream = commonUpstreamOf(data, b.name);
+      const single = !allRepos ? data[0]?.branches.local.find((x) => x.name === b.name) : undefined;
       const desc = [
-        isCurrent ? '$(check) actual' : b.currentIn.length ? `actual en ${b.currentIn.length}/${total}` : '',
-        lb ? formatAheadBehind(lb) : '',
-        lb?.upstream ? `→ ${lb.upstream}` : '',
+        !isCurrent && b.currentIn.length ? `actual en ${b.currentIn.length}/${total}` : '',
+        single ? formatAheadBehind(single) : '',
+        upstream ?? '',
+        '›',
       ].filter(Boolean);
       items.push({
-        label: `${b.favorite ? '$(star-full)' : isCurrent ? '$(check)' : '$(git-branch)'} ${b.name}`,
+        label: b.name,
+        iconPath: new vscode.ThemeIcon(isCurrent ? 'tag' : b.favorite ? 'star-full' : 'git-branch'),
         description: desc.join('  '),
         ref: { type: 'local', name: b.name },
       });
     }
 
-    // Ramas remotas, agrupadas por remote
+    // ---- Ramas remotas, agrupadas por remote (origin)
     for (const [remote, list] of commonRemoteBranches(data, favorites)) {
-      sep(`${allRepos ? 'Common Remote Branches' : 'Remote Branches'} · ${remote}`);
+      sep(`${allRepos ? 'Common Remote Branches' : 'Remote Branches'}  ›  ${remote}`);
       for (const b of list) {
         const name = b.name.slice(remote.length + 1);
         items.push({
-          label: `${b.favorite ? '$(star-full)' : '$(cloud)'} ${b.name}`,
+          label: name,
+          iconPath: new vscode.ThemeIcon(b.favorite ? 'star-full' : 'git-branch'),
+          description: `${remote}  ›`,
           ref: { type: 'remote', remote, name, full: b.name },
         });
       }
@@ -155,9 +174,32 @@ export class BranchPopup {
 
     if (allRepos && locals.length === 0 && data.length > 1) {
       sep('Common Local Branches');
-      items.push({ label: '$(info) No hay ramas locales comunes a todos los repos', description: 'elige un repositorio arriba' });
+      items.push({ label: 'No hay ramas locales comunes a todos los repos', iconPath: new vscode.ThemeIcon('info'), description: 'elige un repositorio arriba' });
     }
     return items;
+  }
+
+  /** New Worktree… (acción general): elegir la rama y crear el worktree. */
+  private async pickWorktreeBranch(scope: Scope, data: RepoBranchesInput[]): Promise<void> {
+    const favorites = this.manager.favoriteBranches;
+    type Item = vscode.QuickPickItem & { ref?: BranchRef };
+    const items: Item[] = [{ label: 'Local', kind: vscode.QuickPickItemKind.Separator }];
+    for (const b of commonLocalBranches(data, favorites)) {
+      if (b.currentIn.length) continue; // un worktree no puede usar la rama actual
+      items.push({ label: b.name, iconPath: new vscode.ThemeIcon(b.favorite ? 'star-full' : 'git-branch'), ref: { type: 'local', name: b.name } });
+    }
+    for (const [remote, list] of commonRemoteBranches(data, favorites)) {
+      items.push({ label: remote, kind: vscode.QuickPickItemKind.Separator });
+      for (const b of list) {
+        items.push({
+          label: b.name,
+          iconPath: new vscode.ThemeIcon('cloud'),
+          ref: { type: 'remote', remote, name: b.name.slice(remote.length + 1), full: b.name },
+        });
+      }
+    }
+    const picked = await vscode.window.showQuickPick(items, { title: `New Worktree — ${scope.label}`, placeHolder: 'Rama del worktree' });
+    if (picked?.ref) await this.actions.newWorktree(scope, picked.ref);
   }
 
   /** Segundo QuickPick: acciones disponibles para `ref` en `scope`. */
@@ -213,4 +255,23 @@ export class BranchPopup {
       void vscode.window.showErrorMessage(`MultiGit: ${errorText(error)}`);
     }
   }
+}
+
+/** Upstream de una rama local si es el mismo en todos los repos (p. ej. `origin/develop`). */
+function commonUpstreamOf(data: readonly RepoBranchesInput[], branch: string): string | undefined {
+  let upstream: string | undefined;
+  for (const d of data) {
+    const lb = d.branches.local.find((b) => b.name === branch);
+    if (!lb?.upstream || lb.gone) return undefined;
+    if (upstream !== undefined && upstream !== lb.upstream) return undefined;
+    upstream = lb.upstream;
+  }
+  return upstream;
+}
+
+/** Atajos como los muestra IntelliJ, según la plataforma. */
+function shortcutLabels(): { update: string; commit: string; push: string } {
+  return process.platform === 'darwin'
+    ? { update: '⌘T', commit: '⌘K', push: '⇧⌘K' }
+    : { update: 'Ctrl+T', commit: 'Ctrl+K', push: 'Ctrl+Shift+K' };
 }
