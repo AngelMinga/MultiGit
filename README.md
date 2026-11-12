@@ -37,7 +37,12 @@ npm test             # vitest
 npm run package      # genera multigit-x.y.z.vsix
 ```
 
-Abre esta carpeta en VS Code y pulsa **F5** para lanzar el *Extension Development Host*.
+Abre esta carpeta en VS Code y pulsa **F5** (en Mac, `fn` + `F5`, con el foco en el editor) para lanzar el
+*Extension Development Host*. Alternativa sin depurador:
+
+```bash
+npm run dev -- /ruta/al/workspace   # compila y abre una ventana con la extensión en desarrollo
+```
 
 ## Licencia
 

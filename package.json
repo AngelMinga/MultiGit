@@ -250,6 +250,7 @@
   "scripts": {
     "build": "npm run typecheck && npm run build:ext && npm run build:webview",
     "build:dev": "npm run build:ext && npm run build:webview",
+    "dev": "npm run build:dev && code --new-window --extensionDevelopmentPath=.",
     "build:ext": "node esbuild.mjs",
     "build:webview": "vite build --config webview-ui/vite.config.mts",
     "watch": "node esbuild.mjs --watch",
