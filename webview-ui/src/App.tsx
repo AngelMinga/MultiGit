@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { WebviewKind } from '../../src/webview/protocol';
 import { CommitBox } from './commit/CommitBox';
 import { LogApp } from './log/LogApp';
+import { Toolbar } from './toolbar/Toolbar';
 import { PushDialog } from './push/PushDialog';
 import { onHostMessage, post } from './vscode';
 
@@ -30,7 +31,7 @@ export function App() {
           </button>
         </div>
       )}
-      {kind === 'push' ? <PushDialog /> : kind === 'commit' ? <CommitBox /> : kind === 'log' ? <LogApp /> : <p className="muted pad">Cargando…</p>}
+      {kind === 'push' ? <PushDialog /> : kind === 'commit' ? <CommitBox /> : kind === 'log' ? <LogApp /> : kind === 'toolbar' ? <Toolbar /> : <p className="muted pad">Cargando…</p>}
     </>
   );
 }

@@ -9,6 +9,7 @@ import { RepoDecorations } from './views/RepoDecorations';
 import { RepositoriesView } from './views/RepositoriesView';
 import { StatusBar } from './views/StatusBar';
 import { RepoIcons } from './views/repoIcons';
+import { ToolbarView } from './views/ToolbarView';
 import { GitContentProvider } from './git/GitContentProvider';
 import { PushPanel } from './webview/PushPanel';
 import { LogView } from './webview/LogView';
@@ -200,6 +201,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
   );
 
+  // ---------------------------------------------------------------- Proyecto (botones estilo IntelliJ)
+  const toolbarView = new ToolbarView(context.extensionUri, manager);
+  context.subscriptions.push(
+    toolbarView,
+    vscode.window.registerWebviewViewProvider(ToolbarView.viewId, toolbarView),
+  );
+
   log.info('MultiGit activado.');
   void revealNewViewsOnce(context, log);
   try {
@@ -246,6 +254,7 @@ async function revealNewViewsOnce(context: vscode.ExtensionContext, log: vscode.
     { id: 'multigit.branches', key: 'multigit.branchesViewRevealed' },
     { id: 'multigit.changes', key: 'multigit.viewRevealed.changes' },
     { id: 'multigit.commit', key: 'multigit.viewRevealed.commit' },
+    { id: 'multigit.toolbar', key: 'multigit.viewRevealed.toolbar' },
   ].filter((v) => !context.globalState.get<boolean>(v.key));
   if (views.length === 0) return;
   for (const view of views) {

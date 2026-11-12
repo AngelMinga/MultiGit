@@ -6,7 +6,7 @@ import type { LogFilters, RefLabel } from '../git/log';
 export type { LogFilters, RefLabel };
 
 /** Paneles webview que existen (el log llega en la Fase 6). */
-export type WebviewKind = 'push' | 'commit' | 'log';
+export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar';
 
 // ------------------------------------------------------------------ Push
 
@@ -111,6 +111,23 @@ export interface LogDetails {
 
 export type LogAction = 'copyHash' | 'checkout' | 'cherryPick' | 'revert' | 'reset' | 'newBranch' | 'newTag';
 
+// ------------------------------------------------------------------ Toolbar (Proyecto)
+
+export interface ToolbarState {
+  project: string;
+  /** Color del cuadrado del proyecto (índice de la paleta de repos). */
+  projectColor: number;
+  /** Texto del botón de rama: la rama común o "3 ramas". */
+  branch: string;
+  mixed: boolean;
+  repos: number;
+  ahead: number;
+  behind: number;
+  changes: number;
+}
+
+export type ToolbarAction = 'project' | 'branches' | 'log' | 'changes';
+
 // ------------------------------------------------------------------ mensajes
 
 /** Host → webview. */
@@ -129,7 +146,8 @@ export type HostMessage =
   | { type: 'log/filters'; payload: LogFilters }
   | { type: 'log/rows'; payload: { generation: number; reset: boolean; rows: LogRow[]; hasMore: boolean } }
   | { type: 'log/loading'; payload: { generation: number; loading: boolean } }
-  | { type: 'log/details'; payload: LogDetails };
+  | { type: 'log/details'; payload: LogDetails }
+  | { type: 'toolbar/state'; payload: ToolbarState };
 
 /** Webview → host. */
 export type WebviewMessage =
@@ -149,4 +167,5 @@ export type WebviewMessage =
   | { type: 'log/select'; payload: { repoId: string; hash: string } }
   | { type: 'log/openDiff'; payload: { repoId: string; hash: string; file: PushFile } }
   | { type: 'log/action'; payload: { action: LogAction; repoId: string; hash: string } }
-  | { type: 'log/refresh'; payload: Record<string, never> };
+  | { type: 'log/refresh'; payload: Record<string, never> }
+  | { type: 'toolbar/action'; payload: { action: ToolbarAction } };

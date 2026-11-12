@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Vista **Proyecto** al principio del panel MultiGit con los botones de IntelliJ: `[B] proyecto ⌄` (proyectos recientes) y `⎇ rama ⌄` (popup de ramas), más una línea de resumen que abre el Git Log.
+
 ## 0.1.2
 
 - Clic derecho en una rama (vista Ramas) con el menú de IntelliJ: Checkout, New Branch from, Checkout and Rebase onto Current, Compare with Current, Show Diff with Working Tree, Rebase, Merge, New Worktree, Update, Push…, Rename… (F2), Delete y Show in Git Log.
