@@ -180,6 +180,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('multigit.changes.refresh', () => changesTree.refresh()),
     vscode.commands.registerCommand('multigit.changes.toggleGroupByRepo', () => changesTree.toggleGrouping('repo')),
     vscode.commands.registerCommand('multigit.changes.toggleGroupByDir', () => changesTree.toggleGrouping('directory')),
+    vscode.commands.registerCommand('multigit.changes.toggleGroupByModule', () => changesTree.toggleGrouping('module')),
+    vscode.commands.registerCommand('multigit.changes.toggleShowIgnored', () => changesTree.toggleGrouping('showIgnored')),
     vscode.commands.registerCommand('multigit.changes.rollback', (node?: ChangeNode, nodes?: ChangeNode[]) =>
       changesActions.rollback(node ? refsOf(node, nodes) : undefined, !!node),
     ),

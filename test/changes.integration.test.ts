@@ -141,4 +141,13 @@ describe('commit / rollback (git real)', () => {
     expect(history.map((c) => c.subject)).toEqual(['refactor: renombrar', 'fix: cambiar historia', 'feat: crear historia']);
     expect(await theme.listTags()).toContain('v9.0');
   });
+
+  it('ignorados: carpetas ignoradas como una sola entrada', async () => {
+    mkdirSync(path.join(components.root, 'node_modules', 'pkg'), { recursive: true });
+    writeFileSync(path.join(components.root, 'node_modules', 'pkg', 'index.js'), 'x');
+    writeFileSync(path.join(components.root, '.gitignore'), 'node_modules/\n');
+    const withIgnored = await components.getChanges(true);
+    expect(withIgnored.filter((f) => f.kind === 'ignored').map((f) => f.path)).toEqual(['node_modules/']);
+    expect((await components.getChanges()).some((f) => f.kind === 'ignored')).toBe(false);
+  });
 });

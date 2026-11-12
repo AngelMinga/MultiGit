@@ -417,9 +417,20 @@ export class GitService {
 
 
   /** Archivos con cambios (incluye cada archivo dentro de carpetas sin versionar). */
-  async getChanges(): Promise<StatusFile[]> {
+  async getChanges(includeIgnored = false): Promise<StatusFile[]> {
     const out = await this.exec(['--no-optional-locks', 'status', '--porcelain=v2', '-z', '--untracked-files=all']);
-    return parseStatusFiles(out);
+    const files = parseStatusFiles(out);
+    if (!includeIgnored) return files;
+    // Ignorados aparte y con carpetas agrupadas: node_modules/ es UNA entrada, no miles de archivos.
+    const ignoredOut = await this.exec([
+      '--no-optional-locks',
+      'status',
+      '--porcelain=v2',
+      '-z',
+      '--untracked-files=normal',
+      '--ignored=traditional',
+    ]);
+    return [...files, ...parseStatusFiles(ignoredOut).filter((f) => f.kind === 'ignored')];
   }
 
   /** `git add -- <paths>` (para incluir archivos sin versionar en un commit). */

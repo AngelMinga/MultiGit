@@ -78,3 +78,15 @@ describe('parseStashList', () => {
     ]);
   });
 });
+
+describe('ignorados', () => {
+  it('parseStatusFiles lee las entradas "!" y planCommit no las incluye', () => {
+    const files = parseStatusFiles(['1 .M N... 1 1 1 a b a.ts', '! node_modules/', '! .env', ''].join('\0'));
+    expect(files.map((f) => [f.kind, f.status, f.path])).toEqual([
+      ['tracked', 'M', 'a.ts'],
+      ['ignored', '!', 'node_modules/'],
+      ['ignored', '!', '.env'],
+    ]);
+    expect(planCommit(files)).toEqual({ add: [], paths: ['a.ts'] });
+  });
+});

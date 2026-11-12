@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.5
+
+- Changes: **Group By ›** en el menú ⋯ (además del botón ☰) con **Directory**, **Repository** y
+  **Module** (carpeta con `package.json`, `pubspec.yaml`, `build.gradle`…), combinables en el orden
+  Repository → Module → Directory, como IntelliJ.
+- **Show Ignored Files**: sección *Ignored Files* (carpetas ignoradas como una sola entrada, sin
+  checkbox; clic → mostrar en el Explorer).
+
 ## 0.2.4
 
 - Vista **Ramas** (barra lateral): menú ⋯ como IntelliJ con **On Single Click** (Show Actions /

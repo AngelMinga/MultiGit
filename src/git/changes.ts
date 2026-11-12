@@ -1,7 +1,7 @@
 // Archivos con cambios, plan de commit/rollback y stashes. Puro, sin `vscode`.
 
 /** Letra de estado como en IntelliJ / VS Code. */
-export type FileStatus = 'M' | 'A' | 'D' | 'R' | 'C' | 'T' | 'U' | '?';
+export type FileStatus = 'M' | 'A' | 'D' | 'R' | 'C' | 'T' | 'U' | '?' | '!';
 
 export interface StatusFile {
   /** Ruta relativa a la raíz del repo (con `/`). */
@@ -11,7 +11,7 @@ export interface StatusFile {
   /** Columnas X (índice) e Y (working tree) de `git status`. */
   index: string;
   worktree: string;
-  kind: 'tracked' | 'untracked' | 'conflict';
+  kind: 'tracked' | 'untracked' | 'conflict' | 'ignored';
   status: FileStatus;
 }
 
@@ -24,6 +24,7 @@ export const STATUS_LABEL: Record<FileStatus, string> = {
   T: 'Cambio de tipo',
   U: 'En conflicto',
   '?': 'Sin versionar',
+  '!': 'Ignorado',
 };
 
 /**
@@ -42,7 +43,11 @@ export function parseStatusFiles(output: string): StatusFile[] {
       files.push({ path: r.slice(2), index: '?', worktree: '?', kind: 'untracked', status: '?' });
       continue;
     }
-    if (type !== '1' && type !== '2' && type !== 'u') continue; // '#' cabeceras, '!' ignorados
+    if (type === '!') {
+      files.push({ path: r.slice(2), index: '!', worktree: '!', kind: 'ignored', status: '!' });
+      continue;
+    }
+    if (type !== '1' && type !== '2' && type !== 'u') continue; // '#' cabeceras
     const x = r[2] ?? '.';
     const y = r[3] ?? '.';
     const fieldsBeforePath = type === '1' ? 8 : type === '2' ? 9 : 10;
@@ -90,6 +95,7 @@ export function planCommit(files: readonly StatusFile[]): CommitPlan {
   const add: string[] = [];
   const paths = new Set<string>();
   for (const f of files) {
+    if (f.kind === 'ignored') continue;
     if (f.kind === 'untracked') add.push(f.path);
     paths.add(f.path);
     if (f.origPath) paths.add(f.origPath);

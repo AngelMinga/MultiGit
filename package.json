@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "Git multi-repositorio al estilo IntelliJ IDEA: ramas comunes, commit, push, pull y log con grafo para todos los repos del workspace a la vez.",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -227,13 +227,13 @@
       },
       {
         "command": "multigit.changes.toggleGroupByRepo",
-        "title": "Repositorio",
+        "title": "Repository",
         "category": "MultiGit",
         "toggled": "multigit.changesGroupByRepo"
       },
       {
         "command": "multigit.changes.toggleGroupByDir",
-        "title": "Directorio",
+        "title": "Directory",
         "category": "MultiGit",
         "toggled": "multigit.changesGroupByDir"
       },
@@ -515,6 +515,18 @@
         "command": "multigit.branchesTree.tagActions",
         "title": "Acciones del tag…",
         "category": "MultiGit"
+      },
+      {
+        "command": "multigit.changes.toggleGroupByModule",
+        "title": "Module",
+        "category": "MultiGit",
+        "toggled": "multigit.changesGroupByModule"
+      },
+      {
+        "command": "multigit.changes.toggleShowIgnored",
+        "title": "Show Ignored Files",
+        "category": "MultiGit",
+        "toggled": "multigit.changesShowIgnored"
       }
     ],
     "menus": {
@@ -633,6 +645,16 @@
           "command": "multigit.branches.toggleTags",
           "when": "view == multigit.branches",
           "group": "3_tags@1"
+        },
+        {
+          "submenu": "multigit.changes.groupBy",
+          "when": "view == multigit.changes",
+          "group": "0_group@1"
+        },
+        {
+          "command": "multigit.changes.toggleShowIgnored",
+          "when": "view == multigit.changes",
+          "group": "0_group@2"
         }
       ],
       "view/item/context": [
@@ -1025,16 +1047,32 @@
         {
           "command": "multigit.branchesTree.tagActions",
           "when": "false"
+        },
+        {
+          "command": "multigit.changes.toggleGroupByModule",
+          "when": "false"
+        },
+        {
+          "command": "multigit.changes.toggleShowIgnored",
+          "when": "false"
         }
       ],
       "multigit.changes.groupBy": [
         {
-          "command": "multigit.changes.toggleGroupByRepo",
+          "command": "multigit.changes.toggleGroupByDir",
           "group": "1@1"
         },
         {
-          "command": "multigit.changes.toggleGroupByDir",
+          "command": "multigit.changes.toggleGroupByRepo",
           "group": "1@2"
+        },
+        {
+          "command": "multigit.changes.toggleGroupByModule",
+          "group": "1@3"
+        },
+        {
+          "command": "multigit.changes.toggleShowIgnored",
+          "group": "2@1"
         }
       ],
       "multigit.changes.git": [
@@ -1534,7 +1572,7 @@
     "submenus": [
       {
         "id": "multigit.changes.groupBy",
-        "label": "Agrupar por",
+        "label": "Group By",
         "icon": "$(list-tree)"
       },
       {
