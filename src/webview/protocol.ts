@@ -1,9 +1,12 @@
 // Mensajes tipados entre el extension host y los webviews (type + payload).
 // Este archivo lo importan ambos lados (`import type` desde webview-ui), así que no debe
-// importar `vscode` ni módulos de Node.
+// importar `vscode` ni módulos de Node (solo tipos de módulos puros).
+import type { LogFilters, RefLabel } from '../git/log';
+
+export type { LogFilters, RefLabel };
 
 /** Paneles webview que existen (el log llega en la Fase 6). */
-export type WebviewKind = 'push' | 'commit';
+export type WebviewKind = 'push' | 'commit' | 'log';
 
 // ------------------------------------------------------------------ Push
 
@@ -69,6 +72,43 @@ export interface CommitState {
   busy: boolean;
 }
 
+// ------------------------------------------------------------------ Log
+
+export interface LogRepoInfo {
+  id: string;
+  name: string;
+  colorIndex: number;
+  /** Rama actual (o null si HEAD está detached). */
+  current: string | null;
+  local: string[];
+  /** Ramas remotas completas (`origin/develop`). */
+  remote: string[];
+}
+
+export interface LogRow {
+  repoId: string;
+  hash: string;
+  shortHash: string;
+  parents: string[];
+  subject: string;
+  author: string;
+  email: string;
+  /** Fecha de autor (ms). */
+  date: number;
+  refs: RefLabel[];
+}
+
+export interface LogDetails {
+  repoId: string;
+  hash: string;
+  body: string;
+  committer: string;
+  commitTime: number;
+  files: PushFile[];
+}
+
+export type LogAction = 'copyHash' | 'checkout' | 'cherryPick' | 'revert' | 'reset' | 'newBranch' | 'newTag';
+
 // ------------------------------------------------------------------ mensajes
 
 /** Host → webview. */
@@ -79,7 +119,15 @@ export type HostMessage =
   | { type: 'push/files'; payload: { repoId: string; hash: string; files: PushFile[] } }
   | { type: 'commit/state'; payload: CommitState }
   | { type: 'commit/setMessage'; payload: { message: string } }
-  | { type: 'commit/done'; payload: Record<string, never> };
+  | { type: 'commit/done'; payload: Record<string, never> }
+  | {
+      type: 'log/init';
+      payload: { repos: LogRepoInfo[]; me: { name: string; email: string }; filters: LogFilters; favorites: string[] };
+    }
+  | { type: 'log/filters'; payload: LogFilters }
+  | { type: 'log/rows'; payload: { generation: number; reset: boolean; rows: LogRow[]; hasMore: boolean } }
+  | { type: 'log/loading'; payload: { generation: number; loading: boolean } }
+  | { type: 'log/details'; payload: LogDetails };
 
 /** Webview → host. */
 export type WebviewMessage =
@@ -93,4 +141,10 @@ export type WebviewMessage =
   | { type: 'push/pullAndRetry'; payload: { tags: PushTagsMode } }
   | { type: 'push/close'; payload: Record<string, never> }
   | { type: 'commit/run'; payload: { message: string; amend: boolean; push: boolean } }
-  | { type: 'commit/requestLastMessage'; payload: Record<string, never> };
+  | { type: 'commit/requestLastMessage'; payload: Record<string, never> }
+  | { type: 'log/setFilters'; payload: LogFilters }
+  | { type: 'log/loadMore'; payload: { generation: number } }
+  | { type: 'log/select'; payload: { repoId: string; hash: string } }
+  | { type: 'log/openDiff'; payload: { repoId: string; hash: string; file: PushFile } }
+  | { type: 'log/action'; payload: { action: LogAction; repoId: string; hash: string } }
+  | { type: 'log/refresh'; payload: Record<string, never> };

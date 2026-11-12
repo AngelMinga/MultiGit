@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "Manejo de Git multi-repositorio al estilo IntelliJ IDEA para workspaces con varios repos.",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -38,6 +38,13 @@
           "title": "MultiGit",
           "icon": "media/multigit.svg"
         }
+      ],
+      "panel": [
+        {
+          "id": "multigit-panel",
+          "title": "MultiGit",
+          "icon": "media/multigit.svg"
+        }
       ]
     },
     "views": {
@@ -66,6 +73,14 @@
           "name": "Ramas",
           "icon": "$(git-branch)",
           "visibility": "visible"
+        }
+      ],
+      "multigit-panel": [
+        {
+          "id": "multigit.log",
+          "name": "Git Log",
+          "type": "webview",
+          "icon": "media/multigit.svg"
         }
       ]
     },
@@ -216,6 +231,23 @@
         "title": "Directorio",
         "category": "MultiGit",
         "toggled": "multigit.changesGroupByDir"
+      },
+      {
+        "command": "multigit.openGitLog",
+        "title": "Git Log",
+        "category": "MultiGit",
+        "icon": "$(history)"
+      },
+      {
+        "command": "multigit.log.showBranch",
+        "title": "Ver rama en Git Log",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branchesTree.showInLog",
+        "title": "Ver en Git Log",
+        "category": "MultiGit",
+        "icon": "$(history)"
       }
     ],
     "menus": {
@@ -299,6 +331,16 @@
           "submenu": "multigit.changes.groupBy",
           "when": "view == multigit.changes",
           "group": "navigation@5"
+        },
+        {
+          "command": "multigit.openGitLog",
+          "when": "view == multigit.repositories",
+          "group": "z_log@-2"
+        },
+        {
+          "command": "multigit.openGitLog",
+          "when": "view == multigit.branches",
+          "group": "navigation@0"
         }
       ],
       "view/item/context": [
@@ -356,6 +398,16 @@
           "command": "multigit.changes.rollback",
           "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file\\.tracked|repo|dir|section)/",
           "group": "navigation@3"
+        },
+        {
+          "command": "multigit.branchesTree.showInLog",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\./",
+          "group": "inline@0"
+        },
+        {
+          "command": "multigit.branchesTree.showInLog",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\./",
+          "group": "navigation@0"
         }
       ],
       "commandPalette": [
@@ -397,6 +449,14 @@
         },
         {
           "command": "multigit.changes.toggleGroupByDir",
+          "when": "false"
+        },
+        {
+          "command": "multigit.log.showBranch",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branchesTree.showInLog",
           "when": "false"
         }
       ],
@@ -601,12 +661,14 @@
     "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/react-window": "^1.8.8",
     "@types/vscode": "~1.100.0",
     "@vitejs/plugin-react": "^6.3.0",
     "@vscode/vsce": "^4.1.0",
     "esbuild": "^0.28.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-window": "^1.8.11",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.0"

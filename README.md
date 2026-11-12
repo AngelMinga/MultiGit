@@ -3,7 +3,7 @@
 Manejo de Git **multi-repositorio** al estilo IntelliJ IDEA para VS Code: pensado para workspaces
 con varios repos independientes (por ejemplo, micro-frontends) que suelen estar en la misma rama.
 
-> Estado: en desarrollo (Fase 5: Changes, Commit y Rollback). Ver [PLAN.md](PLAN.md) para la hoja de ruta.
+> Estado: en desarrollo (Fase 6: Git Log combinado). Ver [PLAN.md](PLAN.md) para la hoja de ruta.
 
 ## Qué hace hoy
 
@@ -36,6 +36,16 @@ con varios repos independientes (por ejemplo, micro-frontends) que suelen estar 
     *Commit and Push…* (abre el diálogo de Push). Commit solo de los archivos marcados, en cada repo.
   - **Rollback…** con selección de archivos, contador y confirmación que lista lo que se pierde;
     opción de borrar del disco los archivos añadidos. **Shelve / Unshelve** con nombre (git stash).
+- **Git Log** en el panel inferior (pestaña *MultiGit*), como el de IntelliJ:
+  - Ramas a la izquierda (HEAD / Local / Remote, agrupables por repositorio y por directorio);
+    clic en una rama → filtra el log. También *Ver en Git Log* desde la vista Ramas o el popup.
+  - Commits de todos los repos mezclados por fecha, con la franja de color del repo, etiquetas de
+    ramas y tags, autor y fecha ("Hoy 08:51"). Lista virtualizada que carga de 300 en 300.
+  - Filtros: texto o hash (regex y mayúsculas opcionales), Branch, User (botón *Yo*), Date, Paths
+    y Repo.
+  - Detalle del commit a la derecha (mensaje completo y archivos; doble clic → diff).
+  - Clic derecho: Copy hash, Checkout revision, Cherry-pick, Revert, Reset current branch to here
+    (soft/mixed/hard con confirmación), New branch here, New tag.
 - Toda operación multi-repo hace un *preflight* (si un repo lo impide no se toca ninguno), muestra
   el progreso repo por repo y, si algo falla, se detiene con un resumen ✅ / ❌ / ⏭.
 - Detecta los repos con la API de la extensión integrada `vscode.git` y, además, escaneando las

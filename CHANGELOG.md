@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.11
+
+- Changes y Commit dentro del panel MultiGit; Agrupar por Repositorio/Directorio combinables.
+- Fase 6: Git Log combinado en el panel inferior (ramas, filtros, lista virtualizada de 300 en 300, detalle y menú contextual).
+
 ## 0.0.8
 
 - Fase 5: vista Changes con checkboxes (por repo o por directorio), caja de Commit con Amend y Commit and Push…, Rollback con confirmación y Shelve/Unshelve.

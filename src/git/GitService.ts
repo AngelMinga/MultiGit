@@ -5,6 +5,7 @@ import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import { parseRefs, REF_FORMAT, type RepoBranches } from './branches';
 import { pullArgs, type PullMode } from './pull';
+import { LOG_PAGE_FORMAT, parseLogPage, type LogCommit } from './log';
 import { parseStashList, parseStatusFiles, SHELF_PREFIX, type StashEntry, type StatusFile } from './changes';
 import {
   LOG_FORMAT,
@@ -321,7 +322,75 @@ export class GitService {
     return this.exec(args, { timeoutMs: NETWORK_TIMEOUT_MS });
   }
 
-  // ---------------------------------------------------------------- changes / commit / rollback
+  // ---------------------------------------------------------------- log
+
+  /** Una página del log (`--skip`/`--max-count`) con los argumentos de filtro y el pathspec. */
+  async logPage(filterArgs: readonly string[], paths: readonly string[], skip: number, count: number): Promise<LogCommit[]> {
+    const out = await this.exec([
+      'log',
+      `--format=${LOG_PAGE_FORMAT}`,
+      `--skip=${skip}`,
+      `--max-count=${count}`,
+      ...filterArgs,
+      '--',
+      ...paths,
+    ]);
+    return parseLogPage(out);
+  }
+
+  /** Un commit concreto en el formato del log (o `null` si no existe en este repo). */
+  async logCommit(ref: string): Promise<LogCommit | null> {
+    if (!(await this.revisionExists(ref))) return null;
+    const out = await this.exec(['log', '-1', `--format=${LOG_PAGE_FORMAT}`, '--end-of-options', ref, '--']);
+    return parseLogPage(out)[0] ?? null;
+  }
+
+  /** Mensaje completo y datos del committer de un commit. */
+  async commitDetails(hash: string): Promise<{ body: string; committer: string; commitTime: number }> {
+    const out = await this.exec(['show', '-s', '--format=%B%x00%cn%x00%ct', hash]);
+    const [body = '', committer = '', ct = '0'] = out.split('\0');
+    return { body: body.trim(), committer: committer.trim(), commitTime: Number(ct.trim()) * 1000 };
+  }
+
+  /** Valor de `git config <key>` (o vacío). */
+  async configGet(key: string): Promise<string> {
+    try {
+      return (await this.exec(['config', '--get', key])).trim();
+    } catch {
+      return '';
+    }
+  }
+
+  cherryPick(hash: string): Promise<string> {
+    return this.exec(['cherry-pick', hash]);
+  }
+
+  revert(hash: string): Promise<string> {
+    return this.exec(['revert', '--no-edit', hash]);
+  }
+
+  /** `git reset --soft|--mixed|--hard <hash>` sobre la rama actual. */
+  reset(mode: 'soft' | 'mixed' | 'hard', hash: string): Promise<string> {
+    return this.exec(['reset', `--${mode}`, hash]);
+  }
+
+  /** Tag ligero, o anotado si hay mensaje. */
+  createTag(name: string, hash: string, message?: string): Promise<string> {
+    return this.exec(message ? ['tag', '-a', name, '-m', message, hash] : ['tag', name, hash]);
+  }
+
+  /** ¿`name` es válido como nombre de tag? */
+  async isValidTagName(name: string): Promise<boolean> {
+    if (!name || name.startsWith('-')) return false;
+    try {
+      await this.exec(['check-ref-format', `refs/tags/${name}`]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+
 
   /** Archivos con cambios (incluye cada archivo dentro de carpetas sin versionar). */
   async getChanges(): Promise<StatusFile[]> {

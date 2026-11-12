@@ -181,6 +181,10 @@ export class BranchPopup {
       add(!isCurrentEverywhere, `$(git-pull-request) Checkout and Rebase onto '${cur}'`, () => a.checkoutAndRebase(scope, ref));
     }
     add(!isCurrentEverywhere, `$(git-compare) Compare with '${cur}'`, () => a.compare(scope, ref));
+    add(true, '$(history) Show in Git Log', async () => {
+      const ids = scope.repos.length === this.manager.all.length ? [] : scope.repos.map((r) => r.root);
+      await vscode.commands.executeCommand('multigit.log.showBranch', name, ids);
+    });
     items.push({ label: '', kind: vscode.QuickPickItemKind.Separator });
     add(!isCurrentEverywhere, `$(git-pull-request) Rebase '${cur}' onto '${name}'`, () => a.rebaseOnto(scope, ref));
     add(!isCurrentEverywhere, `$(git-merge) Merge '${name}' into '${cur}'`, () => a.merge(scope, ref));

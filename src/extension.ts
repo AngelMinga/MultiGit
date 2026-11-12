@@ -10,6 +10,7 @@ import { RepositoriesView } from './views/RepositoriesView';
 import { StatusBar } from './views/StatusBar';
 import { GitContentProvider } from './git/GitContentProvider';
 import { PushPanel } from './webview/PushPanel';
+import { LogView } from './webview/LogView';
 import { showPullDialog } from './views/pullDialog';
 import { ChangesActions } from './views/changesActions';
 import { ChangesTree, filesOf, type ChangeNode } from './views/ChangesTree';
@@ -151,6 +152,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('multigit.changes.openFile', (node?: ChangeNode) => {
       const ref = fileNode(node ?? changesView.selection[0]);
       if (ref) void changesActions.openFile(ref);
+    }),
+  );
+
+  // ---------------------------------------------------------------- Git Log (Fase 6)
+  const logView = new LogView(context.extensionUri, manager, actions);
+  context.subscriptions.push(
+    logView,
+    vscode.window.registerWebviewViewProvider(LogView.viewId, logView, { webviewOptions: { retainContextWhenHidden: true } }),
+    vscode.commands.registerCommand('multigit.openGitLog', () => vscode.commands.executeCommand(`${LogView.viewId}.focus`)),
+    vscode.commands.registerCommand('multigit.log.showBranch', (branch?: string | null, repoIds?: string[]) =>
+      logView.showBranch(branch ?? null, repoIds ?? []),
+    ),
+    vscode.commands.registerCommand('multigit.branchesTree.showInLog', (node?: BranchNode) => {
+      const target = branchActionsFor(node);
+      if (!target) return;
+      const name = target.ref.type === 'local' ? target.ref.name : target.ref.full;
+      const ids = target.scope.repos.length === manager.all.length ? [] : target.scope.repos.map((r) => r.root);
+      return logView.showBranch(name, ids);
     }),
   );
 
