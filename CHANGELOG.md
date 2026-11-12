@@ -9,6 +9,9 @@
   Continue, Skip y Abort, por repo o en todos.
 - **Ramas desalineadas**: aviso `⎇ rama ⚠N`, marca `≠` en Repositorios y acción **Alinear** en el
   popup de ramas (`multigit.warnBranchMismatch`).
+- **Rollback Changes** como diálogo de IntelliJ: árbol repo → carpetas → archivos con casillas,
+  contador, *Delete local copies of added files* y diff con doble clic.
+- Submenú **Add to .gitignore ›** en Changes y contadores **↑/↓** en las ramas (vista Ramas y Git Log).
 - **CI y releases**: workflows de GitHub Actions (tests en Linux y macOS, empaquetado) y publicación
   por tag en Marketplace, Open VSX y GitHub Releases.
 
