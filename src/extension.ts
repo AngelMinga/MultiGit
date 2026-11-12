@@ -1,16 +1,21 @@
 import * as vscode from 'vscode';
 import { AutoFetcher } from './git/AutoFetcher';
 import { RepoManager } from './git/RepoManager';
-import { showBranchesQuickPick } from './views/branchesQuickPick';
+import { BranchActions } from './views/branchActions';
+import { BranchPopup } from './views/branchPopup';
+import { CompareView } from './views/compareView';
 import { RepoDecorations } from './views/RepoDecorations';
 import { RepositoriesView } from './views/RepositoriesView';
 import { StatusBar } from './views/StatusBar';
+import type { Repo } from './git/RepoManager';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const log = vscode.window.createOutputChannel('MultiGit', { log: true });
   const manager = new RepoManager(log);
   const repositoriesView = new RepositoriesView(manager);
   const decorations = new RepoDecorations(manager);
+  const compareView = new CompareView();
+  const popup = new BranchPopup(manager, new BranchActions(manager, compareView));
   const treeView = vscode.window.createTreeView('multigit.repositories', {
     treeDataProvider: repositoriesView,
     showCollapseAll: false,
@@ -23,6 +28,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     decorations,
     treeView,
     vscode.window.registerFileDecorationProvider(decorations),
+    compareView,
+    vscode.workspace.registerTextDocumentContentProvider(CompareView.scheme, compareView),
     new StatusBar(manager),
     new AutoFetcher(manager, log),
     vscode.commands.registerCommand('multigit.refresh', () =>
@@ -32,7 +39,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       ),
     ),
     vscode.commands.registerCommand('multigit.fetch', () => fetchWithProgress(manager)),
-    vscode.commands.registerCommand('multigit.branches', () => showBranchesQuickPick(manager, treeView)),
+    vscode.commands.registerCommand('multigit.branches', () => popup.show()),
+    vscode.commands.registerCommand('multigit.repoBranches', (repo?: Repo) =>
+      popup.show(repo ?? treeView.selection[0]),
+    ),
+    vscode.commands.registerCommand('multigit.branchPopup.rename', () => popup.renameActive()),
     vscode.commands.registerCommand('multigit.showLog', () => log.show(true)),
   );
 

@@ -3,7 +3,7 @@
 Manejo de Git **multi-repositorio** al estilo IntelliJ IDEA para VS Code: pensado para workspaces
 con varios repos independientes (por ejemplo, micro-frontends) que suelen estar en la misma rama.
 
-> Estado: en desarrollo (Fase 1: vista de repositorios + barra de estado). Ver [PLAN.md](PLAN.md) para la hoja de ruta.
+> Estado: en desarrollo (Fase 2: popup de ramas). Ver [PLAN.md](PLAN.md) para la hoja de ruta.
 
 ## Qué hace hoy
 
@@ -11,6 +11,14 @@ con varios repos independientes (por ejemplo, micro-frontends) que suelen estar 
   actual, `↑` commits por subir / `↓` por bajar y un badge con la cantidad de cambios sin commit.
 - Barra de estado: `⎇ rama` si todos los repos están en la misma, o `⎇ N ramas` si difieren.
 - Auto-refresh cuando cambia un repo (o al volver a la ventana) y fetch periódico opcional.
+- **Popup de ramas** (clic en la barra de estado o botón ⎇ de la vista), como el de IntelliJ:
+  - *Acciones*: Update Project, Commit…, Push…, New Branch…, Checkout Tag or Revision…
+  - *Repositorios*: entra a las ramas de un solo repo.
+  - *Common Local / Remote Branches*: ramas que existen en todos los repos, favoritas arriba con ★.
+  - Por rama: Checkout, New Branch from…, Checkout and Rebase, Compare, Rebase, Merge,
+    New Worktree, Update, Push…, Rename… (F2) y Delete.
+- Toda operación multi-repo hace un *preflight* (si un repo lo impide no se toca ninguno), muestra
+  el progreso repo por repo y, si algo falla, se detiene con un resumen ✅ / ❌ / ⏭.
 - Detecta los repos con la API de la extensión integrada `vscode.git` y, además, escaneando las
   carpetas del workspace (`multigit.scanDepth`, por defecto 2).
 - Comandos **MultiGit: Refrescar repositorios**, **Fetch en todos los repositorios** y **Ramas…**.
@@ -21,6 +29,7 @@ con varios repos independientes (por ejemplo, micro-frontends) que suelen estar 
 | Clave | Por defecto | Descripción |
 | --- | --- | --- |
 | `multigit.scanDepth` | `2` | Profundidad máxima para buscar carpetas `.git` en cada carpeta del workspace. |
+| `multigit.favoriteBranches` | `["develop", "production-lt"]` | Ramas que aparecen arriba con ★ en el popup. |
 | `multigit.autoFetchMinutes` | `0` | Cada cuántos minutos hacer `git fetch --all --prune` en todos los repos (`0` = desactivado). |
 
 Los colores de los repos (`multigit.repo0` … `multigit.repo11`) se pueden cambiar en

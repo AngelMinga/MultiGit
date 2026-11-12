@@ -146,6 +146,17 @@ export class RepoManager implements vscode.Disposable {
     return results.sort((a, b) => a.repo.name.localeCompare(b.repo.name));
   }
 
+  /** Relee ya (sin debounce) el estado de los repos indicados, o de todos. */
+  async refreshStatusesNow(repos: readonly Repo[] = this.all): Promise<void> {
+    await this.readStatuses(repos);
+    this.changeEmitter.fire();
+  }
+
+  /** Ramas favoritas configuradas (`multigit.favoriteBranches`). */
+  get favoriteBranches(): string[] {
+    return vscode.workspace.getConfiguration('multigit').get<string[]>('favoriteBranches', ['develop', 'production-lt']);
+  }
+
   private async flushStatusRefresh(): Promise<void> {
     this.statusTimer = undefined;
     const repos = [...this.pendingStatus].map((k) => this.repos.get(k)).filter((r): r is Repo => !!r);

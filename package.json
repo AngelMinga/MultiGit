@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "Manejo de Git multi-repositorio al estilo IntelliJ IDEA para workspaces con varios repos.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -79,6 +79,17 @@
         "title": "Mostrar log",
         "category": "MultiGit",
         "icon": "$(output)"
+      },
+      {
+        "command": "multigit.repoBranches",
+        "title": "Ramas de este repositorio…",
+        "category": "MultiGit",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "multigit.branchPopup.rename",
+        "title": "Renombrar rama",
+        "category": "MultiGit"
       }
     ],
     "menus": {
@@ -103,6 +114,28 @@
           "when": "view == multigit.repositories",
           "group": "z_log"
         }
+      ],
+      "view/item/context": [
+        {
+          "command": "multigit.repoBranches",
+          "when": "view == multigit.repositories && viewItem == multigit.repo",
+          "group": "inline"
+        },
+        {
+          "command": "multigit.repoBranches",
+          "when": "view == multigit.repositories && viewItem == multigit.repo",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "multigit.repoBranches",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branchPopup.rename",
+          "when": "false"
+        }
       ]
     },
     "configuration": {
@@ -121,6 +154,17 @@
           "minimum": 0,
           "maximum": 1440,
           "markdownDescription": "Cada cuántos minutos hacer `git fetch --all --prune` en todos los repositorios. `0` lo desactiva."
+        },
+        "multigit.favoriteBranches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "develop",
+            "production-lt"
+          ],
+          "markdownDescription": "Ramas favoritas: aparecen arriba con ★ en el popup de ramas."
         }
       }
     },
@@ -237,13 +281,20 @@
       },
       {
         "id": "multigit.repo11",
-        "description": "Color de repositorio 11 (marrón).",
+        "description": "Color de repositorio 11 (gris azulado).",
         "defaults": {
-          "dark": "#D19A66",
-          "light": "#8D5A2B",
-          "highContrast": "#E5B07E",
-          "highContrastLight": "#704620"
+          "dark": "#8FA3BF",
+          "light": "#5A6E8A",
+          "highContrast": "#A9BBD4",
+          "highContrastLight": "#46566E"
         }
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "multigit.branchPopup.rename",
+        "key": "f2",
+        "when": "inQuickOpen && multigit.branchPopupOpen"
       }
     ]
   },
