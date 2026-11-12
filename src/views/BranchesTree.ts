@@ -1,33 +1,57 @@
-// Vista "Ramas": árbol Local / Remote como el panel de ramas del Git Log de IntelliJ.
-//  - Agrupar por repositorio: Local → repo → ramas
-//  - Agrupar por rama:        Local → rama (n/9 repos) → repos donde existe
-// Al hacer clic en una rama se abre el mismo menú de acciones que en el popup.
+// Vista "Ramas": árbol Local / Remote / Tags como el panel de ramas del Git Log de IntelliJ.
+// Opciones (menú ⋯ de la vista, recordadas):
+//  - On Single Click: Show Actions (menú de acciones) / Update Branch Filter (Git Log filtrado por la
+//    rama) / Navigate Log to Branch Head (Git Log en el último commit de la rama).
+//  - Group by Repository: Local → repo → ramas. Sin ella: Local → rama (n/9 repos) → repos.
+//  - Group by Directory: los prefijos `feature/…` se muestran como carpetas.
+//  - Show Tags.
 import * as vscode from 'vscode';
 import { orderBranches, type RepoBranches } from '../git/branches';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import type { BranchRef, Scope } from './branchActions';
 
-export type GroupBy = 'repo' | 'branch';
-type Section = 'local' | 'remote';
+type Section = 'local' | 'remote' | 'tags';
+export type ClickMode = 'actions' | 'filter' | 'navigate';
+
+export interface BranchesOptions {
+  clickMode: ClickMode;
+  byRepo: boolean;
+  byDir: boolean;
+  showTags: boolean;
+}
+
+const DEFAULT_OPTIONS: BranchesOptions = { clickMode: 'actions', byRepo: true, byDir: false, showTags: false };
+const OPTIONS_KEY = 'multigit.branchesOptions';
 
 export type BranchNode =
   | { kind: 'section'; section: Section }
   | { kind: 'repo'; section: Section; repo: Repo }
-  /** Rama. En modo repo, `repos` tiene un solo elemento. */
-  | { kind: 'branch'; section: Section; repos: Repo[]; ref: BranchRef; currentIn: Repo[] }
-  /** Modo rama: un repo dentro de una rama. */
+  | { kind: 'folder'; section: Section; id: string; label: string; items: BranchNode[] }
+  /** Rama. Con "Group by Repository", `repos` tiene un solo elemento. */
+  | { kind: 'branch'; section: Section; repos: Repo[]; ref: BranchRef; currentIn: Repo[]; label: string }
+  | { kind: 'tag'; repos: Repo[]; name: string; label: string }
+  /** Sin "Group by Repository": un repo dentro de una rama. */
   | { kind: 'branchRepo'; repo: Repo; ref: BranchRef; current: boolean }
   | { kind: 'message'; text: string };
+
+interface RepoData {
+  branches: RepoBranches;
+  tags: string[];
+}
 
 export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode.Disposable {
   private readonly changeEmitter = new vscode.EventEmitter<BranchNode | undefined>();
   readonly onDidChangeTreeData = this.changeEmitter.event;
 
-  private cache: Promise<Map<Repo, RepoBranches>> | undefined;
-  private groupBy: GroupBy = 'repo';
+  private cache: Promise<Map<Repo, RepoData>> | undefined;
+  private options: BranchesOptions;
 
-  constructor(private readonly manager: RepoManager) {
-    void vscode.commands.executeCommand('setContext', 'multigit.branchesGroupBy', this.groupBy);
+  constructor(
+    private readonly manager: RepoManager,
+    private readonly memento: vscode.Memento,
+  ) {
+    this.options = { ...DEFAULT_OPTIONS, ...memento.get<Partial<BranchesOptions>>(OPTIONS_KEY) };
+    this.publish();
   }
 
   /** Descarta la caché y vuelve a leer las ramas. */
@@ -36,10 +60,27 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
     this.changeEmitter.fire(undefined);
   }
 
-  setGroupBy(groupBy: GroupBy): void {
-    this.groupBy = groupBy;
-    void vscode.commands.executeCommand('setContext', 'multigit.branchesGroupBy', groupBy);
+  get clickMode(): ClickMode {
+    return this.options.clickMode;
+  }
+
+  toggle(key: 'byRepo' | 'byDir' | 'showTags'): void {
+    this.setOption(key, !this.options[key]);
+  }
+
+  setOption<K extends keyof BranchesOptions>(key: K, value: BranchesOptions[K]): void {
+    this.options = { ...this.options, [key]: value };
+    void this.memento.update(OPTIONS_KEY, this.options);
+    this.publish();
     this.changeEmitter.fire(undefined);
+  }
+
+  private publish(): void {
+    const set = (key: string, value: unknown) => void vscode.commands.executeCommand('setContext', key, value);
+    set('multigit.branches.clickMode', this.options.clickMode);
+    set('multigit.branches.byRepo', this.options.byRepo);
+    set('multigit.branches.byDir', this.options.byDir);
+    set('multigit.branches.showTags', this.options.showTags);
   }
 
   /** Repos y rama sobre los que actúa un nodo (para el menú de acciones y F2). */
@@ -52,59 +93,66 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
     return undefined;
   }
 
+  /** Ref para el Git Log (rama o `refs/tags/<tag>`) y repos de un nodo. */
+  logTargetOf(node: BranchNode): { ref: string; repoIds: string[] } | undefined {
+    const all = this.manager.all.length;
+    const ids = (repos: Repo[]) => (repos.length === all ? [] : repos.map((r) => r.root));
+    if (node.kind === 'branch') {
+      return { ref: node.ref.type === 'local' ? node.ref.name : node.ref.full, repoIds: ids(node.repos) };
+    }
+    if (node.kind === 'branchRepo') {
+      return { ref: node.ref.type === 'local' ? node.ref.name : node.ref.full, repoIds: [node.repo.root] };
+    }
+    if (node.kind === 'tag') return { ref: `refs/tags/${node.name}`, repoIds: ids(node.repos) };
+    return undefined;
+  }
+
   async getChildren(node?: BranchNode): Promise<BranchNode[]> {
     if (!node) {
       if (this.manager.all.length === 0) return [];
-      return [
+      const sections: BranchNode[] = [
         { kind: 'section', section: 'local' },
         { kind: 'section', section: 'remote' },
       ];
+      if (this.options.showTags) sections.push({ kind: 'section', section: 'tags' });
+      return sections;
     }
 
     const data = await this.load();
-    const favorites = this.manager.favoriteBranches;
-
-    if (node.kind === 'section') {
-      if (this.groupBy === 'repo') {
-        return this.manager.all.filter((r) => data.has(r)).map((repo) => ({ kind: 'repo', section: node.section, repo }));
+    switch (node.kind) {
+      case 'section': {
+        if (this.options.byRepo) {
+          return this.manager.all
+            .filter((r) => data.has(r) && (node.section !== 'tags' || data.get(r)!.tags.length > 0))
+            .map((repo) => ({ kind: 'repo', section: node.section, repo }));
+        }
+        return this.leaves(node.section, this.entriesAcrossRepos(node.section, data), 'all');
       }
-      return this.branchesAcrossRepos(node.section, data, favorites);
+      case 'repo': {
+        const d = data.get(node.repo);
+        if (!d) return [{ kind: 'message', text: 'no se pudieron leer las ramas' }];
+        return this.leaves(node.section, this.entriesOfRepo(node.section, node.repo, d), node.repo.root);
+      }
+      case 'folder':
+        return node.items;
+      case 'branch':
+        if (this.options.byRepo) return [];
+        return node.repos.map((repo) => ({ kind: 'branchRepo', repo, ref: node.ref, current: node.currentIn.includes(repo) }));
+      default:
+        return [];
     }
-
-    if (node.kind === 'repo') {
-      const branches = data.get(node.repo);
-      if (!branches) return [{ kind: 'message', text: 'no se pudieron leer las ramas' }];
-      return node.section === 'local'
-        ? sortLocal(branches.local, favorites).map((b) => ({
-            kind: 'branch' as const,
-            section: 'local' as const,
-            repos: [node.repo],
-            ref: { type: 'local' as const, name: b.name },
-            currentIn: b.current ? [node.repo] : [],
-          }))
-        : orderBranches(branches.remote, favorites, (b) => b.name).map((b) => ({
-            kind: 'branch' as const,
-            section: 'remote' as const,
-            repos: [node.repo],
-            ref: { type: 'remote' as const, remote: b.remote, name: b.name, full: b.full },
-            currentIn: [],
-          }));
-    }
-
-    if (node.kind === 'branch' && this.groupBy === 'branch') {
-      return node.repos.map((repo) => ({ kind: 'branchRepo', repo, ref: node.ref, current: node.currentIn.includes(repo) }));
-    }
-    return [];
   }
 
   getTreeItem(node: BranchNode): vscode.TreeItem {
+    const modeId = `${this.options.byRepo ? 'r' : ''}${this.options.byDir ? 'd' : ''}`;
     switch (node.kind) {
       case 'section': {
+        const label = node.section === 'local' ? 'Local' : node.section === 'remote' ? 'Remote' : 'Tags';
         const item = new vscode.TreeItem(
-          node.section === 'local' ? 'Local' : 'Remote',
+          label,
           node.section === 'local' ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed,
         );
-        item.id = `section/${node.section}/${this.groupBy}`;
+        item.id = `section/${node.section}/${modeId}`;
         return item;
       }
       case 'repo': {
@@ -112,33 +160,48 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
           node.repo.name,
           node.section === 'local' ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed,
         );
-        item.id = `repo/${node.section}/${node.repo.root}`;
+        item.id = `repo/${node.section}/${node.repo.root}/${modeId}`;
         item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor(this.manager.colorIdOf(node.repo)));
+        return item;
+      }
+      case 'folder': {
+        const item = new vscode.TreeItem(node.label, vscode.TreeItemCollapsibleState.Collapsed);
+        item.id = node.id;
+        item.iconPath = vscode.ThemeIcon.Folder;
         return item;
       }
       case 'branch': {
         const name = node.ref.type === 'local' ? node.ref.name : node.ref.full;
-        const short = node.ref.name;
-        const byBranch = this.groupBy === 'branch';
         const item = new vscode.TreeItem(
-          name,
-          byBranch ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None,
+          node.label,
+          this.options.byRepo ? vscode.TreeItemCollapsibleState.None : vscode.TreeItemCollapsibleState.Collapsed,
         );
-        item.id = `branch/${this.groupBy}/${node.section}/${byBranch ? '' : node.repos[0]!.root}/${name}`;
+        item.id = `branch/${modeId}/${node.section}/${this.options.byRepo ? node.repos[0]!.root : ''}/${name}`;
         const total = this.manager.all.length;
         const current = node.currentIn.length > 0;
-        item.iconPath = branchIcon(current, this.manager.favoriteBranches.includes(short));
-        if (byBranch) {
-          const where = node.repos.length === total ? `${total}/${total}` : `${node.repos.length}/${total}`;
+        item.iconPath = branchIcon(current, this.manager.favoriteBranches.includes(node.ref.name));
+        if (!this.options.byRepo) {
+          const where = `${node.repos.length}/${total}`;
           item.description = current ? `${where} · actual en ${node.currentIn.length}` : where;
-          item.tooltip = node.repos.map((r) => r.name).join(', ');
-        } else if (current) {
-          item.description = 'actual';
+          item.tooltip = `${name}\n${node.repos.map((r) => r.name).join(', ')}`;
+        } else {
+          if (current) item.description = 'actual';
+          item.tooltip = name;
         }
         // local.current = rama actual en todos sus repos (oculta Checkout, Merge, Delete…).
         const allCurrent = node.ref.type === 'local' && node.currentIn.length === node.repos.length;
         item.contextValue = `multigit.branch.${node.ref.type}${allCurrent ? '.current' : ''}`;
-        item.command = { command: 'multigit.branchesTree.actions', title: 'Acciones', arguments: [node] };
+        item.command = this.clickCommand(node, 'multigit.branchesTree.actions');
+        return item;
+      }
+      case 'tag': {
+        const item = new vscode.TreeItem(node.label, vscode.TreeItemCollapsibleState.None);
+        item.id = `tag/${modeId}/${node.repos.map((r) => r.root).join('|')}/${node.name}`;
+        item.iconPath = new vscode.ThemeIcon('tag', new vscode.ThemeColor('charts.yellow'));
+        item.tooltip = `${node.name}\n${node.repos.map((r) => r.name).join(', ')}`;
+        if (!this.options.byRepo) item.description = `${node.repos.length}/${this.manager.all.length}`;
+        item.contextValue = 'multigit.tag';
+        item.command = this.clickCommand(node, 'multigit.branchesTree.tagActions');
         return item;
       }
       case 'branchRepo': {
@@ -147,7 +210,7 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
         item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor(this.manager.colorIdOf(node.repo)));
         if (node.current) item.description = 'actual';
         item.contextValue = `multigit.branch.${node.ref.type}${node.current ? '.current' : ''}`;
-        item.command = { command: 'multigit.branchesTree.actions', title: 'Acciones', arguments: [node] };
+        item.command = this.clickCommand(node, 'multigit.branchesTree.actions');
         return item;
       }
       case 'message':
@@ -159,13 +222,28 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
     return undefined;
   }
 
-  private load(): Promise<Map<Repo, RepoBranches>> {
+  /** Comando del clic según "On Single Click". */
+  private clickCommand(node: BranchNode, actionsCommand: string): vscode.Command {
+    const command =
+      this.options.clickMode === 'filter'
+        ? 'multigit.branchesTree.showInLog'
+        : this.options.clickMode === 'navigate'
+          ? 'multigit.branchesTree.navigateLog'
+          : actionsCommand;
+    return { command, title: 'Abrir', arguments: [node] };
+  }
+
+  private load(): Promise<Map<Repo, RepoData>> {
     this.cache ??= (async () => {
-      const map = new Map<Repo, RepoBranches>();
+      const map = new Map<Repo, RepoData>();
       await Promise.all(
         this.manager.all.map(async (repo) => {
           try {
-            map.set(repo, await repo.git.getBranches());
+            const [branches, tags] = await Promise.all([
+              repo.git.getBranches(),
+              this.options.showTags ? repo.git.listTags().catch(() => []) : Promise.resolve([]),
+            ]);
+            map.set(repo, { branches, tags });
           } catch {
             // el repo queda fuera del árbol
           }
@@ -176,33 +254,102 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
     return this.cache;
   }
 
-  /** Modo "agrupar por rama": unión de ramas de todos los repos, con los repos donde existe cada una. */
-  private branchesAcrossRepos(section: Section, data: Map<Repo, RepoBranches>, favorites: string[]): BranchNode[] {
+  /** Ramas o tags de un repo (Group by Repository). */
+  private entriesOfRepo(section: Section, repo: Repo, d: RepoData): BranchNode[] {
+    const favorites = this.manager.favoriteBranches;
+    if (section === 'tags') return d.tags.map((name) => ({ kind: 'tag', repos: [repo], name, label: name }));
+    if (section === 'local') {
+      return sortLocal(d.branches.local, favorites).map((b) => ({
+        kind: 'branch',
+        section,
+        repos: [repo],
+        ref: { type: 'local', name: b.name },
+        currentIn: b.current ? [repo] : [],
+        label: b.name,
+      }));
+    }
+    return orderBranches(d.branches.remote, favorites, (b) => b.name).map((b) => ({
+      kind: 'branch',
+      section,
+      repos: [repo],
+      ref: { type: 'remote', remote: b.remote, name: b.name, full: b.full },
+      currentIn: [],
+      label: b.full,
+    }));
+  }
+
+  /** Sin "Group by Repository": unión de ramas o tags de todos los repos. */
+  private entriesAcrossRepos(section: Section, data: Map<Repo, RepoData>): BranchNode[] {
+    const favorites = this.manager.favoriteBranches;
+    if (section === 'tags') {
+      const byName = new Map<string, Repo[]>();
+      for (const repo of this.manager.all) {
+        for (const t of data.get(repo)?.tags ?? []) byName.set(t, [...(byName.get(t) ?? []), repo]);
+      }
+      return [...byName.entries()].map(([name, repos]) => ({ kind: 'tag', repos, name, label: name }));
+    }
     const byName = new Map<string, { ref: BranchRef; repos: Repo[]; currentIn: Repo[] }>();
     for (const repo of this.manager.all) {
-      const branches = data.get(repo);
-      if (!branches) continue;
+      const b = data.get(repo)?.branches;
+      if (!b) continue;
       if (section === 'local') {
-        for (const b of branches.local) {
-          const entry = byName.get(b.name) ?? { ref: { type: 'local', name: b.name }, repos: [], currentIn: [] };
-          entry.repos.push(repo);
-          if (b.current) entry.currentIn.push(repo);
-          byName.set(b.name, entry);
+        for (const l of b.local) {
+          const e = byName.get(l.name) ?? { ref: { type: 'local', name: l.name }, repos: [], currentIn: [] };
+          e.repos.push(repo);
+          if (l.current) e.currentIn.push(repo);
+          byName.set(l.name, e);
         }
       } else {
-        for (const b of branches.remote) {
-          const entry =
-            byName.get(b.full) ?? { ref: { type: 'remote', remote: b.remote, name: b.name, full: b.full }, repos: [], currentIn: [] };
-          entry.repos.push(repo);
-          byName.set(b.full, entry);
+        for (const r of b.remote) {
+          const e = byName.get(r.full) ?? { ref: { type: 'remote', remote: r.remote, name: r.name, full: r.full }, repos: [], currentIn: [] };
+          e.repos.push(repo);
+          byName.set(r.full, e);
         }
       }
     }
-    const entries = [...byName.values()];
-    const rank = (e: (typeof entries)[number]) => (e.currentIn.length ? 0 : 1);
-    return orderBranches(entries, favorites, (e) => e.ref.name)
-      .sort((a, b) => rank(a) - rank(b))
-      .map((e) => ({ kind: 'branch', section, repos: e.repos, ref: e.ref, currentIn: e.currentIn }));
+    const entries = orderBranches([...byName.values()], favorites, (e) => e.ref.name).sort(
+      (a, b) => Number(b.currentIn.length > 0) - Number(a.currentIn.length > 0),
+    );
+    return entries.map((e) => ({
+      kind: 'branch',
+      section,
+      repos: e.repos,
+      ref: e.ref,
+      currentIn: e.currentIn,
+      label: e.ref.type === 'local' ? e.ref.name : e.ref.full,
+    }));
+  }
+
+  /** Con "Group by Directory", agrupa por prefijos `a/b/` en carpetas; si no, devuelve la lista. */
+  private leaves(section: Section, entries: BranchNode[], scope: string): BranchNode[] {
+    if (!this.options.byDir) return entries;
+    const root: BranchNode[] = [];
+    const folders = new Map<string, Extract<BranchNode, { kind: 'folder' }>>();
+    for (const entry of entries) {
+      if (entry.kind !== 'branch' && entry.kind !== 'tag') continue;
+      const parts = entry.label.split('/');
+      let level = root;
+      let pathSoFar = '';
+      for (const dir of parts.slice(0, -1)) {
+        pathSoFar += `${dir}/`;
+        const id = `folder/${section}/${scope}/${pathSoFar}`;
+        let folder = folders.get(id);
+        if (!folder) {
+          folder = { kind: 'folder', section, id, label: dir, items: [] };
+          folders.set(id, folder);
+          level.push(folder);
+        }
+        level = folder.items;
+      }
+      level.push({ ...entry, label: parts[parts.length - 1]! });
+    }
+    // Carpetas primero, como IntelliJ.
+    const sortLevel = (nodes: BranchNode[]): BranchNode[] => {
+      nodes.sort((a, b) => Number(b.kind === 'folder') - Number(a.kind === 'folder'));
+      for (const n of nodes) if (n.kind === 'folder') sortLevel(n.items);
+      return nodes;
+    };
+    return sortLevel(root);
   }
 
   dispose(): void {

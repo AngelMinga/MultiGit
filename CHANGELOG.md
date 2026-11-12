@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.4
+
+- Vista **Ramas** (barra lateral): menú ⋯ como IntelliJ con **On Single Click** (Show Actions /
+  Update Branch Filter / Navigate Log to Branch Head), **Group by Directory**, **Group by Repository**
+  y **Show Tags**. Las opciones se recuerdan.
+- Tags en la vista Ramas, con sus acciones (Checkout, Show in Git Log, Navigate Log to Tag, Compare).
+
 ## 0.2.3
 
 - Git Log: menú ⋮ en el árbol de ramas como IntelliJ: **On Single Click** (Update Branch Filter /

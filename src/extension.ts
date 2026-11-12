@@ -38,7 +38,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     treeDataProvider: repositoriesView,
     showCollapseAll: false,
   });
-  const branchesTree = new BranchesTree(manager);
+  const branchesTree = new BranchesTree(manager, context.globalState);
   const branchesView = vscode.window.createTreeView('multigit.branches', {
     treeDataProvider: branchesTree,
     showCollapseAll: true,
@@ -105,8 +105,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         if (target) void popup.safely(async () => run(target.scope, target.ref));
       }),
     ),
-    vscode.commands.registerCommand('multigit.branchesTree.groupByBranch', () => branchesTree.setGroupBy('branch')),
-    vscode.commands.registerCommand('multigit.branchesTree.groupByRepo', () => branchesTree.setGroupBy('repo')),
+    // Opciones de la vista Ramas (menú ⋯), como el panel de ramas de IntelliJ.
+    vscode.commands.registerCommand('multigit.branches.click.actions', () => branchesTree.setOption('clickMode', 'actions')),
+    vscode.commands.registerCommand('multigit.branches.click.filter', () => branchesTree.setOption('clickMode', 'filter')),
+    vscode.commands.registerCommand('multigit.branches.click.navigate', () => branchesTree.setOption('clickMode', 'navigate')),
+    vscode.commands.registerCommand('multigit.branches.toggleByRepo', () => branchesTree.toggle('byRepo')),
+    vscode.commands.registerCommand('multigit.branches.toggleByDir', () => branchesTree.toggle('byDir')),
+    vscode.commands.registerCommand('multigit.branches.toggleTags', () => {
+      branchesTree.toggle('showTags');
+      branchesTree.refresh();
+    }),
     vscode.commands.registerCommand('multigit.branchesTree.refresh', () => branchesTree.refresh()),
     new StatusBar(manager),
     new AutoFetcher(manager, log),
@@ -231,11 +239,35 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       logView.showBranch(branch ?? null, repoIds ?? []),
     ),
     vscode.commands.registerCommand('multigit.branchesTree.showInLog', (node?: BranchNode) => {
-      const target = branchActionsFor(node);
-      if (!target) return;
-      const name = target.ref.type === 'local' ? target.ref.name : target.ref.full;
-      const ids = target.scope.repos.length === manager.all.length ? [] : target.scope.repos.map((r) => r.root);
-      return logView.showBranch(name, ids);
+      const target = branchesTree.logTargetOf(node ?? branchesView.selection[0]!);
+      if (target) return logView.showBranch(target.ref, target.repoIds);
+    }),
+    vscode.commands.registerCommand('multigit.branchesTree.navigateLog', (node?: BranchNode) => {
+      const target = branchesTree.logTargetOf(node ?? branchesView.selection[0]!);
+      if (target) return logView.navigateTo(target.ref, target.repoIds);
+    }),
+    // Clic en un tag con "Show Actions": acciones del tag.
+    vscode.commands.registerCommand('multigit.branchesTree.tagActions', async (node?: BranchNode) => {
+      const target = branchesTree.logTargetOf(node ?? branchesView.selection[0]!);
+      if (!target || node?.kind !== 'tag') return;
+      const repos = node.repos;
+      const scopeLabel = repos.length === 1 ? repos[0]!.name : `${repos.length} repositorios`;
+      const picked = await vscode.window.showQuickPick(
+        [
+          { label: '$(check) Checkout (HEAD detached)', id: 'checkout' },
+          { label: '$(history) Show in Git Log', id: 'log' },
+          { label: '$(arrow-right) Navigate Log to Tag', id: 'navigate' },
+          { label: '$(git-compare) Compare with Current', id: 'compare' },
+        ],
+        { title: `Tag '${node.name}' — ${scopeLabel}` },
+      );
+      if (!picked) return;
+      const scope = { repos, label: scopeLabel };
+      const ref = { type: 'local' as const, name: target.ref };
+      if (picked.id === 'checkout') await popup.safely(() => actions.checkoutRef(scope, target.ref));
+      if (picked.id === 'log') await logView.showBranch(target.ref, target.repoIds);
+      if (picked.id === 'navigate') await logView.navigateTo(target.ref, target.repoIds);
+      if (picked.id === 'compare') await popup.safely(() => actions.compare(scope, ref));
     }),
   );
 

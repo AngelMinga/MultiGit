@@ -62,6 +62,31 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
     );
   }
 
+  /** Navegación pedida antes de que el webview estuviera listo. */
+  private pendingNavigate: { ref: string; repoIds: string[] } | undefined;
+
+  /** Navigate Log to Branch Head desde la vista Ramas: abre el log y selecciona el commit de la rama. */
+  async navigateTo(ref: string, repoIds: string[] = []): Promise<void> {
+    await vscode.commands.executeCommand(`${LogView.viewId}.focus`);
+    if (!this.ready) {
+      this.pendingNavigate = { ref, repoIds };
+      return;
+    }
+    await this.reveal(ref, repoIds);
+  }
+
+  private async reveal(ref: string, repoIds: string[]): Promise<void> {
+    const repos = this.manager.all.filter((r) => repoIds.length === 0 || repoIds.includes(r.root));
+    for (const repo of repos) {
+      const hash = await repo.git.resolveCommit(ref);
+      if (hash) {
+        this.post({ type: 'log/reveal', payload: { repoId: repo.root, hash } });
+        return;
+      }
+    }
+    this.post({ type: 'error', payload: { message: `No se encontró '${ref}'.` } });
+  }
+
   /** Archivo del "Show History": al elegir un commit se abre el diff de ese archivo. */
   private historyFile: { repoId: string; path: string } | undefined;
 
@@ -95,6 +120,11 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
           this.ready = true;
           this.post({ type: 'init', payload: { kind: 'log' } });
           await this.init();
+          if (this.pendingNavigate) {
+            const { ref, repoIds } = this.pendingNavigate;
+            this.pendingNavigate = undefined;
+            await this.reveal(ref, repoIds);
+          }
           break;
         case 'log/setFilters':
           this.filters = message.payload;
@@ -113,21 +143,10 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         case 'log/loadMore':
           if (message.payload.generation === this.generation) await this.loadMore();
           break;
-        case 'log/resolveRef': {
+        case 'log/resolveRef':
           // Navigate Log to Branch Head: commit al que apunta la rama/tag, en el primer repo que la tenga.
-          const repos = this.manager.all.filter(
-            (r) => message.payload.repoIds.length === 0 || message.payload.repoIds.includes(r.root),
-          );
-          for (const repo of repos) {
-            const hash = await repo.git.resolveCommit(message.payload.ref);
-            if (hash) {
-              this.post({ type: 'log/reveal', payload: { repoId: repo.root, hash } });
-              return;
-            }
-          }
-          this.post({ type: 'error', payload: { message: `No se encontró '${message.payload.ref}'.` } });
+          await this.reveal(message.payload.ref, message.payload.repoIds);
           break;
-        }
         case 'log/refresh':
           await this.init();
           break;

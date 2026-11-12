@@ -106,6 +106,19 @@ export class BranchActions {
     });
   }
 
+  /** Checkout de un tag o revisión conocida (HEAD queda detached). */
+  async checkoutRef(scope: Scope, ref: string): Promise<void> {
+    if (!(await this.confirmDirty(scope, `Checkout de '${ref}'`))) return;
+    await runInRepos(this.manager, {
+      title: `Checkout de '${ref.replace(/^refs\/tags\//, '')}'`,
+      repos: scope.repos,
+      check: async (repo) => ((await repo.git.revisionExists(ref)) ? undefined : { skip: `no existe '${ref}'` }),
+      run: async (repo) => {
+        await repo.git.checkoutDetached(ref);
+      },
+    });
+  }
+
   /** Checkout Tag or Revision… (HEAD queda detached). */
   async checkoutRevision(scope: Scope): Promise<void> {
     const ref = (

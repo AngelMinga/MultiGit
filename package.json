@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "Git multi-repositorio al estilo IntelliJ IDEA: ramas comunes, commit, push, pull y log con grafo para todos los repos del workspace a la vez.",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -158,18 +158,6 @@
         "title": "Renombrar rama…",
         "category": "MultiGit",
         "icon": "$(edit)"
-      },
-      {
-        "command": "multigit.branchesTree.groupByBranch",
-        "title": "Agrupar por rama",
-        "category": "MultiGit",
-        "icon": "$(list-flat)"
-      },
-      {
-        "command": "multigit.branchesTree.groupByRepo",
-        "title": "Agrupar por repositorio",
-        "category": "MultiGit",
-        "icon": "$(list-tree)"
       },
       {
         "command": "multigit.branchesTree.refresh",
@@ -480,6 +468,53 @@
         "command": "multigit.file.putLabel",
         "title": "Put Label…",
         "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branches.click.actions",
+        "title": "Show Actions",
+        "category": "MultiGit",
+        "toggled": "multigit.branches.clickMode == actions"
+      },
+      {
+        "command": "multigit.branches.click.filter",
+        "title": "Update Branch Filter",
+        "category": "MultiGit",
+        "toggled": "multigit.branches.clickMode == filter"
+      },
+      {
+        "command": "multigit.branches.click.navigate",
+        "title": "Navigate Log to Branch Head",
+        "category": "MultiGit",
+        "toggled": "multigit.branches.clickMode == navigate"
+      },
+      {
+        "command": "multigit.branches.toggleByDir",
+        "title": "Group by Directory",
+        "category": "MultiGit",
+        "toggled": "multigit.branches.byDir"
+      },
+      {
+        "command": "multigit.branches.toggleByRepo",
+        "title": "Group by Repository",
+        "category": "MultiGit",
+        "toggled": "multigit.branches.byRepo"
+      },
+      {
+        "command": "multigit.branches.toggleTags",
+        "title": "Show Tags",
+        "category": "MultiGit",
+        "toggled": "multigit.branches.showTags"
+      },
+      {
+        "command": "multigit.branchesTree.navigateLog",
+        "title": "Navigate Log to Branch Head",
+        "category": "MultiGit",
+        "icon": "$(arrow-right)"
+      },
+      {
+        "command": "multigit.branchesTree.tagActions",
+        "title": "Acciones del tag…",
+        "category": "MultiGit"
       }
     ],
     "menus": {
@@ -518,16 +553,6 @@
           "command": "multigit.showLog",
           "when": "view == multigit.repositories",
           "group": "z_log"
-        },
-        {
-          "command": "multigit.branchesTree.groupByBranch",
-          "when": "view == multigit.branches && multigit.branchesGroupBy == repo",
-          "group": "navigation@1"
-        },
-        {
-          "command": "multigit.branchesTree.groupByRepo",
-          "when": "view == multigit.branches && multigit.branchesGroupBy == branch",
-          "group": "navigation@1"
         },
         {
           "command": "multigit.branchesTree.refresh",
@@ -578,6 +603,36 @@
           "command": "multigit.openGitLog",
           "when": "view == multigit.branches",
           "group": "navigation@0"
+        },
+        {
+          "command": "multigit.branches.click.actions",
+          "when": "view == multigit.branches",
+          "group": "1_click@1"
+        },
+        {
+          "command": "multigit.branches.click.filter",
+          "when": "view == multigit.branches",
+          "group": "1_click@2"
+        },
+        {
+          "command": "multigit.branches.click.navigate",
+          "when": "view == multigit.branches",
+          "group": "1_click@3"
+        },
+        {
+          "command": "multigit.branches.toggleByDir",
+          "when": "view == multigit.branches",
+          "group": "2_group@1"
+        },
+        {
+          "command": "multigit.branches.toggleByRepo",
+          "when": "view == multigit.branches",
+          "group": "2_group@2"
+        },
+        {
+          "command": "multigit.branches.toggleTags",
+          "when": "view == multigit.branches",
+          "group": "3_tags@1"
         }
       ],
       "view/item/context": [
@@ -750,6 +805,16 @@
           "submenu": "multigit.file.localHistoryMenu",
           "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.file/",
           "group": "6_git@2"
+        },
+        {
+          "command": "multigit.branchesTree.navigateLog",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.(branch|tag)/",
+          "group": "7_log@2"
+        },
+        {
+          "command": "multigit.branchesTree.showInLog",
+          "when": "view == multigit.branches && viewItem == multigit.tag",
+          "group": "7_log@1"
         }
       ],
       "commandPalette": [
@@ -767,14 +832,6 @@
         },
         {
           "command": "multigit.branchesTree.rename",
-          "when": "false"
-        },
-        {
-          "command": "multigit.branchesTree.groupByBranch",
-          "when": "false"
-        },
-        {
-          "command": "multigit.branchesTree.groupByRepo",
           "when": "false"
         },
         {
@@ -935,6 +992,38 @@
         },
         {
           "command": "multigit.file.putLabel",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branches.click.actions",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branches.click.filter",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branches.click.navigate",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branches.toggleByDir",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branches.toggleByRepo",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branches.toggleTags",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branchesTree.navigateLog",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branchesTree.tagActions",
           "when": "false"
         }
       ],
