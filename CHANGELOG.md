@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- Clic derecho en Changes como IntelliJ: Commit File/Directory…, Rollback… (⌥⌘Z), Show Diff (⌘D),
+  Open File, Delete… (a la papelera), Add to VCS (⌥⌘A), .git/info/exclude, Add to .gitignore,
+  Copy as Patch to Clipboard, Shelve Changes…, Refresh y submenú Git (Push, Pull, Fetch, Branches,
+  New Branch, Show Git Log).
+- Selección múltiple en Changes.
+
 ## 0.2.0
 
 - **Generar con Claude** en la caja Commit: mensaje Conventional Commits a partir de los archivos

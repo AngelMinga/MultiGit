@@ -108,4 +108,22 @@ describe('commit / rollback (git real)', () => {
     await components.stashPop(entry!.ref);
     expect((await components.getChanges()).map((f) => f.path).sort()).toEqual(['src/agregado.js', 'src/d.js']);
   });
+
+  it('patch de archivos nuevos y modificados aplicable con git apply; ruta de info/exclude', async () => {
+    write(theme, 'nuevo.js', 'export const n = 1;\n');
+    write(theme, 'theme.js', 't-patch');
+    const patch = (await theme.patchTracked(['theme.js'])) + (await theme.patchUntracked('nuevo.js'));
+    expect(patch).toContain('+++ b/nuevo.js');
+    expect(patch).toContain('+t-patch');
+    // Deshacer y volver a aplicar el patch deja el repo igual.
+    await theme.restorePaths(['theme.js']);
+    rmSync(path.join(theme.root, 'nuevo.js'));
+    const patchFile = path.join(base, 'cambios.patch');
+    writeFileSync(patchFile, patch);
+    execFileSync('git', ['apply', patchFile], { cwd: theme.root });
+    expect(readFileSync(path.join(theme.root, 'nuevo.js'), 'utf8')).toBe('export const n = 1;\n');
+    expect(readFileSync(path.join(theme.root, 'theme.js'), 'utf8')).toBe('t-patch');
+
+    expect(await theme.resolveGitPath('info/exclude')).toBe(path.join(theme.root, '.git', 'info', 'exclude'));
+  });
 });

@@ -15,7 +15,7 @@ import { PushPanel } from './webview/PushPanel';
 import { LogView } from './webview/LogView';
 import { showPullDialog } from './views/pullDialog';
 import { ChangesActions } from './views/changesActions';
-import { ChangesTree, filesOf, type ChangeNode } from './views/ChangesTree';
+import { ChangesTree, filesOf, type ChangeNode, type FileRef } from './views/ChangesTree';
 import { CommitView } from './views/CommitView';
 import { installTranslations } from './views/claudeCommit';
 import type { Repo } from './git/RepoManager';
@@ -132,6 +132,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const changesTree = new ChangesTree(manager, context.globalState);
   const changesView = vscode.window.createTreeView('multigit.changes', {
     treeDataProvider: changesTree,
+    canSelectMany: true,
     manageCheckboxStateManually: true,
     showCollapseAll: true,
   });
@@ -170,10 +171,44 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('multigit.changes.refresh', () => changesTree.refresh()),
     vscode.commands.registerCommand('multigit.changes.toggleGroupByRepo', () => changesTree.toggleGrouping('repo')),
     vscode.commands.registerCommand('multigit.changes.toggleGroupByDir', () => changesTree.toggleGrouping('directory')),
-    vscode.commands.registerCommand('multigit.changes.rollback', (node?: ChangeNode) =>
-      changesActions.rollback(node ? filesOf(node) : undefined, !!node),
+    vscode.commands.registerCommand('multigit.changes.rollback', (node?: ChangeNode, nodes?: ChangeNode[]) =>
+      changesActions.rollback(node ? refsOf(node, nodes) : undefined, !!node),
     ),
-    vscode.commands.registerCommand('multigit.changes.shelve', () => changesActions.shelve()),
+    vscode.commands.registerCommand('multigit.changes.shelve', (node?: ChangeNode, nodes?: ChangeNode[]) =>
+      changesActions.shelve(node ? refsOf(node, nodes) : undefined),
+    ),
+    // Menú contextual de Changes (como IntelliJ). Reciben el nodo y, con selección múltiple, todos los elegidos.
+    ...(
+      [
+        ['commitOnly', (refs) => changesActions.commitOnly(refs)],
+        ['addToVcs', (refs) => changesActions.addToVcs(refs)],
+        ['excludeLocal', (refs) => changesActions.ignore(refs, 'exclude')],
+        ['addToGitignore', (refs) => changesActions.ignore(refs, 'gitignore')],
+        ['delete', (refs) => changesActions.deleteFiles(refs)],
+        ['copyPatch', (refs) => changesActions.copyPatch(refs)],
+      ] as Array<[string, (refs: FileRef[]) => Promise<unknown>]>
+    ).map(([id, run]) =>
+      vscode.commands.registerCommand(`multigit.changes.${id}`, (node?: ChangeNode, nodes?: ChangeNode[]) => {
+        const refs = refsOf(node ?? changesView.selection[0], nodes ?? (node ? undefined : [...changesView.selection]));
+        if (refs.length) void popup.safely(() => run(refs));
+      }),
+    ),
+    // Submenú Git: acciones del repo del elemento.
+    ...(
+      [
+        ['push', (repo) => vscode.commands.executeCommand('multigit.push', repo)],
+        ['pull', (repo) => vscode.commands.executeCommand('multigit.pull', repo)],
+        ['fetch', () => vscode.commands.executeCommand('multigit.fetch')],
+        ['branches', (repo) => vscode.commands.executeCommand('multigit.repoBranches', repo)],
+        ['newBranch', (repo) => actions.newBranch({ repos: [repo], label: repo.name })],
+        ['log', (repo) => logView.showBranch(null, [repo.root])],
+      ] as Array<[string, (repo: Repo) => unknown]>
+    ).map(([id, run]) =>
+      vscode.commands.registerCommand(`multigit.changes.git.${id}`, (node?: ChangeNode) => {
+        const repo = repoOf(node ?? changesView.selection[0]);
+        if (repo) void popup.safely(async () => run(repo));
+      }),
+    ),
     vscode.commands.registerCommand('multigit.changes.unshelve', () => changesActions.unshelve()),
     vscode.commands.registerCommand('multigit.changes.openDiff', (node?: ChangeNode) => {
       const ref = fileNode(node ?? changesView.selection[0]);
@@ -218,6 +253,26 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     log.error('Error al inicializar MultiGit', error);
     void vscode.window.showErrorMessage(`MultiGit: no se pudieron cargar los repositorios. ${String(error)}`);
   }
+}
+
+/** Archivos de los nodos elegidos (sin repetir). */
+function refsOf(node?: ChangeNode, nodes?: readonly ChangeNode[]): FileRef[] {
+  const all = (nodes?.length ? nodes : node ? [node] : []).flatMap((n) => filesOf(n));
+  const seen = new Set<string>();
+  return all.filter((r) => {
+    const k = `${r.repo.root}\0${r.file.path}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+/** Repo de un nodo de Changes (el del archivo, o el único de la carpeta/sección). */
+function repoOf(node?: ChangeNode): Repo | undefined {
+  if (!node) return undefined;
+  if (node.kind === 'repo') return node.repo;
+  const repos = [...new Set(filesOf(node).map((r) => r.repo))];
+  return repos.length === 1 ? repos[0] : undefined;
 }
 
 async function fetchWithProgress(manager: RepoManager): Promise<void> {

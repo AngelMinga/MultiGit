@@ -102,6 +102,14 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
     this.checkedEmitter.fire();
   }
 
+  /** Deja marcados solo `refs` (Commit File/Directory…). */
+  setOnlyChecked(refs: readonly FileRef[]): void {
+    const keep = new Set(refs.map(keyOf));
+    for (const f of this.files) this.overrides.set(keyOf(f), keep.has(keyOf(f)));
+    this.changeEmitter.fire(undefined);
+    this.checkedEmitter.fire();
+  }
+
   /** Para `onDidChangeCheckboxState` (con `manageCheckboxStateManually`). */
   onCheckboxChange(event: vscode.TreeCheckboxChangeEvent<ChangeNode>): void {
     for (const [node, state] of event.items) {
@@ -172,7 +180,7 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
         item.id = `section/${node.section}/${this.modeId}`;
         item.description = `${node.files.length} archivo(s)`;
         item.checkboxState = this.containerState(node.files);
-        item.contextValue = 'multigit.changes.section';
+        item.contextValue = `multigit.changes.section.${node.section}`;
         return item;
       }
       case 'repo': {
@@ -182,7 +190,7 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
         const head = node.repo.status ? `⎇ ${describeHead(node.repo.status)}` : '';
         item.description = `${head}  ${node.files.length}`;
         item.checkboxState = this.containerState(node.files);
-        item.contextValue = 'multigit.changes.repo';
+        item.contextValue = `multigit.changes.repo.${node.section}`;
         return item;
       }
       case 'dir': {
@@ -191,7 +199,7 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
         item.iconPath = vscode.ThemeIcon.Folder;
         item.description = String(node.files.length);
         item.checkboxState = this.containerState(node.files);
-        item.contextValue = 'multigit.changes.dir';
+        item.contextValue = `multigit.changes.dir.${node.section}`;
         return item;
       }
       case 'file': {

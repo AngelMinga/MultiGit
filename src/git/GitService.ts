@@ -430,6 +430,28 @@ export class GitService {
     if (paths.length) await this.exec(['rm', '--cached', '-q', '--ignore-unmatch', '--', ...paths]);
   }
 
+  /** Ruta absoluta de un archivo dentro de `.git` (p. ej. `info/exclude`), válida también en worktrees. */
+  async resolveGitPath(name: string): Promise<string> {
+    return path.resolve(this.root, (await this.exec(['rev-parse', '--git-path', name])).trim());
+  }
+
+  /** Patch (formato `git diff`) de archivos versionados contra HEAD. */
+  async patchTracked(paths: readonly string[]): Promise<string> {
+    if (!paths.length) return '';
+    return this.exec(['diff', 'HEAD', '--binary', '--no-color', '--no-ext-diff', '--', ...paths]);
+  }
+
+  /** Patch de un archivo sin versionar (`git diff --no-index /dev/null <archivo>`). */
+  async patchUntracked(filePath: string): Promise<string> {
+    try {
+      return await this.exec(['diff', '--no-index', '--binary', '--no-color', '--', '/dev/null', filePath]);
+    } catch (error) {
+      // --no-index sale con código 1 cuando hay diferencias (siempre, para un archivo nuevo).
+      if (error instanceof GitError && error.exitCode === 1) return error.stdout;
+      throw error;
+    }
+  }
+
   /** Shelve: `git stash push -u -m "MultiGit: <nombre>" -- <paths>`. */
   async stashPush(name: string, paths: readonly string[]): Promise<void> {
     await this.exec(['stash', 'push', '--include-untracked', '-m', `${SHELF_PREFIX}${name}`, '--', ...paths]);

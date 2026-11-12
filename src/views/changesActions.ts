@@ -138,8 +138,8 @@ export class ChangesActions {
   // ------------------------------------------------------------------ shelf
 
   /** Shelve: guarda los archivos marcados en un stash con nombre, por repo. */
-  async shelve(): Promise<void> {
-    const groups = byRepo(this.tree.checkedFiles, this.manager.all);
+  async shelve(refs?: readonly FileRef[]): Promise<void> {
+    const groups = byRepo(refs?.length ? refs : this.tree.checkedFiles, this.manager.all);
     if (groups.length === 0) {
       void vscode.window.showWarningMessage('MultiGit: marca los archivos que quieres guardar (shelve).');
       return;
@@ -207,6 +207,98 @@ export class ChangesActions {
       },
     });
     await this.tree.refresh();
+  }
+
+  // ------------------------------------------------------------------ menú contextual (como IntelliJ)
+
+  /** Commit File/Directory…: deja marcados solo estos archivos y enfoca la caja de commit. */
+  async commitOnly(refs: readonly FileRef[]): Promise<void> {
+    if (!refs.length) return;
+    this.tree.setOnlyChecked(refs);
+    await vscode.commands.executeCommand('multigit.commitFocus');
+  }
+
+  /** Add to VCS: `git add` de los archivos sin versionar. */
+  async addToVcs(refs: readonly FileRef[]): Promise<void> {
+    const groups = byRepo(refs.filter((r) => r.file.kind === 'untracked'), this.manager.all);
+    if (!groups.length) return;
+    await this.perRepo(groups, (repo, files) => repo.git.addPaths(files.map((f) => f.path)));
+    vscode.window.setStatusBarMessage(`$(add) ${groups.reduce((n, g) => n + g.files.length, 0)} archivo(s) agregados a Git`, 4000);
+  }
+
+  /** Agrega las rutas a `.git/info/exclude` (solo local) o a `.gitignore` (del repo). */
+  async ignore(refs: readonly FileRef[], target: 'exclude' | 'gitignore'): Promise<void> {
+    const groups = byRepo(refs.filter((r) => r.file.kind === 'untracked'), this.manager.all);
+    if (!groups.length) return;
+    await this.perRepo(groups, async (repo, files) => {
+      const file = target === 'exclude' ? await repo.git.resolveGitPath('info/exclude') : path.join(repo.root, '.gitignore');
+      let current = '';
+      try {
+        current = await fs.readFile(file, 'utf8');
+      } catch {
+        await fs.mkdir(path.dirname(file), { recursive: true });
+      }
+      const existing = new Set(current.split(/\r?\n/).map((l) => l.trim()));
+      const lines = files.map((f) => `/${f.path}`).filter((l) => !existing.has(l));
+      if (!lines.length) return;
+      const sep = current && !current.endsWith('\n') ? '\n' : '';
+      await fs.writeFile(file, `${current}${sep}${lines.join('\n')}\n`, 'utf8');
+    });
+    vscode.window.setStatusBarMessage(target === 'exclude' ? '$(eye-closed) Agregado a .git/info/exclude' : '$(eye-closed) Agregado a .gitignore', 4000);
+  }
+
+  /** Delete…: manda los archivos a la papelera, con confirmación. */
+  async deleteFiles(refs: readonly FileRef[]): Promise<void> {
+    const existing = refs.filter((r) => r.file.status !== 'D');
+    if (!existing.length) return;
+    const detail = byRepo(existing, this.manager.all)
+      .flatMap((g) => [`${g.repo.name}:`, ...g.files.map((f) => `   ${f.path}`)])
+      .join('\n');
+    const ok = await vscode.window.showWarningMessage(
+      `¿Eliminar ${existing.length} archivo(s)?`,
+      { modal: true, detail: `${detail}\n\nSe mueven a la papelera del sistema.` },
+      'Eliminar',
+    );
+    if (ok !== 'Eliminar') return;
+    for (const ref of existing) {
+      await vscode.workspace.fs.delete(vscode.Uri.file(path.join(ref.repo.root, ref.file.path)), { useTrash: true, recursive: true });
+    }
+    await this.tree.refresh();
+  }
+
+  /** Copy as Patch to Clipboard: un patch por repo (aplicable con `git apply` en ese repo). */
+  async copyPatch(refs: readonly FileRef[]): Promise<void> {
+    const groups = byRepo(refs, this.manager.all);
+    const parts: string[] = [];
+    for (const { repo, files } of groups) {
+      const tracked = files.filter((f) => f.kind !== 'untracked').flatMap((f) => (f.origPath ? [f.origPath, f.path] : [f.path]));
+      let patch = await repo.git.patchTracked(tracked);
+      for (const f of files.filter((x) => x.kind === 'untracked')) patch += await repo.git.patchUntracked(f.path);
+      if (patch.trim()) parts.push(groups.length > 1 ? `# Repositorio: ${repo.name}\n${patch}` : patch);
+    }
+    if (!parts.length) {
+      void vscode.window.showInformationMessage('MultiGit: no hay diferencias para copiar.');
+      return;
+    }
+    await vscode.env.clipboard.writeText(parts.join('\n'));
+    vscode.window.setStatusBarMessage(`$(copy) Patch de ${refs.length} archivo(s) copiado`, 4000);
+  }
+
+  /** Ejecuta `fn` en cada repo y muestra los errores; luego refresca la vista. */
+  private async perRepo(
+    groups: Array<{ repo: Repo; files: StatusFile[] }>,
+    fn: (repo: Repo, files: StatusFile[]) => Promise<unknown>,
+  ): Promise<void> {
+    const errors: string[] = [];
+    for (const { repo, files } of groups) {
+      try {
+        await fn(repo, files);
+      } catch (error) {
+        errors.push(`${repo.name}: ${errorText(error)}`);
+      }
+    }
+    await this.tree.refresh();
+    if (errors.length) void vscode.window.showErrorMessage(`MultiGit: ${errors.join(' · ')}`);
   }
 
   // ------------------------------------------------------------------ diff / abrir
