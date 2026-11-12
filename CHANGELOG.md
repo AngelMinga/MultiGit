@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.0
+
+Primera versión completa (Fases 0 a 8 de PLAN.md).
+
+- Configuración: `multigit.ignoredRepos` y `multigit.confirmCheckoutWithChanges`, además de
+  profundidad de búsqueda, ramas favoritas y auto-fetch.
+- Atajos estilo IntelliJ (`⌘K` commit, `⌘⇧K` push, `⌘T` update project) activos con el foco en
+  MultiGit, y `⌘⇧⌥B` para el popup de ramas.
+- Comando *Update Project*, ícono y metadatos para el Marketplace, README completo.
+
 ## 0.0.14
 
 - Grafo: las aristas largas se cortan con flechas ↓/↑ como en IntelliJ (más de 30 commits del repo o 120 filas), máximo 16 carriles.

@@ -137,6 +137,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     changesView.onDidChangeCheckboxState((e) => changesTree.onCheckboxChange(e)),
     vscode.commands.registerCommand('multigit.commitFocus', () => commitView.focus()),
+    vscode.commands.registerCommand('multigit.updateProject', () =>
+      actions.updateProject({ repos: manager.all, label: 'todos los repositorios' }),
+    ),
     vscode.commands.registerCommand('multigit.changes.refresh', () => changesTree.refresh()),
     vscode.commands.registerCommand('multigit.changes.toggleGroupByRepo', () => changesTree.toggleGrouping('repo')),
     vscode.commands.registerCommand('multigit.changes.toggleGroupByDir', () => changesTree.toggleGrouping('directory')),

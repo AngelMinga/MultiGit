@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { scanForRepos } from '../src/git/repoScanner';
+import { isIgnoredRepo, scanForRepos } from '../src/git/repoScanner';
 
 let root: string;
 
@@ -36,5 +36,19 @@ describe('scanForRepos', () => {
     const found = await scanForRepos(root, 5);
     expect(found.some((p) => p.includes('node_modules'))).toBe(false);
     expect(found).toContain(path.join(root, 'a', 'b', 'c', 'profundo'));
+  });
+});
+
+describe('isIgnoredRepo', () => {
+  it('por nombre, ruta relativa y comodines', () => {
+    expect(isIgnoredRepo('shell', 'shell', ['shell'])).toBe(true);
+    expect(isIgnoredRepo('mftheme', 'apps/mftheme', ['apps/mftheme'])).toBe(true);
+    expect(isIgnoredRepo('mftheme', 'apps/mftheme', ['mf*'])).toBe(true);
+    expect(isIgnoredRepo('mftheme', 'apps/mftheme', ['apps/*'])).toBe(true);
+    expect(isIgnoredRepo('legacy', 'old/deep/legacy', ['old/**'])).toBe(true);
+    expect(isIgnoredRepo('Shell', 'Shell', ['shell'])).toBe(true);
+    expect(isIgnoredRepo('mflogin', 'apps/mflogin', ['mftheme', 'shell', ''])).toBe(false);
+    expect(isIgnoredRepo('mf.theme', 'mf.theme', ['mf?theme'])).toBe(true);
+    expect(isIgnoredRepo('mfxtheme', 'mfxtheme', ['mf.theme'])).toBe(false);
   });
 });

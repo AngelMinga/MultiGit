@@ -1,7 +1,10 @@
 **
-!dist/**
-dist/**/*.map
-!media/**
+!dist/extension.js
+!dist/webview/index.js
+!dist/webview/index.css
+!media/icon.png
+!media/multigit.svg
+!media/multigit-commit.svg
 !package.json
 !README.md
 !CHANGELOG.md

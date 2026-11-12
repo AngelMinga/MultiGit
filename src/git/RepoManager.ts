@@ -4,7 +4,8 @@ import * as vscode from 'vscode';
 import { GitService } from './GitService';
 import { describeHead, type RepoStatus } from './parsers';
 import { assignRepoColors, repoColorId } from './repoColor';
-import { canonicalPath, scanForRepos } from './repoScanner';
+import { canonicalPath, isIgnoredRepo, scanForRepos } from './repoScanner';
+import * as path from 'node:path';
 import type { GitAPI, GitExtension, GitRepository } from './vscodeGit';
 
 export interface Repo {
@@ -72,7 +73,9 @@ export class RepoManager implements vscode.Disposable {
     this.disposables.push(
       vscode.workspace.onDidChangeWorkspaceFolders(() => void this.refresh()),
       vscode.workspace.onDidChangeConfiguration((e) => {
-        if (e.affectsConfiguration('multigit.scanDepth')) void this.refresh();
+        if (e.affectsConfiguration('multigit.scanDepth') || e.affectsConfiguration('multigit.ignoredRepos')) {
+          void this.refresh();
+        }
       }),
       // Al volver a la ventana releemos todo: pudo haber cambios desde una terminal externa.
       vscode.window.onDidChangeWindowState((e) => {
@@ -267,8 +270,10 @@ export class RepoManager implements vscode.Disposable {
     );
     candidates.push(...scanned.flat());
 
+    const ignored = vscode.workspace.getConfiguration('multigit').get<string[]>('ignoredRepos', []);
     const roots = new Map<string, string>();
     for (const candidate of candidates) {
+      if (ignored.length && isIgnoredRepo(path.basename(candidate), relativeToWorkspace(candidate), ignored)) continue;
       const key = await canonicalPath(candidate);
       if (!roots.has(key)) roots.set(key, candidate);
     }
@@ -330,4 +335,10 @@ function waitForInitialized(api: GitAPI): Promise<void> {
       resolve();
     }
   });
+}
+
+/** Ruta relativa a la carpeta del workspace que contiene `p` (o el nombre si no hay ninguna). */
+function relativeToWorkspace(p: string): string {
+  const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(p));
+  return folder ? path.relative(folder.uri.fsPath, p) || path.basename(p) : path.basename(p);
 }

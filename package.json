@@ -1,8 +1,8 @@
 {
   "name": "multigit",
   "displayName": "MultiGit",
-  "description": "Manejo de Git multi-repositorio al estilo IntelliJ IDEA para workspaces con varios repos.",
-  "version": "0.0.14",
+  "description": "Git multi-repositorio al estilo IntelliJ IDEA: ramas comunes, commit, push, pull y log con grafo para todos los repos del workspace a la vez.",
+  "version": "0.1.0",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -15,14 +15,22 @@
   },
   "categories": [
     "SCM Providers",
+    "Visualization",
     "Other"
   ],
   "keywords": [
     "git",
     "multi-repo",
+    "multiple repositories",
     "monorepo",
     "micro-frontends",
-    "intellij"
+    "intellij",
+    "branches",
+    "git log",
+    "git graph",
+    "commit",
+    "push",
+    "pull"
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
@@ -248,6 +256,12 @@
         "title": "Ver en Git Log",
         "category": "MultiGit",
         "icon": "$(history)"
+      },
+      {
+        "command": "multigit.updateProject",
+        "title": "Update Project",
+        "category": "MultiGit",
+        "icon": "$(sync)"
       }
     ],
     "menus": {
@@ -479,14 +493,17 @@
           "default": 2,
           "minimum": 0,
           "maximum": 5,
-          "markdownDescription": "Profundidad máxima (en carpetas) para buscar repositorios `.git` dentro de cada carpeta del workspace. `0` revisa solo la carpeta raíz."
+          "order": 0,
+          "markdownDescription": "Profundidad máxima (en carpetas) para buscar repositorios `.git` dentro de cada carpeta del workspace. `0` revisa solo la carpeta raíz. Además se usan los repos que ya detecta la extensión Git de VS Code."
         },
-        "multigit.autoFetchMinutes": {
-          "type": "integer",
-          "default": 0,
-          "minimum": 0,
-          "maximum": 1440,
-          "markdownDescription": "Cada cuántos minutos hacer `git fetch --all --prune` en todos los repositorios. `0` lo desactiva."
+        "multigit.ignoredRepos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "order": 1,
+          "markdownDescription": "Repositorios que MultiGit no debe mostrar ni tocar. Cada entrada se compara con el nombre de la carpeta o con su ruta relativa al workspace; admite `*` y `**`. Ejemplo: `[\"shell\", \"legacy/*\"]`."
         },
         "multigit.favoriteBranches": {
           "type": "array",
@@ -497,7 +514,22 @@
             "develop",
             "production-lt"
           ],
-          "markdownDescription": "Ramas favoritas: aparecen arriba con ★ en el popup de ramas."
+          "order": 2,
+          "markdownDescription": "Ramas favoritas: aparecen arriba con ★ en el popup de ramas, la vista Ramas y el Git Log."
+        },
+        "multigit.autoFetchMinutes": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 1440,
+          "order": 3,
+          "markdownDescription": "Cada cuántos minutos hacer `git fetch --all --prune` en todos los repositorios. `0` lo desactiva."
+        },
+        "multigit.confirmCheckoutWithChanges": {
+          "type": "boolean",
+          "default": true,
+          "order": 4,
+          "markdownDescription": "Avisar antes de hacer checkout en repos con cambios sin commit. Las operaciones destructivas (rollback, delete, reset, force push) **siempre** piden confirmación."
         }
       }
     },
@@ -633,6 +665,29 @@
         "command": "multigit.branchesTree.rename",
         "key": "f2",
         "when": "focusedView == multigit.branches"
+      },
+      {
+        "command": "multigit.commitFocus",
+        "key": "ctrl+k",
+        "mac": "cmd+k",
+        "when": "focusedView =~ /^multigit\\./ || activeWebviewPanelId == multigit.push"
+      },
+      {
+        "command": "multigit.push",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k",
+        "when": "focusedView =~ /^multigit\\./ || activeWebviewPanelId == multigit.push"
+      },
+      {
+        "command": "multigit.updateProject",
+        "key": "ctrl+t",
+        "mac": "cmd+t",
+        "when": "focusedView =~ /^multigit\\./ || activeWebviewPanelId == multigit.push"
+      },
+      {
+        "command": "multigit.branches",
+        "key": "ctrl+shift+alt+b",
+        "mac": "cmd+shift+alt+b"
       }
     ],
     "submenus": [
@@ -672,5 +727,10 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.0"
+  },
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#11182B",
+    "theme": "dark"
   }
 }

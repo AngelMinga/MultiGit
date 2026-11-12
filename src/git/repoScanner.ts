@@ -55,3 +55,33 @@ export async function canonicalPath(p: string): Promise<string> {
   }
   return process.platform === 'linux' ? real : real.toLowerCase();
 }
+
+/**
+ * ¿El repo está en `multigit.ignoredRepos`? Cada patrón se compara con el nombre de la carpeta
+ * y con la ruta relativa a la carpeta del workspace (con `/`). Admite `*` (cualquier cosa sin `/`)
+ * y `**` (cualquier cosa). Sin distinguir mayúsculas.
+ */
+export function isIgnoredRepo(name: string, relativePath: string, patterns: readonly string[]): boolean {
+  const rel = relativePath.split(path.sep).join('/');
+  return patterns.some((raw) => {
+    const pattern = raw.trim().replace(/\/+$/, '');
+    if (!pattern) return false;
+    const re = globToRegExp(pattern);
+    return re.test(name) || re.test(rel);
+  });
+}
+
+function globToRegExp(glob: string): RegExp {
+  let re = '';
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob[i]!;
+    if (c === '*') {
+      if (glob[i + 1] === '*') {
+        re += '.*';
+        i++;
+      } else re += '[^/]*';
+    } else if (c === '?') re += '[^/]';
+    else re += c.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  }
+  return new RegExp(`^${re}$`, 'i');
+}

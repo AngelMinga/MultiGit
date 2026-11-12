@@ -460,6 +460,7 @@ export class BranchActions {
 
   /** Si hay repos con cambios sin commit, avisa (git los conserva si no chocan). */
   private async confirmDirty(scope: Scope, title: string): Promise<boolean> {
+    if (!vscode.workspace.getConfiguration('multigit').get<boolean>('confirmCheckoutWithChanges', true)) return true;
     const dirty = scope.repos.filter((r) => (r.status?.changes.total ?? 0) > 0);
     if (dirty.length === 0) return true;
     const choice = await vscode.window.showWarningMessage(
