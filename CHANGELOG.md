@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+- Vista **Stashes**: los stashes de todos los repos, agrupando los que se crearon juntos en varios
+  repos. **Stash Changes…** en varios repos con un mismo mensaje (opcional: archivos sin versionar,
+  *Keep index*), **Apply**, **Pop**, **Unstash as Branch…**, **Drop…** y **Clear All Stashes…**; diff de
+  cada archivo del stash (también de los sin versionar).
+
 ## 0.4.0
 
 - **Multi-idioma**: toda la interfaz (mensajes, diálogos, árboles, barra de estado, Git Log, Push,

@@ -7,6 +7,7 @@ import { registerFileActions } from './activation/files';
 import { registerLog } from './activation/log';
 import { registerOperations } from './activation/operations';
 import { registerRepositories } from './activation/repositories';
+import { registerStashes } from './activation/stashes';
 import { registerToolbar, revealNewViewsOnce } from './activation/toolbar';
 import { RepoManager, type Repo } from './git/RepoManager';
 import { BranchActions } from './views/branchActions';
@@ -18,6 +19,7 @@ import { CompareView } from './views/compareView';
 import { startCredentials } from './views/credentials';
 import { RepoIcons } from './views/repoIcons';
 import type { RepositoriesView } from './views/RepositoriesView';
+import type { StashesTree } from './views/StashesTree';
 import { PushPanel } from './webview/PushPanel';
 import { t } from './i18n';
 
@@ -27,6 +29,7 @@ export interface MultiGitTestApi {
   repositories: RepositoriesView;
   branches: BranchesTree;
   changes: ChangesTree;
+  stashes: StashesTree;
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<MultiGitTestApi> {
@@ -58,6 +61,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
   const logView = registerLog(core);
   const branches = registerBranches(core, logView);
   const changes = registerChanges(core, logView);
+  const stashes = registerStashes(core);
   registerFileActions(core, logView, changes);
   registerOperations(core, repositories.treeView);
   registerToolbar(core);
@@ -70,7 +74,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
     log.error('Error al inicializar MultiGit', error);
     void vscode.window.showErrorMessage(t('MultiGit: the repositories could not be loaded. {0}', String(error)));
   }
-  return { manager, repositories: repositories.view, branches: branches.tree, changes: changes.tree };
+  return { manager, repositories: repositories.view, branches: branches.tree, changes: changes.tree, stashes: stashes.tree };
 }
 
 export function deactivate(): void {

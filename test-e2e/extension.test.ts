@@ -101,7 +101,27 @@ describe('MultiGit en VS Code', () => {
     for (const t of toggles) await vscode.commands.executeCommand(`multigit.changes.${t}`);
   });
 
+  it('Stashes: el stash de shell y mflogin se ve como uno, con sus archivos', async () => {
+    api.stashes.refresh();
+    const items = await walk(api.stashes);
+    const group = items.find((i) => label(i.item) === 'WIP e2e');
+    assert.ok(group, `stashes: ${items.map((i) => label(i.item)).join(', ')}`);
+    assert.match(String(group.item.description), /^2 /);
+    const repos = items.filter((i) => i.item.contextValue === 'multigit.stash.entry').map((i) => label(i.item));
+    assert.deepEqual(repos, ['mflogin', 'shell']);
+    const files = items.filter((i) => i.item.contextValue === 'multigit.stash.file');
+    assert.equal(files.length, 2);
+    assert.ok(files.every((f) => label(f.item) === 'package.json' && f.item.command?.command === 'multigit.stashes.openDiff'));
+    await vscode.commands.executeCommand('multigit.stashes.openDiff', files[0]!.node);
+    const tab = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+    assert.ok(tab instanceof vscode.TabInputTextDiff, 'se abre un diff');
+    assert.equal(tab.modified.scheme, 'multigit-git');
+    assert.equal((await vscode.workspace.openTextDocument(tab.modified)).getText(), '{ "name": "mflogin", "wip": true }\n');
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+  });
+
   it('comandos sin diálogos se ejecutan sin error', async () => {
+    await vscode.commands.executeCommand('multigit.stashes.refresh');
     await vscode.commands.executeCommand('multigit.refresh');
     await vscode.commands.executeCommand('multigit.changes.refresh');
     await vscode.commands.executeCommand('multigit.branchesTree.refresh');

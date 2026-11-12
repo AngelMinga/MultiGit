@@ -104,7 +104,7 @@ describe('commit / rollback (git real)', () => {
     await components.stashPush('wip login', ['src/d.js', 'src/agregado.js']);
     expect(await components.getChanges()).toEqual([]);
     const [entry] = await components.listStashes();
-    expect(entry).toEqual({ ref: 'stash@{0}', message: 'MultiGit: wip login' });
+    expect(entry).toMatchObject({ ref: 'stash@{0}', message: 'MultiGit: wip login' });
     await components.stashPop(entry!.ref);
     expect((await components.getChanges()).map((f) => f.path).sort()).toEqual(['src/agregado.js', 'src/d.js']);
   });

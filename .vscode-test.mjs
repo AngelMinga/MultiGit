@@ -1,6 +1,6 @@
 // Tests de la extensión dentro de un VS Code real (@vscode/test-cli).
 // Crea un workspace temporal con 3 repos: mftheme y shell en dev-x, mflogin en develop (desalineado);
-// mftheme con un cambio y shell con un archivo sin versionar.
+// mftheme con un cambio, shell con un archivo sin versionar y un stash en shell y mflogin.
 import { defineConfig } from '@vscode/test-cli';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
@@ -30,6 +30,12 @@ for (const [name, branch] of [
   git(root, 'add', '.');
   git(root, 'commit', '-q', '-m', `feat: ${name} inicial`);
   if (branch !== 'develop') git(root, 'checkout', '-q', '-b', branch);
+}
+// Un stash con el mismo mensaje en shell y mflogin (se ve como uno solo en la vista Stashes).
+for (const name of ['shell', 'mflogin']) {
+  const root = path.join(workspace, name);
+  writeFileSync(path.join(root, 'package.json'), `{ "name": "${name}", "wip": true }\n`);
+  git(root, 'stash', 'push', '-m', 'WIP e2e');
 }
 writeFileSync(path.join(workspace, 'mftheme', 'src', 'index.js'), "export const name = 'mftheme-v2';\n");
 writeFileSync(path.join(workspace, 'shell', 'nuevo.js'), 'export {};\n');

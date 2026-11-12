@@ -1,4 +1,4 @@
-// Archivos con cambios, plan de commit/rollback y stashes. Puro, sin `vscode`.
+// Archivos con cambios y plan de commit/rollback. Puro, sin `vscode`.
 import { t } from '../i18n';
 
 /** Letra de estado como en IntelliJ / VS Code. */
@@ -29,8 +29,9 @@ const STATUS_LABEL: Record<FileStatus, string> = {
 };
 
 /** Nombre del estado en el idioma de VS Code (se traduce al usarse, no al cargar el módulo). */
-export function statusLabel(status: FileStatus): string {
-  return t(STATUS_LABEL[status]);
+export function statusLabel(status: FileStatus | string): string {
+  const label = STATUS_LABEL[status as FileStatus] as string | undefined;
+  return label ? t(label) : status;
 }
 
 /**
@@ -147,26 +148,4 @@ export function describeCounts(files: readonly StatusFile[]): string {
     t('{0} unversioned', count((f) => f.status === '?')),
   ].filter((p) => !p.startsWith('0 '));
   return parts.length ? parts.join(', ') : t('no files');
-}
-
-// ------------------------------------------------------------------ shelf (stash)
-
-export const SHELF_PREFIX = 'MultiGit: ';
-
-export interface StashEntry {
-  /** `stash@{0}` */
-  ref: string;
-  /** Mensaje sin el prefijo "On <rama>: ". */
-  message: string;
-}
-
-/** Parsea `git stash list --format=%gd%x00%gs`. */
-export function parseStashList(output: string): StashEntry[] {
-  return output
-    .split('\n')
-    .filter(Boolean)
-    .map((line) => {
-      const [ref = '', subject = ''] = line.split('\0');
-      return { ref, message: subject.replace(/^(On|WIP on) [^:]+: /, '') };
-    });
 }

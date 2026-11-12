@@ -40,6 +40,12 @@ Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
 - **Repositorios**: cada repo con su color, rama actual, `↑` commits por subir / `↓` por bajar
   y un badge con los cambios sin commit.
 - **Ramas**: árbol Local / Remote agrupado por repositorio o por rama (`3/9` repos donde existe).
+- **Stashes**: los stashes de todos los repos. Un stash creado a la vez en varios repos (mismo
+  mensaje) aparece una sola vez, con un hijo por repo. **Stash Changes…** (`+`, también en el menú ⋯
+  de Changes) guarda los cambios de los repos elegidos con un mismo mensaje, con o sin archivos sin
+  versionar y *Keep index*. Por stash: **Apply**, **Pop**, **Unstash as Branch…** y **Drop…** (con
+  confirmación), en todos sus repos o solo en uno. Clic en un archivo → diff contra la base del
+  stash. **Clear All Stashes…** en el menú ⋯.
 
 ### Barra de estado y popup de ramas
 

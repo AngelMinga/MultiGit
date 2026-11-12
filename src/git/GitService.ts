@@ -6,7 +6,8 @@ import * as path from 'node:path';
 import { parseRefs, REF_FORMAT, type RepoBranches } from './branches';
 import { pullArgs, type PullMode } from './pull';
 import { LOG_PAGE_FORMAT, parseLogPage, type LogCommit } from './log';
-import { parseStashList, parseStatusFiles, SHELF_PREFIX, type StashEntry, type StatusFile } from './changes';
+import { parseStatusFiles, type StatusFile } from './changes';
+import { parseStashList, SHELF_PREFIX, STASH_FORMAT, type StashEntry } from './stashes';
 import {
   LOG_FORMAT,
   parseLeftRightCount,
@@ -530,11 +531,44 @@ export class GitService {
   }
 
   async listStashes(): Promise<StashEntry[]> {
-    return parseStashList(await this.exec(['stash', 'list', '--format=%gd%x00%gs']));
+    return parseStashList(await this.exec(['stash', 'list', `--format=${STASH_FORMAT}`]));
   }
 
   stashPop(ref: string): Promise<string> {
     return this.exec(['stash', 'pop', ref]);
+  }
+
+  /** Stash Changes: `git stash push [-u] [--keep-index] -m <mensaje>`. */
+  async stashAll(message: string, options: { untracked?: boolean; keepIndex?: boolean } = {}): Promise<void> {
+    await this.exec(['stash', 'push', ...(options.untracked ? ['--include-untracked'] : []), ...(options.keepIndex ? ['--keep-index'] : []), '-m', message]);
+  }
+
+  /** `git stash apply [--index] <ref>`. */
+  stashApply(ref: string, index = false): Promise<string> {
+    return this.exec(['stash', 'apply', ...(index ? ['--index'] : []), ref]);
+  }
+
+  stashDrop(ref: string): Promise<string> {
+    return this.exec(['stash', 'drop', ref]);
+  }
+
+  stashClear(): Promise<string> {
+    return this.exec(['stash', 'clear']);
+  }
+
+  /** `git stash branch <rama> <ref>`: rama nueva desde la base del stash, con el stash aplicado. */
+  stashBranch(branch: string, ref: string): Promise<string> {
+    return this.exec(['stash', 'branch', branch, ref]);
+  }
+
+  /** Archivos de un stash: cambios versionados (base → stash) y, si los guardó, los sin versionar. */
+  async stashFiles(hash: string): Promise<Array<ChangedFile & { untracked?: boolean }>> {
+    const tracked = parseNameStatusZ(await this.exec(['diff', '--name-status', '-z', '-M', `${hash}^1`, hash, '--']));
+    let untracked: string[] = [];
+    if (await this.revisionExists(`${hash}^3`)) {
+      untracked = (await this.exec(['ls-tree', '-r', '-z', '--name-only', `${hash}^3`])).split('\0').filter(Boolean);
+    }
+    return [...tracked, ...untracked.map((p) => ({ status: 'A', path: p, untracked: true }))];
   }
 
 

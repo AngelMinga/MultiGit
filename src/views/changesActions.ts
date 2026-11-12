@@ -2,7 +2,8 @@
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { planCommit, planRollback, SHELF_PREFIX, statusLabel, type StatusFile } from '../git/changes';
+import { planCommit, planRollback, statusLabel, type StatusFile } from '../git/changes';
+import { SHELF_PREFIX } from '../git/stashes';
 import { GitContentProvider } from '../git/GitContentProvider';
 import { errorText, runInRepos } from '../git/MultiRepoRunner';
 import type { StepResult } from '../git/preflight';

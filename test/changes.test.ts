@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeCounts, parseStashList, parseStatusFiles, planCommit, planRollback } from '../src/git/changes';
+import { describeCounts, parseStatusFiles, planCommit, planRollback } from '../src/git/changes';
 
 const z = (...records: string[]) => records.map((r) => `${r}\0`).join('');
 
@@ -67,15 +67,6 @@ describe('planRollback', () => {
       added: ['nuevo.ts', 'renombrado.ts'],
     });
     expect(describeCounts(files)).toBe('1 modified, 1 added, 1 deleted, 1 renamed, 1 unversioned');
-  });
-});
-
-describe('parseStashList', () => {
-  it('quita el prefijo "On <rama>: "', () => {
-    expect(parseStashList('stash@{0}\0On dev-x: MultiGit: wip login\nstash@{1}\0WIP on develop: abc1234 algo\n')).toEqual([
-      { ref: 'stash@{0}', message: 'MultiGit: wip login' },
-      { ref: 'stash@{1}', message: 'abc1234 algo' },
-    ]);
   });
 });
 

@@ -143,5 +143,15 @@
   "color.repo8": "Repository color 8 (indigo).",
   "color.repo9": "Repository color 9 (lime).",
   "color.repo10": "Repository color 10 (cyan).",
-  "color.repo11": "Repository color 11 (slate)."
+  "color.repo11": "Repository color 11 (slate).",
+  "command.stashes.apply": "Apply Stash",
+  "command.stashes.branch": "Unstash as Branch…",
+  "command.stashes.clear": "Clear All Stashes…",
+  "command.stashes.create": "Stash Changes…",
+  "command.stashes.drop": "Drop Stash…",
+  "command.stashes.openDiff": "Show Diff",
+  "command.stashes.pop": "Pop Stash",
+  "command.stashes.refresh": "Refresh Stashes",
+  "view.stashes": "Stashes",
+  "welcome.stashes": "There are no stashes in the repositories.\n[Stash Changes](command:multigit.stashes.create)"
 }

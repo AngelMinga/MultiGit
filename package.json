@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -84,6 +84,12 @@
           "name": "%view.branches%",
           "icon": "$(git-branch)",
           "visibility": "visible"
+        },
+        {
+          "id": "multigit.stashes",
+          "name": "%view.stashes%",
+          "icon": "$(git-stash)",
+          "visibility": "collapsed"
         }
       ],
       "multigit-panel": [
@@ -113,6 +119,10 @@
       {
         "view": "multigit.changes",
         "contents": "%welcome.changes%"
+      },
+      {
+        "view": "multigit.stashes",
+        "contents": "%welcome.stashes%"
       }
     ],
     "commands": [
@@ -577,6 +587,54 @@
         "title": "%command.alignBranches%",
         "category": "MultiGit",
         "icon": "$(git-branch)"
+      },
+      {
+        "command": "multigit.stashes.create",
+        "title": "%command.stashes.create%",
+        "category": "MultiGit",
+        "icon": "$(add)"
+      },
+      {
+        "command": "multigit.stashes.refresh",
+        "title": "%command.stashes.refresh%",
+        "category": "MultiGit",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "multigit.stashes.clear",
+        "title": "%command.stashes.clear%",
+        "category": "MultiGit",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "multigit.stashes.apply",
+        "title": "%command.stashes.apply%",
+        "category": "MultiGit",
+        "icon": "$(check)"
+      },
+      {
+        "command": "multigit.stashes.pop",
+        "title": "%command.stashes.pop%",
+        "category": "MultiGit",
+        "icon": "$(git-stash-pop)"
+      },
+      {
+        "command": "multigit.stashes.drop",
+        "title": "%command.stashes.drop%",
+        "category": "MultiGit",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "multigit.stashes.branch",
+        "title": "%command.stashes.branch%",
+        "category": "MultiGit",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "multigit.stashes.openDiff",
+        "title": "%command.stashes.openDiff%",
+        "category": "MultiGit",
+        "icon": "$(diff)"
       }
     ],
     "menus": {
@@ -705,6 +763,26 @@
           "command": "multigit.changes.toggleShowIgnored",
           "when": "view == multigit.changes",
           "group": "0_group@2"
+        },
+        {
+          "command": "multigit.stashes.create",
+          "when": "view == multigit.stashes",
+          "group": "navigation@1"
+        },
+        {
+          "command": "multigit.stashes.refresh",
+          "when": "view == multigit.stashes",
+          "group": "navigation@9"
+        },
+        {
+          "command": "multigit.stashes.clear",
+          "when": "view == multigit.stashes && multigit.hasStashes",
+          "group": "2_clear@1"
+        },
+        {
+          "command": "multigit.stashes.create",
+          "when": "view == multigit.changes",
+          "group": "shelf@0"
         }
       ],
       "view/item/context": [
@@ -912,6 +990,46 @@
           "command": "multigit.operation.abort",
           "when": "view == multigit.repositories && viewItem == multigit.repo.operation",
           "group": "0_operation@3"
+        },
+        {
+          "command": "multigit.stashes.pop",
+          "when": "view == multigit.stashes && viewItem =~ /^multigit\\.stash\\.(group|entry)$/",
+          "group": "inline@1"
+        },
+        {
+          "command": "multigit.stashes.apply",
+          "when": "view == multigit.stashes && viewItem =~ /^multigit\\.stash\\.(group|entry)$/",
+          "group": "inline@2"
+        },
+        {
+          "command": "multigit.stashes.apply",
+          "when": "view == multigit.stashes && viewItem =~ /^multigit\\.stash\\.(group|entry)$/",
+          "group": "1_apply@1"
+        },
+        {
+          "command": "multigit.stashes.pop",
+          "when": "view == multigit.stashes && viewItem =~ /^multigit\\.stash\\.(group|entry)$/",
+          "group": "1_apply@2"
+        },
+        {
+          "command": "multigit.stashes.branch",
+          "when": "view == multigit.stashes && viewItem =~ /^multigit\\.stash\\.(group|entry)$/",
+          "group": "1_apply@3"
+        },
+        {
+          "command": "multigit.stashes.drop",
+          "when": "view == multigit.stashes && viewItem =~ /^multigit\\.stash\\.(group|entry)$/",
+          "group": "9_drop@1"
+        },
+        {
+          "command": "multigit.stashes.openDiff",
+          "when": "view == multigit.stashes && viewItem == multigit.stash.file",
+          "group": "inline@1"
+        },
+        {
+          "command": "multigit.stashes.openDiff",
+          "when": "view == multigit.stashes && viewItem == multigit.stash.file",
+          "group": "1_diff@1"
         }
       ],
       "commandPalette": [
@@ -1158,6 +1276,26 @@
         {
           "command": "multigit.operation.menu",
           "when": "multigit.operationInProgress"
+        },
+        {
+          "command": "multigit.stashes.apply",
+          "when": "false"
+        },
+        {
+          "command": "multigit.stashes.pop",
+          "when": "false"
+        },
+        {
+          "command": "multigit.stashes.drop",
+          "when": "false"
+        },
+        {
+          "command": "multigit.stashes.branch",
+          "when": "false"
+        },
+        {
+          "command": "multigit.stashes.openDiff",
+          "when": "false"
         }
       ],
       "multigit.changes.groupBy": [
