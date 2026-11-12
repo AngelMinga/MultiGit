@@ -89,6 +89,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ),
     vscode.commands.registerCommand('multigit.branchPopup.rename', () => popup.renameActive()),
     vscode.commands.registerCommand('multigit.showLog', () => log.show(true)),
+    // Enfocar una vista oculta la vuelve visible.
+    vscode.commands.registerCommand('multigit.showBranchesView', () =>
+      vscode.commands.executeCommand('multigit.branches.focus'),
+    ),
   );
 
   log.info('MultiGit activado.');

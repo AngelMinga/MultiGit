@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "Manejo de Git multi-repositorio al estilo IntelliJ IDEA para workspaces con varios repos.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -45,12 +45,14 @@
         {
           "id": "multigit.repositories",
           "name": "Repositorios",
-          "icon": "media/multigit.svg"
+          "icon": "media/multigit.svg",
+          "visibility": "visible"
         },
         {
           "id": "multigit.branches",
           "name": "Ramas",
-          "icon": "$(git-branch)"
+          "icon": "$(git-branch)",
+          "visibility": "visible"
         }
       ]
     },
@@ -131,6 +133,12 @@
         "title": "Push Commits…",
         "category": "MultiGit",
         "icon": "$(repo-push)"
+      },
+      {
+        "command": "multigit.showBranchesView",
+        "title": "Mostrar vista Ramas",
+        "category": "MultiGit",
+        "icon": "$(list-tree)"
       }
     ],
     "menus": {
@@ -174,6 +182,11 @@
           "command": "multigit.branchesTree.refresh",
           "when": "view == multigit.branches",
           "group": "navigation@9"
+        },
+        {
+          "command": "multigit.showBranchesView",
+          "when": "view == multigit.repositories",
+          "group": "z_log@0"
         }
       ],
       "view/item/context": [
