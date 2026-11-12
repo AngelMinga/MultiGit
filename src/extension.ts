@@ -254,7 +254,8 @@ async function revealNewViewsOnce(context: vscode.ExtensionContext, log: vscode.
     { id: 'multigit.branches', key: 'multigit.branchesViewRevealed' },
     { id: 'multigit.changes', key: 'multigit.viewRevealed.changes' },
     { id: 'multigit.commit', key: 'multigit.viewRevealed.commit' },
-    { id: 'multigit.toolbar', key: 'multigit.viewRevealed.toolbar' },
+    // 0.1.5: la vista Proyecto pasó al Explorer; se muestra una vez allí.
+    { id: 'multigit.toolbar', key: 'multigit.viewRevealed.toolbarExplorer' },
   ].filter((v) => !context.globalState.get<boolean>(v.key));
   if (views.length === 0) return;
   for (const view of views) {

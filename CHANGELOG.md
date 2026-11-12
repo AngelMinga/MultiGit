@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.5
+
+- La vista **Proyecto** (botones de proyecto y rama) pasa al Explorer, junto al árbol de archivos.
+
 ## 0.1.4
 
 - Botón ⎇ en la barra del Explorer: acceso directo al popup de ramas.

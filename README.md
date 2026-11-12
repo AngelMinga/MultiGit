@@ -16,7 +16,7 @@ Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
 
 ### Panel MultiGit (barra lateral)
 
-- **Proyecto**: botones como la barra superior de IntelliJ, `[B] proyecto ⌄` (proyectos recientes)
+- **Proyecto** (en el Explorer): botones como la barra superior de IntelliJ, `[B] proyecto ⌄` (proyectos recientes)
   y `⎇ rama ⌄` (popup de ramas; `⎇ 3 ramas` si difieren), y un resumen que abre el Git Log.
 - **Changes**: archivos con cambios de todos los repos, con checkboxes, en *Changes* y
   *Unversioned Files*. *Agrupar por* Repositorio y/o Directorio, como IntelliJ. Clic → diff
