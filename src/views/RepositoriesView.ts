@@ -45,13 +45,11 @@ export class RepositoriesView implements vscode.TreeDataProvider<Repo>, vscode.D
     const counters = formatAheadBehind(status);
     // Los contadores van primero: la rama suele ser larga y se recorta por la derecha.
     item.description = counters ? `${counters}  ⎇ ${head}` : `⎇ ${head}`;
+    const tooltip = buildTooltip(repo, head);
     const alignment = computeAlignment(this.manager.all);
     if (alignment?.outliers.some((o) => o.repo === repo.name)) {
       item.description = `≠ ${item.description}`;
-      item.tooltip = new vscode.MarkdownString(
-        `${(item.tooltip as vscode.MarkdownString).value}  \n$(warning) El resto de los repos está en \`${alignment.target}\``,
-        true,
-      );
+      tooltip.appendMarkdown(`  \n$(warning) El resto de los repos está en \`${alignment.target}\``);
     }
     if (repo.operation) {
       // Operación a medias: primero el aviso, con botones Resolve / Continue / Abort al pasar el ratón.
@@ -59,7 +57,7 @@ export class RepositoriesView implements vscode.TreeDataProvider<Repo>, vscode.D
       item.description = `⚠ ${OPERATION_LABEL[repo.operation]}${conflicts ? ` · ${conflicts} conflicto(s)` : ''}  ${item.description}`;
       item.contextValue = 'multigit.repo.operation';
     }
-    item.tooltip = buildTooltip(repo, head);
+    item.tooltip = tooltip;
     return item;
   }
 

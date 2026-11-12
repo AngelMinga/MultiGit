@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- Corrige la vista Repositorios: el repo en una rama distinta a la mayoría (`≠`) no se mostraba.
+
 ## 0.3.0
 
 - **Credenciales**: askpass propio. MultiGit pide en VS Code el usuario, token, passphrase SSH o la
