@@ -70,6 +70,8 @@ export interface CommitState {
   /** "3 modificado(s), 1 añadido(s)" de los archivos marcados. */
   summary: string;
   busy: boolean;
+  /** Claude está generando el mensaje. */
+  generating: boolean;
 }
 
 // ------------------------------------------------------------------ Log
@@ -139,6 +141,8 @@ export type HostMessage =
   | { type: 'commit/state'; payload: CommitState }
   | { type: 'commit/setMessage'; payload: { message: string } }
   | { type: 'commit/done'; payload: Record<string, never> }
+  | { type: 'commit/partial'; payload: { text: string } }
+  | { type: 'commit/replaceMessage'; payload: { message: string } }
   | {
       type: 'log/init';
       payload: { repos: LogRepoInfo[]; me: { name: string; email: string }; filters: LogFilters; favorites: string[] };
@@ -162,6 +166,8 @@ export type WebviewMessage =
   | { type: 'push/close'; payload: Record<string, never> }
   | { type: 'commit/run'; payload: { message: string; amend: boolean; push: boolean } }
   | { type: 'commit/requestLastMessage'; payload: Record<string, never> }
+  | { type: 'commit/generate'; payload: { current: string } }
+  | { type: 'commit/cancelGenerate'; payload: Record<string, never> }
   | { type: 'log/setFilters'; payload: LogFilters }
   | { type: 'log/loadMore'; payload: { generation: number } }
   | { type: 'log/select'; payload: { repoId: string; hash: string } }

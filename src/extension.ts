@@ -17,10 +17,12 @@ import { showPullDialog } from './views/pullDialog';
 import { ChangesActions } from './views/changesActions';
 import { ChangesTree, filesOf, type ChangeNode } from './views/ChangesTree';
 import { CommitView } from './views/CommitView';
+import { installTranslations } from './views/claudeCommit';
 import type { Repo } from './git/RepoManager';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const log = vscode.window.createOutputChannel('MultiGit', { log: true });
+  installTranslations();
   const manager = new RepoManager(log);
   const repositoriesView = new RepositoriesView(manager);
   const decorations = new RepoDecorations(manager);

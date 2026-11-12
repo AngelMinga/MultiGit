@@ -883,3 +883,40 @@ button.toolbar-summary {
 button.toolbar-summary:hover {
   color: var(--vscode-textLink-foreground);
 }
+
+/* ------------------------------------------------------------ Claude */
+
+.commit-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+button.claude-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  background: none;
+  color: var(--vscode-foreground);
+  border: 1px solid var(--vscode-button-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  font-size: 0.92em;
+}
+button.claude-btn:hover:not(:disabled) {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+button.claude-btn.running {
+  border-color: #d97757;
+}
+.spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #d97757;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

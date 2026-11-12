@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "Git multi-repositorio al estilo IntelliJ IDEA: ramas comunes, commit, push, pull y log con grafo para todos los repos del workspace a la vez.",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -698,6 +698,125 @@
           "default": true,
           "order": 4,
           "markdownDescription": "Avisar antes de hacer checkout en repos con cambios sin commit. Las operaciones destructivas (rollback, delete, reset, force push) **siempre** piden confirmación."
+        },
+        "multigit.claude.model": {
+          "type": "string",
+          "default": "",
+          "enum": [
+            "",
+            "haiku",
+            "sonnet",
+            "opus",
+            "fable"
+          ],
+          "enumItemLabels": [
+            "Por defecto (el de Claude Code)",
+            "Haiku",
+            "Sonnet",
+            "Opus",
+            "Fable"
+          ],
+          "markdownDescription": "Modelo de Claude para generar el mensaje del commit. Si no la cambias, se usa la de *Commit Messages for Claude Code* (`claudeCommit.*`) si la tienes configurada.",
+          "order": 10
+        },
+        "multigit.claude.customModel": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Modelo personalizado (id completo). Si se indica, reemplaza al de la lista.",
+          "order": 11
+        },
+        "multigit.claude.effort": {
+          "type": "string",
+          "default": "",
+          "enum": [
+            "",
+            "low",
+            "medium",
+            "high",
+            "xhigh",
+            "max"
+          ],
+          "enumItemLabels": [
+            "Por defecto",
+            "Bajo",
+            "Medio",
+            "Alto",
+            "Muy alto",
+            "Máximo"
+          ],
+          "markdownDescription": "Nivel de esfuerzo de Claude.",
+          "order": 12
+        },
+        "multigit.claude.language": {
+          "type": "string",
+          "default": "IDE",
+          "enum": [
+            "IDE",
+            "English",
+            "Spanish",
+            "Portuguese",
+            "French",
+            "German",
+            "Italian"
+          ],
+          "enumItemLabels": [
+            "Idioma de VS Code",
+            "Inglés",
+            "Español",
+            "Portugués",
+            "Francés",
+            "Alemán",
+            "Italiano"
+          ],
+          "markdownDescription": "Idioma del mensaje del commit.",
+          "order": 13
+        },
+        "multigit.claude.fastMode": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Modo rápido: respuesta en streaming (el mensaje se escribe mientras llega) y sin cargar el proyecto en el CLI.",
+          "order": 14
+        },
+        "multigit.claude.imitateRepoStyle": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Enviar los títulos de los últimos 20 commits para imitar el estilo del repositorio.",
+          "order": 15
+        },
+        "multigit.claude.alwaysIncludeScope": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Incluir siempre un scope: `tipo(scope): …`.",
+          "order": 16
+        },
+        "multigit.claude.extraInstructions": {
+          "type": "string",
+          "default": "",
+          "maxLength": 1000,
+          "editPresentation": "multilineText",
+          "markdownDescription": "Instrucciones adicionales para Claude.",
+          "order": 17
+        },
+        "multigit.claude.overwriteWithoutAsking": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Reemplazar el mensaje que ya escribiste sin preguntar.",
+          "order": 18
+        },
+        "multigit.claude.timeoutSec": {
+          "type": "integer",
+          "default": 180,
+          "minimum": 10,
+          "maximum": 900,
+          "markdownDescription": "Tiempo máximo de espera (segundos).",
+          "order": 19
+        },
+        "multigit.claude.claudePath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "markdownDescription": "Ruta del ejecutable `claude` si no está en el `PATH`.",
+          "order": 20
         }
       }
     },

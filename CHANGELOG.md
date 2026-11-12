@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- **Generar con Claude** en la caja Commit: mensaje Conventional Commits a partir de los archivos
+  marcados de todos los repos, con el CLI de Claude Code (streaming, otra propuesta al volver a
+  pulsar, cancelar). Reutiliza los módulos de *Commit Messages for Claude Code* y su configuración.
+- Configuración `multigit.claude.*`.
+
 ## 0.1.5
 
 - La vista **Proyecto** (botones de proyecto y rama) pasa al Explorer, junto al árbol de archivos.

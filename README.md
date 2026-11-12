@@ -24,6 +24,12 @@ Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
 - **Commit**: mensaje, *Amend last commit*, contador de archivos marcados, **Commit** y
   **Commit and Push…**. Hace commit solo de los archivos marcados, en cada repo que tenga
   alguno, con el mismo mensaje.
+- **Generar con Claude** (`⌘G` en la caja de mensaje): escribe el mensaje en formato Conventional
+  Commits a partir de los archivos marcados de **todos** los repos, con el CLI de
+  [Claude Code](https://claude.com/claude-code) (`claude -p`, usa tu suscripción, sin API key).
+  El mensaje aparece mientras se genera; púlsalo otra vez para pedir otra propuesta. Usa la misma
+  lógica que la extensión *Commit Messages for Claude Code* y, si la tienes configurada, su
+  configuración (`claudeCommit.*`); la propia de MultiGit está en `multigit.claude.*`.
 - **Rollback…** (con selección de archivos y confirmación que lista lo que se pierde) y
   **Shelve / Unshelve** con nombre.
 - **Repositorios**: cada repo con su color, rama actual, `↑` commits por subir / `↓` por bajar
@@ -83,6 +89,7 @@ abre el popup de ramas, como el de IntelliJ:
 | `⌘⇧⌥B` / `Ctrl+Shift+Alt+B` | Popup de ramas | siempre |
 | `F2` | Renombrar rama | en el popup o en la vista Ramas |
 | `⌘Enter` / `⌘⇧Enter` | Commit / Commit and Push… | en la caja de commit |
+| `⌘G` / `Ctrl+G` | Generar el mensaje con Claude | en la caja de commit |
 
 Los atajos estilo IntelliJ solo se activan con el foco en MultiGit, así no reemplazan los de VS Code.
 Para usarlos en todas partes, cámbialos en *Preferences → Keyboard Shortcuts* (busca `MultiGit`).
@@ -96,6 +103,7 @@ Para usarlos en todas partes, cámbialos en *Preferences → Keyboard Shortcuts*
 | `multigit.favoriteBranches` | `["develop", "production-lt"]` | Ramas que van arriba con ★. |
 | `multigit.autoFetchMinutes` | `0` | `git fetch --all --prune` periódico (`0` = desactivado). |
 | `multigit.confirmCheckoutWithChanges` | `true` | Avisar antes de un checkout en repos con cambios. |
+| `multigit.claude.*` | — | Modelo, esfuerzo, idioma, modo rápido, estilo del repo, scope, instrucciones, timeout y ruta de `claude` para *Generar con Claude*. |
 
 Los colores de los repos (`multigit.repo0` … `multigit.repo11`) se pueden cambiar en
 `workbench.colorCustomizations`.
@@ -111,9 +119,17 @@ Git de VS Code).
 
 ## Privacidad
 
-MultiGit no recolecta ni envía datos: no tiene telemetría y no se conecta a ningún servidor. Solo
-ejecuta `git` en tu equipo; las operaciones de red (fetch, pull, push) van a los remotes de tus
-repositorios con tus credenciales de Git.
+MultiGit no tiene telemetría ni se conecta a ningún servidor propio. Ejecuta `git` en tu equipo; las
+operaciones de red (fetch, pull, push) van a los remotes de tus repositorios con tus credenciales.
+
+**Generar con Claude** solo envía datos cuando pulsas el botón: pasa al CLI `claude` de tu equipo el
+diff de los archivos marcados (hasta 15 000 caracteres por archivo y 100 000 en total; de los locks,
+minificados y carpetas generadas solo la ruta), los nombres de los repos y la rama, los títulos de
+los últimos 20 commits (desactivable con `multigit.claude.imitateRepoStyle`), tus instrucciones
+adicionales y, en modo rápido, la sección de commits del `CLAUDE.md` del proyecto. El CLI lo envía a
+**Anthropic** con tu cuenta de Claude, bajo tu acuerdo con Anthropic y su
+[política de privacidad](https://www.anthropic.com/legal/privacy). No marques archivos con secretos
+si no quieres que se envíen.
 
 ## Desarrollo
 
