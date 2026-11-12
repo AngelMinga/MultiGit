@@ -1,7 +1,7 @@
 {
   "name": "multigit",
   "displayName": "MultiGit",
-  "description": "Git multi-repositorio al estilo IntelliJ IDEA: ramas comunes, commit, push, pull y log con grafo para todos los repos del workspace a la vez.",
+  "description": "%extension.description%",
   "version": "0.3.1",
   "publisher": "angelminga",
   "license": "MIT",
@@ -46,14 +46,14 @@
       "activitybar": [
         {
           "id": "multigit",
-          "title": "MultiGit",
+          "title": "%container.multigit%",
           "icon": "media/multigit.svg"
         }
       ],
       "panel": [
         {
           "id": "multigit-panel",
-          "title": "MultiGit",
+          "title": "%container.multigit_panel%",
           "icon": "media/multigit.svg"
         }
       ]
@@ -62,26 +62,26 @@
       "multigit": [
         {
           "id": "multigit.changes",
-          "name": "Changes",
+          "name": "%view.changes%",
           "icon": "media/multigit-commit.svg",
           "visibility": "visible"
         },
         {
           "id": "multigit.commit",
-          "name": "Commit",
+          "name": "%view.commit%",
           "type": "webview",
           "icon": "media/multigit-commit.svg",
           "visibility": "visible"
         },
         {
           "id": "multigit.repositories",
-          "name": "Repositorios",
+          "name": "%view.repositories%",
           "icon": "media/multigit.svg",
           "visibility": "visible"
         },
         {
           "id": "multigit.branches",
-          "name": "Ramas",
+          "name": "%view.branches%",
           "icon": "$(git-branch)",
           "visibility": "visible"
         }
@@ -89,7 +89,7 @@
       "multigit-panel": [
         {
           "id": "multigit.log",
-          "name": "Git Log",
+          "name": "%view.log%",
           "type": "webview",
           "icon": "media/multigit.svg"
         }
@@ -97,7 +97,7 @@
       "explorer": [
         {
           "id": "multigit.toolbar",
-          "name": "Proyecto (MultiGit)",
+          "name": "%view.toolbar%",
           "type": "webview",
           "icon": "media/multigit.svg",
           "visibility": "visible",
@@ -108,473 +108,473 @@
     "viewsWelcome": [
       {
         "view": "multigit.repositories",
-        "contents": "No se detectaron repositorios Git en el workspace.\n[Refrescar repositorios](command:multigit.refresh)"
+        "contents": "%welcome.repositories%"
       },
       {
         "view": "multigit.changes",
-        "contents": "No hay cambios sin commit en los repositorios.\n[Refrescar](command:multigit.changes.refresh)"
+        "contents": "%welcome.changes%"
       }
     ],
     "commands": [
       {
         "command": "multigit.refresh",
-        "title": "Refrescar repositorios",
+        "title": "%command.refresh%",
         "category": "MultiGit",
         "icon": "$(refresh)"
       },
       {
         "command": "multigit.fetch",
-        "title": "Fetch en todos los repositorios",
+        "title": "%command.fetch%",
         "category": "MultiGit",
         "icon": "$(repo-fetch)"
       },
       {
         "command": "multigit.branches",
-        "title": "Ramas de todos los repositorios…",
+        "title": "%command.branches%",
         "category": "MultiGit",
         "icon": "$(git-branch)"
       },
       {
         "command": "multigit.showLog",
-        "title": "Mostrar log",
+        "title": "%command.showLog%",
         "category": "MultiGit",
         "icon": "$(output)"
       },
       {
         "command": "multigit.repoBranches",
-        "title": "Ramas de este repositorio…",
+        "title": "%command.repoBranches%",
         "category": "MultiGit",
         "icon": "$(git-branch)"
       },
       {
         "command": "multigit.branchPopup.rename",
-        "title": "Renombrar rama",
+        "title": "%command.branchPopup.rename%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.branchesTree.actions",
-        "title": "Acciones de la rama…",
+        "title": "%command.branchesTree.actions%",
         "category": "MultiGit",
         "icon": "$(ellipsis)"
       },
       {
         "command": "multigit.branchesTree.rename",
-        "title": "Renombrar rama…",
+        "title": "%command.branchesTree.rename%",
         "category": "MultiGit",
         "icon": "$(edit)"
       },
       {
         "command": "multigit.branchesTree.refresh",
-        "title": "Refrescar ramas",
+        "title": "%command.branchesTree.refresh%",
         "category": "MultiGit",
         "icon": "$(refresh)"
       },
       {
         "command": "multigit.push",
-        "title": "Push Commits…",
+        "title": "%command.push%",
         "category": "MultiGit",
         "icon": "$(repo-push)"
       },
       {
         "command": "multigit.showBranchesView",
-        "title": "Mostrar vista Ramas",
+        "title": "%command.showBranchesView%",
         "category": "MultiGit",
         "icon": "$(list-tree)"
       },
       {
         "command": "multigit.pull",
-        "title": "Pull…",
+        "title": "%command.pull%",
         "category": "MultiGit",
         "icon": "$(repo-pull)"
       },
       {
         "command": "multigit.commitFocus",
-        "title": "Commit…",
+        "title": "%command.commitFocus%",
         "category": "MultiGit",
         "icon": "$(git-commit)"
       },
       {
         "command": "multigit.changes.refresh",
-        "title": "Refrescar cambios",
+        "title": "%command.changes.refresh%",
         "category": "MultiGit",
         "icon": "$(refresh)"
       },
       {
         "command": "multigit.changes.rollback",
-        "title": "Rollback…",
+        "title": "%command.changes.rollback%",
         "category": "MultiGit",
         "icon": "$(discard)"
       },
       {
         "command": "multigit.changes.shelve",
-        "title": "Shelve Changes…",
+        "title": "%command.changes.shelve%",
         "category": "MultiGit",
         "icon": "$(archive)"
       },
       {
         "command": "multigit.changes.unshelve",
-        "title": "Unshelve…",
+        "title": "%command.changes.unshelve%",
         "category": "MultiGit",
         "icon": "$(inbox)"
       },
       {
         "command": "multigit.changes.openDiff",
-        "title": "Show Diff",
+        "title": "%command.changes.openDiff%",
         "category": "MultiGit",
         "icon": "$(diff)"
       },
       {
         "command": "multigit.changes.openFile",
-        "title": "Open File",
+        "title": "%command.changes.openFile%",
         "category": "MultiGit",
         "icon": "$(go-to-file)"
       },
       {
         "command": "multigit.changes.toggleGroupByRepo",
-        "title": "Repository",
+        "title": "%command.changes.toggleGroupByRepo%",
         "category": "MultiGit",
         "toggled": "multigit.changesGroupByRepo"
       },
       {
         "command": "multigit.changes.toggleGroupByDir",
-        "title": "Directory",
+        "title": "%command.changes.toggleGroupByDir%",
         "category": "MultiGit",
         "toggled": "multigit.changesGroupByDir"
       },
       {
         "command": "multigit.openGitLog",
-        "title": "Git Log",
+        "title": "%command.openGitLog%",
         "category": "MultiGit",
         "icon": "$(history)"
       },
       {
         "command": "multigit.log.showBranch",
-        "title": "Ver rama en Git Log",
+        "title": "%command.log.showBranch%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.branchesTree.showInLog",
-        "title": "Ver en Git Log",
+        "title": "%command.branchesTree.showInLog%",
         "category": "MultiGit",
         "icon": "$(history)"
       },
       {
         "command": "multigit.updateProject",
-        "title": "Update Project",
+        "title": "%command.updateProject%",
         "category": "MultiGit",
         "icon": "$(sync)"
       },
       {
         "command": "multigit.branch.checkout",
-        "title": "Checkout",
+        "title": "%command.branch.checkout%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.branch.newBranchFrom",
-        "title": "New Branch from Selected…",
+        "title": "%command.branch.newBranchFrom%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.branch.checkoutAndRebase",
-        "title": "Checkout and Rebase onto Current",
+        "title": "%command.branch.checkoutAndRebase%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.branch.compare",
-        "title": "Compare with Current",
+        "title": "%command.branch.compare%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.branch.diffWorkingTree",
-        "title": "Show Diff with Working Tree",
+        "title": "%command.branch.diffWorkingTree%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.branch.rebaseOnto",
-        "title": "Rebase Current onto Selected",
+        "title": "%command.branch.rebaseOnto%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.branch.merge",
-        "title": "Merge Selected into Current",
+        "title": "%command.branch.merge%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.branch.newWorktree",
-        "title": "New Worktree from Selected…",
+        "title": "%command.branch.newWorktree%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.branch.update",
-        "title": "Update",
+        "title": "%command.branch.update%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.branch.push",
-        "title": "Push…",
+        "title": "%command.branch.push%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.branch.delete",
-        "title": "Delete",
+        "title": "%command.branch.delete%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.changes.commitOnly",
-        "title": "Commit File/Directory…",
+        "title": "%command.changes.commitOnly%",
         "category": "MultiGit",
         "icon": "$(git-commit)"
       },
       {
         "command": "multigit.changes.addToVcs",
-        "title": "Add to VCS",
+        "title": "%command.changes.addToVcs%",
         "category": "MultiGit",
         "icon": "$(add)"
       },
       {
         "command": "multigit.changes.excludeLocal",
-        "title": ".git/info/exclude",
+        "title": "%command.changes.excludeLocal%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.changes.ignoreNearest",
-        "title": ".gitignore (el más cercano)",
+        "title": "%command.changes.ignoreNearest%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.changes.ignoreRoot",
-        "title": ".gitignore (raíz del repositorio)",
+        "title": "%command.changes.ignoreRoot%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.changes.addToGitignore",
-        "title": "Otro .gitignore…",
+        "title": "%command.changes.addToGitignore%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.changes.delete",
-        "title": "Delete…",
+        "title": "%command.changes.delete%",
         "category": "MultiGit",
         "icon": "$(trash)"
       },
       {
         "command": "multigit.changes.copyPatch",
-        "title": "Copy as Patch to Clipboard",
+        "title": "%command.changes.copyPatch%",
         "category": "MultiGit",
         "icon": "$(copy)"
       },
       {
         "command": "multigit.changes.git.add",
-        "title": "Add",
+        "title": "%command.changes.git.add%",
         "category": "MultiGit",
         "icon": "$(add)"
       },
       {
         "command": "multigit.changes.git.push",
-        "title": "Push…",
+        "title": "%command.changes.git.push%",
         "category": "MultiGit",
         "icon": "$(repo-push)"
       },
       {
         "command": "multigit.changes.git.pull",
-        "title": "Pull…",
+        "title": "%command.changes.git.pull%",
         "category": "MultiGit",
         "icon": "$(repo-pull)"
       },
       {
         "command": "multigit.changes.git.fetch",
-        "title": "Fetch",
+        "title": "%command.changes.git.fetch%",
         "category": "MultiGit",
         "icon": "$(repo-fetch)"
       },
       {
         "command": "multigit.changes.git.branches",
-        "title": "Branches…",
+        "title": "%command.changes.git.branches%",
         "category": "MultiGit",
         "icon": "$(git-branch)"
       },
       {
         "command": "multigit.changes.git.newBranch",
-        "title": "New Branch…",
+        "title": "%command.changes.git.newBranch%",
         "category": "MultiGit",
         "icon": "$(add)"
       },
       {
         "command": "multigit.changes.git.log",
-        "title": "Show Git Log",
+        "title": "%command.changes.git.log%",
         "category": "MultiGit",
         "icon": "$(history)"
       },
       {
         "command": "multigit.file.commitFile",
-        "title": "Commit File…",
+        "title": "%command.file.commitFile%",
         "category": "MultiGit",
         "icon": "$(git-commit)"
       },
       {
         "command": "multigit.file.add",
-        "title": "Add",
+        "title": "%command.file.add%",
         "category": "MultiGit",
         "icon": "$(add)"
       },
       {
         "command": "multigit.file.blame",
-        "title": "Annotate with Git Blame",
+        "title": "%command.file.blame%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.file.showDiff",
-        "title": "Show Diff",
+        "title": "%command.file.showDiff%",
         "category": "MultiGit",
         "icon": "$(diff)"
       },
       {
         "command": "multigit.file.compareRevision",
-        "title": "Compare with Revision…",
+        "title": "%command.file.compareRevision%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.file.compareRef",
-        "title": "Compare with Branch or Tag…",
+        "title": "%command.file.compareRef%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.file.showHistory",
-        "title": "Show History",
+        "title": "%command.file.showHistory%",
         "category": "MultiGit",
         "icon": "$(history)"
       },
       {
         "command": "multigit.file.currentRevision",
-        "title": "Show Current Revision",
+        "title": "%command.file.currentRevision%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.file.rollback",
-        "title": "Rollback…",
+        "title": "%command.file.rollback%",
         "category": "MultiGit",
         "icon": "$(discard)"
       },
       {
         "command": "multigit.file.push",
-        "title": "Push…",
+        "title": "%command.file.push%",
         "category": "MultiGit",
         "icon": "$(repo-push)"
       },
       {
         "command": "multigit.file.pull",
-        "title": "Pull…",
+        "title": "%command.file.pull%",
         "category": "MultiGit",
         "icon": "$(repo-pull)"
       },
       {
         "command": "multigit.file.branches",
-        "title": "Branches…",
+        "title": "%command.file.branches%",
         "category": "MultiGit",
         "icon": "$(git-branch)"
       },
       {
         "command": "multigit.file.localHistory",
-        "title": "Show History…",
+        "title": "%command.file.localHistory%",
         "category": "MultiGit",
         "icon": "$(history)"
       },
       {
         "command": "multigit.file.projectHistory",
-        "title": "Show Project History…",
+        "title": "%command.file.projectHistory%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.file.putLabel",
-        "title": "Put Label…",
+        "title": "%command.file.putLabel%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.branches.click.actions",
-        "title": "Show Actions",
+        "title": "%command.branches.click.actions%",
         "category": "MultiGit",
         "toggled": "multigit.branches.clickMode == actions"
       },
       {
         "command": "multigit.branches.click.filter",
-        "title": "Update Branch Filter",
+        "title": "%command.branches.click.filter%",
         "category": "MultiGit",
         "toggled": "multigit.branches.clickMode == filter"
       },
       {
         "command": "multigit.branches.click.navigate",
-        "title": "Navigate Log to Branch Head",
+        "title": "%command.branches.click.navigate%",
         "category": "MultiGit",
         "toggled": "multigit.branches.clickMode == navigate"
       },
       {
         "command": "multigit.branches.toggleByDir",
-        "title": "Group by Directory",
+        "title": "%command.branches.toggleByDir%",
         "category": "MultiGit",
         "toggled": "multigit.branches.byDir"
       },
       {
         "command": "multigit.branches.toggleByRepo",
-        "title": "Group by Repository",
+        "title": "%command.branches.toggleByRepo%",
         "category": "MultiGit",
         "toggled": "multigit.branches.byRepo"
       },
       {
         "command": "multigit.branches.toggleTags",
-        "title": "Show Tags",
+        "title": "%command.branches.toggleTags%",
         "category": "MultiGit",
         "toggled": "multigit.branches.showTags"
       },
       {
         "command": "multigit.branchesTree.navigateLog",
-        "title": "Navigate Log to Branch Head",
+        "title": "%command.branchesTree.navigateLog%",
         "category": "MultiGit",
         "icon": "$(arrow-right)"
       },
       {
         "command": "multigit.branchesTree.tagActions",
-        "title": "Acciones del tag…",
+        "title": "%command.branchesTree.tagActions%",
         "category": "MultiGit"
       },
       {
         "command": "multigit.changes.toggleGroupByModule",
-        "title": "Module",
+        "title": "%command.changes.toggleGroupByModule%",
         "category": "MultiGit",
         "toggled": "multigit.changesGroupByModule"
       },
       {
         "command": "multigit.changes.toggleShowIgnored",
-        "title": "Show Ignored Files",
+        "title": "%command.changes.toggleShowIgnored%",
         "category": "MultiGit",
         "toggled": "multigit.changesShowIgnored"
       },
       {
         "command": "multigit.operation.menu",
-        "title": "Operaciones en curso…",
+        "title": "%command.operation.menu%",
         "category": "MultiGit",
         "icon": "$(warning)"
       },
       {
         "command": "multigit.operation.resolve",
-        "title": "Resolve Conflicts…",
+        "title": "%command.operation.resolve%",
         "category": "MultiGit",
         "icon": "$(git-merge)"
       },
       {
         "command": "multigit.operation.continue",
-        "title": "Continue",
+        "title": "%command.operation.continue%",
         "category": "MultiGit",
         "icon": "$(debug-continue)"
       },
       {
         "command": "multigit.operation.abort",
-        "title": "Abort",
+        "title": "%command.operation.abort%",
         "category": "MultiGit",
         "icon": "$(debug-stop)"
       },
       {
         "command": "multigit.alignBranches",
-        "title": "Alinear ramas con la de la mayoría",
+        "title": "%command.alignBranches%",
         "category": "MultiGit",
         "icon": "$(git-branch)"
       }
@@ -1382,7 +1382,7 @@
           "minimum": 0,
           "maximum": 5,
           "order": 0,
-          "markdownDescription": "Profundidad máxima (en carpetas) para buscar repositorios `.git` dentro de cada carpeta del workspace. `0` revisa solo la carpeta raíz. Además se usan los repos que ya detecta la extensión Git de VS Code."
+          "markdownDescription": "%setting.scanDepth%"
         },
         "multigit.ignoredRepos": {
           "type": "array",
@@ -1391,7 +1391,7 @@
           },
           "default": [],
           "order": 1,
-          "markdownDescription": "Repositorios que MultiGit no debe mostrar ni tocar. Cada entrada se compara con el nombre de la carpeta o con su ruta relativa al workspace; admite `*` y `**`. Ejemplo: `[\"shell\", \"legacy/*\"]`."
+          "markdownDescription": "%setting.ignoredRepos%"
         },
         "multigit.favoriteBranches": {
           "type": "array",
@@ -1403,7 +1403,7 @@
             "production-lt"
           ],
           "order": 2,
-          "markdownDescription": "Ramas favoritas: aparecen arriba con ★ en el popup de ramas, la vista Ramas y el Git Log."
+          "markdownDescription": "%setting.favoriteBranches%"
         },
         "multigit.autoFetchMinutes": {
           "type": "integer",
@@ -1411,13 +1411,13 @@
           "minimum": 0,
           "maximum": 1440,
           "order": 3,
-          "markdownDescription": "Cada cuántos minutos hacer `git fetch --all --prune` en todos los repositorios. `0` lo desactiva."
+          "markdownDescription": "%setting.autoFetchMinutes%"
         },
         "multigit.confirmCheckoutWithChanges": {
           "type": "boolean",
           "default": true,
           "order": 4,
-          "markdownDescription": "Avisar antes de hacer checkout en repos con cambios sin commit. Las operaciones destructivas (rollback, delete, reset, force push) **siempre** piden confirmación."
+          "markdownDescription": "%setting.confirmCheckoutWithChanges%"
         },
         "multigit.claude.model": {
           "type": "string",
@@ -1430,19 +1430,19 @@
             "fable"
           ],
           "enumItemLabels": [
-            "Por defecto (el de Claude Code)",
-            "Haiku",
-            "Sonnet",
-            "Opus",
-            "Fable"
+            "%setting.claude.model.option0%",
+            "%setting.claude.model.option1%",
+            "%setting.claude.model.option2%",
+            "%setting.claude.model.option3%",
+            "%setting.claude.model.option4%"
           ],
-          "markdownDescription": "Modelo de Claude para generar el mensaje del commit. Si no la cambias, se usa la de *Commit Messages for Claude Code* (`claudeCommit.*`) si la tienes configurada.",
+          "markdownDescription": "%setting.claude.model%",
           "order": 10
         },
         "multigit.claude.customModel": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Modelo personalizado (id completo). Si se indica, reemplaza al de la lista.",
+          "markdownDescription": "%setting.claude.customModel%",
           "order": 11
         },
         "multigit.claude.effort": {
@@ -1457,14 +1457,14 @@
             "max"
           ],
           "enumItemLabels": [
-            "Por defecto",
-            "Bajo",
-            "Medio",
-            "Alto",
-            "Muy alto",
-            "Máximo"
+            "%setting.claude.effort.option0%",
+            "%setting.claude.effort.option1%",
+            "%setting.claude.effort.option2%",
+            "%setting.claude.effort.option3%",
+            "%setting.claude.effort.option4%",
+            "%setting.claude.effort.option5%"
           ],
-          "markdownDescription": "Nivel de esfuerzo de Claude.",
+          "markdownDescription": "%setting.claude.effort%",
           "order": 12
         },
         "multigit.claude.language": {
@@ -1480,33 +1480,33 @@
             "Italian"
           ],
           "enumItemLabels": [
-            "Idioma de VS Code",
-            "Inglés",
-            "Español",
-            "Portugués",
-            "Francés",
-            "Alemán",
-            "Italiano"
+            "%setting.claude.language.option0%",
+            "%setting.claude.language.option1%",
+            "%setting.claude.language.option2%",
+            "%setting.claude.language.option3%",
+            "%setting.claude.language.option4%",
+            "%setting.claude.language.option5%",
+            "%setting.claude.language.option6%"
           ],
-          "markdownDescription": "Idioma del mensaje del commit.",
+          "markdownDescription": "%setting.claude.language%",
           "order": 13
         },
         "multigit.claude.fastMode": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Modo rápido: respuesta en streaming (el mensaje se escribe mientras llega) y sin cargar el proyecto en el CLI.",
+          "markdownDescription": "%setting.claude.fastMode%",
           "order": 14
         },
         "multigit.claude.imitateRepoStyle": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Enviar los títulos de los últimos 20 commits para imitar el estilo del repositorio.",
+          "markdownDescription": "%setting.claude.imitateRepoStyle%",
           "order": 15
         },
         "multigit.claude.alwaysIncludeScope": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Incluir siempre un scope: `tipo(scope): …`.",
+          "markdownDescription": "%setting.claude.alwaysIncludeScope%",
           "order": 16
         },
         "multigit.claude.extraInstructions": {
@@ -1514,13 +1514,13 @@
           "default": "",
           "maxLength": 1000,
           "editPresentation": "multilineText",
-          "markdownDescription": "Instrucciones adicionales para Claude.",
+          "markdownDescription": "%setting.claude.extraInstructions%",
           "order": 17
         },
         "multigit.claude.overwriteWithoutAsking": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "Reemplazar el mensaje que ya escribiste sin preguntar.",
+          "markdownDescription": "%setting.claude.overwriteWithoutAsking%",
           "order": 18
         },
         "multigit.claude.timeoutSec": {
@@ -1528,28 +1528,28 @@
           "default": 180,
           "minimum": 10,
           "maximum": 900,
-          "markdownDescription": "Tiempo máximo de espera (segundos).",
+          "markdownDescription": "%setting.claude.timeoutSec%",
           "order": 19
         },
         "multigit.claude.claudePath": {
           "type": "string",
           "default": "",
           "scope": "machine",
-          "markdownDescription": "Ruta del ejecutable `claude` si no está en el `PATH`.",
+          "markdownDescription": "%setting.claude.claudePath%",
           "order": 20
         },
         "multigit.warnBranchMismatch": {
           "type": "boolean",
           "default": true,
           "order": 5,
-          "markdownDescription": "Avisar cuando la mayoría de los repos está en una rama y algunos en otra (con la opción de alinearlos)."
+          "markdownDescription": "%setting.warnBranchMismatch%"
         }
       }
     },
     "colors": [
       {
         "id": "multigit.repo0",
-        "description": "Color de repositorio 0 (azul).",
+        "description": "%color.repo0%",
         "defaults": {
           "dark": "#4FA3F7",
           "light": "#1F6FC5",
@@ -1559,7 +1559,7 @@
       },
       {
         "id": "multigit.repo1",
-        "description": "Color de repositorio 1 (naranja).",
+        "description": "%color.repo1%",
         "defaults": {
           "dark": "#F0A05A",
           "light": "#C4621B",
@@ -1569,7 +1569,7 @@
       },
       {
         "id": "multigit.repo2",
-        "description": "Color de repositorio 2 (verde).",
+        "description": "%color.repo2%",
         "defaults": {
           "dark": "#73C991",
           "light": "#2E8B4E",
@@ -1579,7 +1579,7 @@
       },
       {
         "id": "multigit.repo3",
-        "description": "Color de repositorio 3 (violeta).",
+        "description": "%color.repo3%",
         "defaults": {
           "dark": "#C792EA",
           "light": "#8A4FBF",
@@ -1589,7 +1589,7 @@
       },
       {
         "id": "multigit.repo4",
-        "description": "Color de repositorio 4 (rojo).",
+        "description": "%color.repo4%",
         "defaults": {
           "dark": "#F07178",
           "light": "#C23B44",
@@ -1599,7 +1599,7 @@
       },
       {
         "id": "multigit.repo5",
-        "description": "Color de repositorio 5 (turquesa).",
+        "description": "%color.repo5%",
         "defaults": {
           "dark": "#4EC9B0",
           "light": "#1A8C78",
@@ -1609,7 +1609,7 @@
       },
       {
         "id": "multigit.repo6",
-        "description": "Color de repositorio 6 (amarillo).",
+        "description": "%color.repo6%",
         "defaults": {
           "dark": "#E5C07B",
           "light": "#A07A16",
@@ -1619,7 +1619,7 @@
       },
       {
         "id": "multigit.repo7",
-        "description": "Color de repositorio 7 (rosa).",
+        "description": "%color.repo7%",
         "defaults": {
           "dark": "#F48FB1",
           "light": "#C2185B",
@@ -1629,7 +1629,7 @@
       },
       {
         "id": "multigit.repo8",
-        "description": "Color de repositorio 8 (índigo).",
+        "description": "%color.repo8%",
         "defaults": {
           "dark": "#8C9EFF",
           "light": "#3F51B5",
@@ -1639,7 +1639,7 @@
       },
       {
         "id": "multigit.repo9",
-        "description": "Color de repositorio 9 (lima).",
+        "description": "%color.repo9%",
         "defaults": {
           "dark": "#B5CC5A",
           "light": "#6B8E23",
@@ -1649,7 +1649,7 @@
       },
       {
         "id": "multigit.repo10",
-        "description": "Color de repositorio 10 (cian).",
+        "description": "%color.repo10%",
         "defaults": {
           "dark": "#56D4E8",
           "light": "#0E8FA6",
@@ -1659,7 +1659,7 @@
       },
       {
         "id": "multigit.repo11",
-        "description": "Color de repositorio 11 (gris azulado).",
+        "description": "%color.repo11%",
         "defaults": {
           "dark": "#8FA3BF",
           "light": "#5A6E8A",
@@ -1736,28 +1736,28 @@
     "submenus": [
       {
         "id": "multigit.changes.groupBy",
-        "label": "Group By",
+        "label": "%submenu.changes.groupBy%",
         "icon": "$(list-tree)"
       },
       {
         "id": "multigit.changes.git",
-        "label": "Git"
+        "label": "%submenu.changes.git%"
       },
       {
         "id": "multigit.changes.ignoreMenu",
-        "label": "Add to .gitignore"
+        "label": "%submenu.changes.ignoreMenu%"
       },
       {
         "id": "multigit.file.git",
-        "label": "Git (MultiGit)"
+        "label": "%submenu.file.git%"
       },
       {
         "id": "multigit.file.localHistoryMenu",
-        "label": "Local History"
+        "label": "%submenu.file.localHistoryMenu%"
       },
       {
         "id": "multigit.changes.groupByMore",
-        "label": "Group By"
+        "label": "%submenu.changes.groupByMore%"
       }
     ]
   },
