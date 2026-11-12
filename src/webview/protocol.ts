@@ -85,6 +85,8 @@ export interface LogRepoInfo {
   /** SHA de HEAD (para atenuar los commits que no están en la rama actual). */
   head: string | null;
   local: string[];
+  /** Commits por subir/bajar de las ramas locales con upstream (solo las que tienen alguno). */
+  track: Record<string, { ahead: number; behind: number }>;
   /** Ramas remotas completas (`origin/develop`). */
   remote: string[];
   tags: string[];

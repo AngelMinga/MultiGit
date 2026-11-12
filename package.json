@@ -38,6 +38,10 @@
     "workspaceContains:*/*/.git/HEAD"
   ],
   "contributes": {
+    "configurationDefaults": {
+      "diffEditor.renderSideBySide": true,
+      "diffEditor.useInlineViewWhenSpaceIsLimited": false
+    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -333,8 +337,18 @@
         "category": "MultiGit"
       },
       {
+        "command": "multigit.changes.ignoreNearest",
+        "title": ".gitignore (el más cercano)",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.changes.ignoreRoot",
+        "title": ".gitignore (raíz del repositorio)",
+        "category": "MultiGit"
+      },
+      {
         "command": "multigit.changes.addToGitignore",
-        "title": "Add to .gitignore",
+        "title": "Otro .gitignore…",
         "category": "MultiGit"
       },
       {
@@ -348,6 +362,12 @@
         "title": "Copy as Patch to Clipboard",
         "category": "MultiGit",
         "icon": "$(copy)"
+      },
+      {
+        "command": "multigit.changes.git.add",
+        "title": "Add",
+        "category": "MultiGit",
+        "icon": "$(add)"
       },
       {
         "command": "multigit.changes.git.push",
@@ -794,14 +814,9 @@
           "group": "3_edit@2"
         },
         {
-          "command": "multigit.changes.excludeLocal",
+          "submenu": "multigit.changes.ignoreMenu",
           "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file\\.untracked|(repo|dir|section)\\.unversioned)$/",
           "group": "3_edit@3"
-        },
-        {
-          "command": "multigit.changes.addToGitignore",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file\\.untracked|(repo|dir|section)\\.unversioned)$/",
-          "group": "3_edit@4"
         },
         {
           "command": "multigit.changes.copyPatch",
@@ -941,11 +956,23 @@
           "when": "false"
         },
         {
+          "command": "multigit.changes.ignoreNearest",
+          "when": "false"
+        },
+        {
+          "command": "multigit.changes.ignoreRoot",
+          "when": "false"
+        },
+        {
           "command": "multigit.changes.delete",
           "when": "false"
         },
         {
           "command": "multigit.changes.copyPatch",
+          "when": "false"
+        },
+        {
+          "command": "multigit.changes.git.add",
           "when": "false"
         },
         {
@@ -1075,31 +1102,68 @@
           "group": "2@1"
         }
       ],
+      "multigit.changes.ignoreMenu": [
+        {
+          "command": "multigit.changes.ignoreNearest",
+          "group": "1_target@1"
+        },
+        {
+          "command": "multigit.changes.ignoreRoot",
+          "group": "1_target@2"
+        },
+        {
+          "command": "multigit.changes.excludeLocal",
+          "group": "1_target@3"
+        },
+        {
+          "command": "multigit.changes.addToGitignore",
+          "group": "2_other@1"
+        }
+      ],
       "multigit.changes.git": [
+        {
+          "command": "multigit.changes.commitOnly",
+          "group": "0a_commit@1"
+        },
+        {
+          "command": "multigit.changes.git.add",
+          "when": "viewItem =~ /^multigit\\.changes\\.(file\\.untracked|(repo|dir|section)\\.unversioned)$/",
+          "group": "0a_commit@2"
+        },
+        {
+          "submenu": "multigit.changes.ignoreMenu",
+          "when": "viewItem =~ /^multigit\\.changes\\.(file\\.untracked|(repo|dir|section)\\.unversioned)$/",
+          "group": "0a_commit@3"
+        },
+        {
+          "command": "multigit.changes.rollback",
+          "when": "viewItem =~ /^multigit\\.changes\\.(file\\.tracked|(repo|dir|section)\\.changes)$/",
+          "group": "0c_rollback@1"
+        },
         {
           "command": "multigit.file.showHistory",
           "when": "viewItem =~ /^multigit\\.changes\\.file/",
-          "group": "0_file@1"
+          "group": "0b_file@1"
         },
         {
           "command": "multigit.file.blame",
           "when": "viewItem =~ /^multigit\\.changes\\.file/",
-          "group": "0_file@2"
+          "group": "0b_file@2"
         },
         {
           "command": "multigit.file.compareRevision",
           "when": "viewItem =~ /^multigit\\.changes\\.file/",
-          "group": "0_file@3"
+          "group": "0b_file@3"
         },
         {
           "command": "multigit.file.compareRef",
           "when": "viewItem =~ /^multigit\\.changes\\.file/",
-          "group": "0_file@4"
+          "group": "0b_file@4"
         },
         {
           "command": "multigit.file.currentRevision",
           "when": "viewItem =~ /^multigit\\.changes\\.file/",
-          "group": "0_file@5"
+          "group": "0b_file@5"
         },
         {
           "command": "multigit.changes.git.push",
@@ -1578,6 +1642,10 @@
       {
         "id": "multigit.changes.git",
         "label": "Git"
+      },
+      {
+        "id": "multigit.changes.ignoreMenu",
+        "label": "Add to .gitignore"
       },
       {
         "id": "multigit.file.git",

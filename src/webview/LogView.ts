@@ -34,6 +34,9 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
   private tags = new Map<Repo, string[]>();
   /** Rama/HEAD de cada repo en la última carga: si cambia, se recarga el log. */
   private signature = '';
+  /** Ramas (locales, remotas y sus ↑/↓) de la última carga: cambia tras un fetch aunque HEAD no cambie. */
+  private refsSignature = '';
+  private refsCheck: ReturnType<typeof setTimeout> | undefined;
   private stale = false;
   private readonly disposables: vscode.Disposable[] = [];
 
@@ -184,6 +187,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
     this.branches = new Map(entries);
     this.tags = new Map(await Promise.all(repos.map(async (r) => [r, await r.git.listTags().catch(() => [])] as const)));
     this.signature = this.computeSignature();
+    this.refsSignature = refsSignatureOf(repos.map((r) => this.branches.get(r)!));
     const first = repos[0];
     const me = first
       ? { name: await first.git.configGet('user.name'), email: await first.git.configGet('user.email') }
@@ -197,6 +201,11 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         current: b.local.find((l) => l.current)?.name ?? null,
         head: r.status?.oid ?? null,
         local: b.local.map((l) => l.name),
+        track: Object.fromEntries(
+          b.local
+            .filter((l) => l.upstream && !l.gone && (l.ahead || l.behind))
+            .map((l) => [l.name, { ahead: l.ahead, behind: l.behind }]),
+        ),
         remote: b.remote.map((x) => x.full),
         tags: this.tags.get(r) ?? [],
       };
@@ -329,7 +338,24 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
 
   /** Recarga solo si cambió alguna rama o HEAD (no en cada archivo guardado). */
   private onReposChanged(): void {
-    if (this.computeSignature() === this.signature) return;
+    if (this.computeSignature() !== this.signature) return this.markChanged();
+    // HEAD igual: un fetch pudo mover ramas remotas o los ↑/↓ de otras ramas. Se comprueba
+    // con un for-each-ref por repo, agrupando ráfagas de eventos (p. ej. al guardar archivos).
+    if (this.refsCheck) clearTimeout(this.refsCheck);
+    this.refsCheck = setTimeout(() => {
+      this.refsCheck = undefined;
+      void this.checkRefs();
+    }, REFS_CHECK_DELAY_MS);
+  }
+
+  private async checkRefs(): Promise<void> {
+    if (this.stale || !this.ready) return;
+    const branches = await Promise.all(this.manager.all.map((r) => r.git.getBranches().catch(() => undefined)));
+    if (branches.some((b) => !b)) return;
+    if (refsSignatureOf(branches as RepoBranches[]) !== this.refsSignature) this.markChanged();
+  }
+
+  private markChanged(): void {
     if (this.view?.visible && this.ready) void this.init();
     else this.stale = true;
   }
@@ -468,6 +494,20 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
   }
 
   dispose(): void {
+    if (this.refsCheck) clearTimeout(this.refsCheck);
     for (const d of this.disposables) d.dispose();
   }
+}
+
+const REFS_CHECK_DELAY_MS = 500;
+
+/** Firma de las ramas locales (con ↑/↓) y remotas de varios repos. */
+function refsSignatureOf(all: readonly RepoBranches[]): string {
+  return all
+    .map(
+      (b) =>
+        `${b.local.map((l) => `${l.name}:${l.ahead}:${l.behind}:${l.gone ? 'g' : ''}`).join(',')}` +
+        `|${b.remote.map((x) => x.full).join(',')}`,
+    )
+    .join('\n');
 }

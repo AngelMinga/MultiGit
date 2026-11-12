@@ -116,6 +116,11 @@ Para usarlos en todas partes, cámbialos en *Preferences → Keyboard Shortcuts*
 Los colores de los repos (`multigit.repo0` … `multigit.repo11`) se pueden cambiar en
 `workbench.colorCustomizations`.
 
+MultiGit cambia además el valor por defecto de dos ajustes de VS Code para que los diffs se abran
+siempre en dos paneles (original | cambios), como IntelliJ, aunque el editor sea angosto:
+`diffEditor.renderSideBySide: true` y `diffEditor.useInlineViewWhenSpaceIsLimited: false`. Si
+tienes un valor propio en tu `settings.json`, ese manda.
+
 ## Instalación
 
 ```bash

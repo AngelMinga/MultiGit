@@ -940,3 +940,16 @@ button.claude-btn.running {
 .branch-icon.tag {
   color: var(--vscode-charts-yellow);
 }
+
+/* Contadores ↓/↑ respecto al upstream en el árbol de ramas, como IntelliJ. */
+.tree-row .track {
+  margin-left: 6px;
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+.tree-row .track.incoming {
+  color: var(--vscode-charts-orange);
+}
+.tree-row .track.outgoing {
+  color: var(--vscode-charts-green);
+}

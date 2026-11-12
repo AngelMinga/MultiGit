@@ -6,8 +6,10 @@
 //  - Group by Directory: los prefijos `feature/…` se muestran como carpetas.
 //  - Show Tags.
 import * as vscode from 'vscode';
+import { formatAheadBehind } from '../git/branchSummary';
 import { orderBranches, type RepoBranches } from '../git/branches';
 import type { Repo, RepoManager } from '../git/RepoManager';
+import { branchDecorationUri } from './BranchDecorations';
 import type { BranchRef, Scope } from './branchActions';
 
 type Section = 'local' | 'remote' | 'tags';
@@ -28,11 +30,17 @@ export type BranchNode =
   | { kind: 'repo'; section: Section; repo: Repo }
   | { kind: 'folder'; section: Section; id: string; label: string; items: BranchNode[] }
   /** Rama. Con "Group by Repository", `repos` tiene un solo elemento. */
-  | { kind: 'branch'; section: Section; repos: Repo[]; ref: BranchRef; currentIn: Repo[]; label: string }
+  | { kind: 'branch'; section: Section; repos: Repo[]; ref: BranchRef; currentIn: Repo[]; label: string; track?: Track }
   | { kind: 'tag'; repos: Repo[]; name: string; label: string }
   /** Sin "Group by Repository": un repo dentro de una rama. */
-  | { kind: 'branchRepo'; repo: Repo; ref: BranchRef; current: boolean }
+  | { kind: 'branchRepo'; repo: Repo; ref: BranchRef; current: boolean; track?: Track }
   | { kind: 'message'; text: string };
+
+/** Commits por subir (↑) / bajar (↓) respecto al upstream de una rama local. */
+interface Track {
+  ahead: number;
+  behind: number;
+}
 
 interface RepoData {
   branches: RepoBranches;
@@ -137,7 +145,13 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
         return node.items;
       case 'branch':
         if (this.options.byRepo) return [];
-        return node.repos.map((repo) => ({ kind: 'branchRepo', repo, ref: node.ref, current: node.currentIn.includes(repo) }));
+        return node.repos.map((repo) => ({
+          kind: 'branchRepo',
+          repo,
+          ref: node.ref,
+          current: node.currentIn.includes(repo),
+          track: node.ref.type === 'local' ? trackOf(data.get(repo)?.branches, node.ref.name) : undefined,
+        }));
       default:
         return [];
     }
@@ -180,16 +194,18 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
         const total = this.manager.all.length;
         const current = node.currentIn.length > 0;
         item.iconPath = branchIcon(current, this.manager.favoriteBranches.includes(node.ref.name));
+        const counters = node.track ? formatAheadBehind(node.track) : '';
         if (!this.options.byRepo) {
           const where = `${node.repos.length}/${total}`;
-          item.description = current ? `${where} · actual en ${node.currentIn.length}` : where;
-          item.tooltip = `${name}\n${node.repos.map((r) => r.name).join(', ')}`;
+          item.description = joinDesc(counters, current ? `${where} · actual en ${node.currentIn.length}` : where);
+          item.tooltip = `${name}\n${node.repos.map((r) => r.name).join(', ')}${trackTooltip(node.track)}`;
         } else {
-          if (current) item.description = 'actual';
-          item.tooltip = name;
+          item.description = joinDesc(counters, current ? 'actual' : '');
+          item.tooltip = `${name}${trackTooltip(node.track)}`;
         }
         // local.current = rama actual en todos sus repos (oculta Checkout, Merge, Delete…).
         const allCurrent = node.ref.type === 'local' && node.currentIn.length === node.repos.length;
+        if (node.track) item.resourceUri = branchDecorationUri(item.id, node.track);
         item.contextValue = `multigit.branch.${node.ref.type}${allCurrent ? '.current' : ''}`;
         item.command = this.clickCommand(node, 'multigit.branchesTree.actions');
         return item;
@@ -208,7 +224,11 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
         const item = new vscode.TreeItem(node.repo.name, vscode.TreeItemCollapsibleState.None);
         item.id = `branchRepo/${node.repo.root}/${node.ref.type === 'local' ? node.ref.name : node.ref.full}`;
         item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor(this.manager.colorIdOf(node.repo)));
-        if (node.current) item.description = 'actual';
+        item.description = joinDesc(node.track ? formatAheadBehind(node.track) : '', node.current ? 'actual' : '');
+        if (node.track) {
+          item.tooltip = `${node.repo.name}${trackTooltip(node.track)}`;
+          item.resourceUri = branchDecorationUri(item.id, node.track);
+        }
         item.contextValue = `multigit.branch.${node.ref.type}${node.current ? '.current' : ''}`;
         item.command = this.clickCommand(node, 'multigit.branchesTree.actions');
         return item;
@@ -266,6 +286,7 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
         ref: { type: 'local', name: b.name },
         currentIn: b.current ? [repo] : [],
         label: b.name,
+        track: b.upstream && !b.gone ? { ahead: b.ahead, behind: b.behind } : undefined,
       }));
     }
     return orderBranches(d.branches.remote, favorites, (b) => b.name).map((b) => ({
@@ -288,7 +309,7 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
       }
       return [...byName.entries()].map(([name, repos]) => ({ kind: 'tag', repos, name, label: name }));
     }
-    const byName = new Map<string, { ref: BranchRef; repos: Repo[]; currentIn: Repo[] }>();
+    const byName = new Map<string, { ref: BranchRef; repos: Repo[]; currentIn: Repo[]; track?: Track }>();
     for (const repo of this.manager.all) {
       const b = data.get(repo)?.branches;
       if (!b) continue;
@@ -297,6 +318,10 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
           const e = byName.get(l.name) ?? { ref: { type: 'local', name: l.name }, repos: [], currentIn: [] };
           e.repos.push(repo);
           if (l.current) e.currentIn.push(repo);
+          if (l.upstream && !l.gone) {
+            // Suma de todos los repos, como el contador de la barra de estado.
+            e.track = { ahead: (e.track?.ahead ?? 0) + l.ahead, behind: (e.track?.behind ?? 0) + l.behind };
+          }
           byName.set(l.name, e);
         }
       } else {
@@ -317,6 +342,7 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
       ref: e.ref,
       currentIn: e.currentIn,
       label: e.ref.type === 'local' ? e.ref.name : e.ref.full,
+      track: e.track,
     }));
   }
 
@@ -366,4 +392,22 @@ function branchIcon(current: boolean, favorite: boolean): vscode.ThemeIcon {
   if (current) return new vscode.ThemeIcon('tag', new vscode.ThemeColor('charts.green'));
   if (favorite) return new vscode.ThemeIcon('star-full', new vscode.ThemeColor('charts.yellow'));
   return new vscode.ThemeIcon('git-branch', new vscode.ThemeColor('charts.blue'));
+}
+
+function trackOf(branches: RepoBranches | undefined, name: string): Track | undefined {
+  const b = branches?.local.find((l) => l.name === name);
+  return b?.upstream && !b.gone ? { ahead: b.ahead, behind: b.behind } : undefined;
+}
+
+/** `↓16 · actual`, omitiendo las partes vacías (undefined si no queda nada). */
+function joinDesc(...parts: string[]): string | undefined {
+  return parts.filter(Boolean).join(' · ') || undefined;
+}
+
+function trackTooltip(track: Track | undefined): string {
+  if (!track || (!track.ahead && !track.behind)) return '';
+  const lines: string[] = [];
+  if (track.behind) lines.push(`↓ ${track.behind} commit(s) entrantes por bajar`);
+  if (track.ahead) lines.push(`↑ ${track.ahead} commit(s) salientes por subir`);
+  return `\n${lines.join('\n')}`;
 }

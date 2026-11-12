@@ -34,6 +34,9 @@ interface Node {
   favorite?: boolean;
   /** "3/9" en el modo sin repos. */
   count?: string;
+  /** Commits por subir (↑) / bajar (↓) respecto al upstream. */
+  ahead?: number;
+  behind?: number;
 }
 
 export function BranchTree(props: {
@@ -101,6 +104,8 @@ export function BranchTree(props: {
             </span>
           )}
           <span className="tree-label">{n.label}</span>
+          {!!n.behind && <span className="track incoming" title={`${n.behind} commit(s) entrantes por bajar`}>↓{n.behind}</span>}
+          {!!n.ahead && <span className="track outgoing" title={`${n.ahead} commit(s) salientes por subir`}>↑{n.ahead}</span>}
           {n.count && <span className="muted small">{n.count}</span>}
         </li>
       );
@@ -183,18 +188,29 @@ function buildTree(repos: LogRepoInfo[], favorites: string[], byRepo: boolean, b
         colorIndex: r.colorIndex,
         children: leaves(
           `${kind}/${r.id}`,
-          namesOf(r).map((name) => ({ name, repoIds: [r.id], current: kind === 'local' && r.current === name })),
+          namesOf(r).map((name) => ({
+            name,
+            repoIds: [r.id],
+            current: kind === 'local' && r.current === name,
+            ...(kind === 'local' ? r.track?.[name] : undefined),
+          })),
           favorites,
           byDir,
         ),
       }));
     } else {
-      const union = new Map<string, { repoIds: string[]; current: boolean }>();
+      const union = new Map<string, { repoIds: string[]; current: boolean; ahead: number; behind: number }>();
       for (const r of repos) {
         for (const name of namesOf(r)) {
-          const e = union.get(name) ?? { repoIds: [], current: false };
+          const e = union.get(name) ?? { repoIds: [], current: false, ahead: 0, behind: 0 };
           e.repoIds.push(r.id);
           if (kind === 'local' && r.current === name) e.current = true;
+          // Suma de todos los repos.
+          const t = kind === 'local' ? r.track?.[name] : undefined;
+          if (t) {
+            e.ahead += t.ahead;
+            e.behind += t.behind;
+          }
           union.set(name, e);
         }
       }
@@ -205,6 +221,8 @@ function buildTree(repos: LogRepoInfo[], favorites: string[], byRepo: boolean, b
           repoIds: [],
           current: e.current,
           count: `${e.repoIds.length}/${repos.length}`,
+          ahead: e.ahead,
+          behind: e.behind,
         })),
         favorites,
         byDir,
@@ -222,6 +240,8 @@ interface LeafInput {
   repoIds: string[];
   current: boolean;
   count?: string;
+  ahead?: number;
+  behind?: number;
 }
 
 /** Hojas ordenadas (actual, favoritas, alfabético); con `byDir`, anidadas por prefijo `a/b/`. */
@@ -242,6 +262,8 @@ function leaves(prefix: string, items: LeafInput[], favorites: string[], byDir: 
     current: i.current,
     favorite: favorites.includes(i.name) || favorites.includes(short(i.name)),
     count: i.count,
+    ahead: i.ahead,
+    behind: i.behind,
   });
   const shown = (name: string) => name.replace(/^refs\/tags\//, '');
   if (!byDir) return sorted.map((i) => leaf(i, shown(i.name)));

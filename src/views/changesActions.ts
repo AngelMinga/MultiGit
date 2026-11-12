@@ -8,6 +8,7 @@ import { errorText, runInRepos } from '../git/MultiRepoRunner';
 import type { StepResult } from '../git/preflight';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import type { ChangesTree, FileRef } from './ChangesTree';
+import { commonAncestorDirs, gitignoreIn, ignorePattern } from '../git/ignoreTargets';
 import { openMergeEditor } from './conflicts';
 
 /** Agrupa archivos por repo, en el orden de los repos. */
@@ -226,25 +227,89 @@ export class ChangesActions {
     vscode.window.setStatusBarMessage(`$(add) ${groups.reduce((n, g) => n + g.files.length, 0)} archivo(s) agregados a Git`, 4000);
   }
 
-  /** Agrega las rutas a `.git/info/exclude` (solo local) o a `.gitignore` (del repo). */
-  async ignore(refs: readonly FileRef[], target: 'exclude' | 'gitignore'): Promise<void> {
+  /**
+   * Submenú Add to .gitignore: `.git/info/exclude` (solo local), el `.gitignore` más cercano que ya
+   * exista (o el de la raíz), el de la raíz, o `gitignore` para elegir entre todos (lista).
+   */
+  async ignore(refs: readonly FileRef[], target: 'exclude' | 'nearest' | 'root' | 'gitignore'): Promise<void> {
     const groups = byRepo(refs.filter((r) => r.file.kind === 'untracked'), this.manager.all);
     if (!groups.length) return;
+    if (target === 'gitignore') return this.addToGitignore(groups);
+    if (target === 'nearest' || target === 'root') {
+      const written = new Set<string>();
+      await this.perRepo(groups, async (repo, files) => {
+        const dir = target === 'root' ? '' : ((await this.existingGitignoreDirs(repo, files))[0] ?? '');
+        written.add(gitignoreIn(dir));
+        await appendIgnore(path.join(repo.root, gitignoreIn(dir)), files.map((f) => ignorePattern(dir, f.path)));
+      });
+      vscode.window.setStatusBarMessage(`$(eye-closed) Agregado a ${[...written].join(', ')}`, 4000);
+      return;
+    }
     await this.perRepo(groups, async (repo, files) => {
-      const file = target === 'exclude' ? await repo.git.resolveGitPath('info/exclude') : path.join(repo.root, '.gitignore');
-      let current = '';
-      try {
-        current = await fs.readFile(file, 'utf8');
-      } catch {
-        await fs.mkdir(path.dirname(file), { recursive: true });
-      }
-      const existing = new Set(current.split(/\r?\n/).map((l) => l.trim()));
-      const lines = files.map((f) => `/${f.path}`).filter((l) => !existing.has(l));
-      if (!lines.length) return;
-      const sep = current && !current.endsWith('\n') ? '\n' : '';
-      await fs.writeFile(file, `${current}${sep}${lines.join('\n')}\n`, 'utf8');
+      await appendIgnore(await repo.git.resolveGitPath('info/exclude'), files.map((f) => `/${f.path}`));
     });
-    vscode.window.setStatusBarMessage(target === 'exclude' ? '$(eye-closed) Agregado a .git/info/exclude' : '$(eye-closed) Agregado a .gitignore', 4000);
+    vscode.window.setStatusBarMessage('$(eye-closed) Agregado a .git/info/exclude', 4000);
+  }
+
+  /**
+   * Add to .gitignore: como el submenú de IntelliJ, ofrece los `.gitignore` que ya existen en las
+   * carpetas que contienen a los archivos (el más cercano primero; si no hay, el de la raíz, que se
+   * crea) y `.git/info/exclude`. Con varios repos: el más cercano de cada repo.
+   */
+  private async addToGitignore(groups: Array<{ repo: Repo; files: StatusFile[] }>): Promise<void> {
+    const plans = await Promise.all(
+      groups.map(async ({ repo, files }) => {
+        const existing = await this.existingGitignoreDirs(repo, files);
+        return { repo, files, dirs: existing.length ? existing : [''], created: !existing.length };
+      }),
+    );
+
+    type Target = { kind: 'dir'; dir?: string } | { kind: 'exclude' };
+    const items: Array<vscode.QuickPickItem & { target: Target }> = [];
+    if (plans.length === 1) {
+      const plan = plans[0]!;
+      for (const dir of plan.dirs) {
+        items.push({
+          label: `$(file) ${gitignoreIn(dir)}`,
+          description: plan.created ? 'se creará' : plan.repo.name,
+          target: { kind: 'dir', dir },
+        });
+      }
+    } else {
+      items.push({
+        label: '$(file) .gitignore',
+        description: 'el más cercano en cada repositorio (o el de la raíz)',
+        target: { kind: 'dir' },
+      });
+    }
+    items.push({ label: '$(file) .git/info/exclude', description: 'solo en este equipo, no se sube', target: { kind: 'exclude' } });
+
+    const total = groups.reduce((n, g) => n + g.files.length, 0);
+    const picked = await vscode.window.showQuickPick(items, {
+      title: 'Add to .gitignore',
+      placeHolder: total === 1 ? `Ignorar ${groups[0]!.files[0]!.path} en…` : `Ignorar ${total} archivos en…`,
+    });
+    if (!picked) return;
+
+    const target = picked.target;
+    await this.perRepo(groups, async (repo, files) => {
+      if (target.kind === 'exclude') {
+        return appendIgnore(await repo.git.resolveGitPath('info/exclude'), files.map((f) => `/${f.path}`));
+      }
+      const dir = target.dir ?? plans.find((p) => p.repo === repo)!.dirs[0]!;
+      await appendIgnore(path.join(repo.root, gitignoreIn(dir)), files.map((f) => ignorePattern(dir, f.path)));
+    });
+    const where = target.kind === 'exclude' ? '.git/info/exclude' : target.dir !== undefined ? gitignoreIn(target.dir) : '.gitignore';
+    vscode.window.setStatusBarMessage(`$(eye-closed) Agregado a ${where}`, 4000);
+  }
+
+  /** Carpetas con un `.gitignore` existente que contienen a todos los archivos, la más cercana primero. */
+  private async existingGitignoreDirs(repo: Repo, files: readonly StatusFile[]): Promise<string[]> {
+    const result: string[] = [];
+    for (const dir of commonAncestorDirs(files.map((f) => f.path))) {
+      if (await exists(path.join(repo.root, gitignoreIn(dir)))) result.push(dir);
+    }
+    return result;
   }
 
   /** Delete…: manda los archivos a la papelera, con confirmación. */
@@ -374,4 +439,28 @@ function pickFiles(candidates: FileRef[], preselected: Set<string>, repos: reado
     });
     qp.show();
   });
+}
+
+async function exists(file: string): Promise<boolean> {
+  try {
+    await fs.access(file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Agrega las líneas que falten al final de un archivo de ignores (lo crea si no existe). */
+async function appendIgnore(file: string, patterns: readonly string[]): Promise<void> {
+  let current = '';
+  try {
+    current = await fs.readFile(file, 'utf8');
+  } catch {
+    await fs.mkdir(path.dirname(file), { recursive: true });
+  }
+  const existing = new Set(current.split(/\r?\n/).map((l) => l.trim()));
+  const lines = [...new Set(patterns)].filter((l) => !existing.has(l));
+  if (!lines.length) return;
+  const sep = current && !current.endsWith('\n') ? '\n' : '';
+  await fs.writeFile(file, `${current}${sep}${lines.join('\n')}\n`, 'utf8');
 }

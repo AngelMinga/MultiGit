@@ -6,6 +6,7 @@ import { BranchPopup } from './views/branchPopup';
 import { BranchesTree, type BranchNode } from './views/BranchesTree';
 import { CompareView } from './views/compareView';
 import { RepoDecorations } from './views/RepoDecorations';
+import { BranchDecorations } from './views/BranchDecorations';
 import { RepositoriesView } from './views/RepositoriesView';
 import { StatusBar } from './views/StatusBar';
 import { RepoIcons } from './views/repoIcons';
@@ -61,6 +62,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     decorations,
     treeView,
     vscode.window.registerFileDecorationProvider(decorations),
+    vscode.window.registerFileDecorationProvider(new BranchDecorations()),
     compareView,
     vscode.workspace.registerTextDocumentContentProvider(CompareView.scheme, compareView),
     vscode.workspace.registerTextDocumentContentProvider(GitContentProvider.scheme, new GitContentProvider(manager)),
@@ -193,8 +195,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       [
         ['commitOnly', (refs) => changesActions.commitOnly(refs)],
         ['addToVcs', (refs) => changesActions.addToVcs(refs)],
+        // "Add" del submenú Git (mismo comando que Add to VCS, con el nombre de IntelliJ).
+        ['git.add', (refs) => changesActions.addToVcs(refs)],
         ['excludeLocal', (refs) => changesActions.ignore(refs, 'exclude')],
         ['addToGitignore', (refs) => changesActions.ignore(refs, 'gitignore')],
+        ['ignoreNearest', (refs) => changesActions.ignore(refs, 'nearest')],
+        ['ignoreRoot', (refs) => changesActions.ignore(refs, 'root')],
         ['delete', (refs) => changesActions.deleteFiles(refs)],
         ['copyPatch', (refs) => changesActions.copyPatch(refs)],
       ] as Array<[string, (refs: FileRef[]) => Promise<unknown>]>
