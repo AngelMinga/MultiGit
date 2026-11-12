@@ -6,7 +6,7 @@ import type { LogFilters, RefLabel } from '../git/log';
 export type { LogFilters, RefLabel };
 
 /** Paneles webview que existen (el log llega en la Fase 6). */
-export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar';
+export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback';
 
 // ------------------------------------------------------------------ Push
 
@@ -59,6 +59,29 @@ export interface PushState {
   busy: boolean;
   /** Ya se intentó un push en esta sesión del diálogo. */
   attempted: boolean;
+}
+
+// ------------------------------------------------------------------ Rollback
+
+export interface RollbackFile {
+  path: string;
+  /** M, A, D, R, C, T… (columna de `git status`). */
+  status: string;
+  origPath?: string;
+}
+
+export interface RollbackRepo {
+  id: string;
+  name: string;
+  colorIndex: number;
+  files: RollbackFile[];
+}
+
+export interface RollbackState {
+  repos: RollbackRepo[];
+  /** Claves `${repoId}\0${path}` marcadas al abrir. */
+  selected: string[];
+  busy: boolean;
 }
 
 // ------------------------------------------------------------------ Commit
@@ -141,6 +164,7 @@ export type HostMessage =
   | { type: 'error'; payload: { message: string } }
   | { type: 'push/state'; payload: PushState }
   | { type: 'push/files'; payload: { repoId: string; hash: string; files: PushFile[] } }
+  | { type: 'rollback/state'; payload: RollbackState }
   | { type: 'commit/state'; payload: CommitState }
   | { type: 'commit/setMessage'; payload: { message: string } }
   | { type: 'commit/done'; payload: Record<string, never> }
@@ -168,6 +192,9 @@ export type WebviewMessage =
   | { type: 'push/run'; payload: { repoIds: string[]; tags: PushTagsMode; force: boolean } }
   | { type: 'push/pullAndRetry'; payload: { tags: PushTagsMode } }
   | { type: 'push/close'; payload: Record<string, never> }
+  | { type: 'rollback/run'; payload: { keys: string[]; deleteAdded: boolean } }
+  | { type: 'rollback/openDiff'; payload: { repoId: string; path: string } }
+  | { type: 'rollback/close'; payload: Record<string, never> }
   | { type: 'commit/run'; payload: { message: string; amend: boolean; push: boolean } }
   | { type: 'commit/requestLastMessage'; payload: Record<string, never> }
   | { type: 'commit/generate'; payload: { current: string } }

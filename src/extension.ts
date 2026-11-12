@@ -147,7 +147,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     manageCheckboxStateManually: true,
     showCollapseAll: true,
   });
-  const changesActions = new ChangesActions(manager, changesTree);
+  const changesActions = new ChangesActions(manager, changesTree, context.extensionUri);
   const commitView = new CommitView(context.extensionUri, manager, changesTree, changesActions, (repos) => openPush(repos));
   let changesStale = true;
   const refreshChanges = () => {
@@ -185,7 +185,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('multigit.changes.toggleGroupByModule', () => changesTree.toggleGrouping('module')),
     vscode.commands.registerCommand('multigit.changes.toggleShowIgnored', () => changesTree.toggleGrouping('showIgnored')),
     vscode.commands.registerCommand('multigit.changes.rollback', (node?: ChangeNode, nodes?: ChangeNode[]) =>
-      changesActions.rollback(node ? refsOf(node, nodes) : undefined, !!node),
+      changesActions.rollback(node ? refsOf(node, nodes) : undefined),
     ),
     vscode.commands.registerCommand('multigit.changes.shelve', (node?: ChangeNode, nodes?: ChangeNode[]) =>
       changesActions.shelve(node ? refsOf(node, nodes) : undefined),

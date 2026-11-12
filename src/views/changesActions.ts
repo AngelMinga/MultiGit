@@ -2,13 +2,14 @@
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { describeCounts, planCommit, planRollback, SHELF_PREFIX, STATUS_LABEL, type StatusFile } from '../git/changes';
+import { planCommit, planRollback, SHELF_PREFIX, STATUS_LABEL, type StatusFile } from '../git/changes';
 import { GitContentProvider } from '../git/GitContentProvider';
 import { errorText, runInRepos } from '../git/MultiRepoRunner';
 import type { StepResult } from '../git/preflight';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import type { ChangesTree, FileRef } from './ChangesTree';
 import { commonAncestorDirs, gitignoreIn, ignorePattern } from '../git/ignoreTargets';
+import { RollbackPanel, rollbackKey } from '../webview/RollbackPanel';
 import { openMergeEditor } from './conflicts';
 
 /** Agrupa archivos por repo, en el orden de los repos. */
@@ -22,6 +23,7 @@ export class ChangesActions {
   constructor(
     private readonly manager: RepoManager,
     private readonly tree: ChangesTree,
+    private readonly extensionUri: vscode.Uri,
   ) {}
 
   // ------------------------------------------------------------------ commit
@@ -72,55 +74,31 @@ export class ChangesActions {
   // ------------------------------------------------------------------ rollback
 
   /**
-   * Rollback…: elige archivos (preseleccionados los marcados), confirma listando qué se pierde
-   * y revierte. Con `direct`, salta el selector (p. ej. desde el menú de un archivo).
+   * Rollback…: abre el diálogo "Rollback Changes" (árbol con casillas, como IntelliJ) con todos los
+   * archivos versionados con cambios; vienen marcados los elegidos (o los marcados en Changes).
    */
-  async rollback(initial?: readonly FileRef[], direct = false): Promise<void> {
+  async rollback(initial?: readonly FileRef[]): Promise<void> {
     const candidates = this.tree.trackedFiles;
     if (candidates.length === 0) {
       void vscode.window.showInformationMessage('MultiGit: no hay cambios versionados para revertir.');
       return;
     }
-    const preselected = new Set(
-      (initial ?? this.tree.checkedFiles).filter((r) => r.file.kind === 'tracked').map((r) => `${r.repo.root}\0${r.file.path}`),
+    const keys = new Set((initial ?? this.tree.checkedFiles).filter((r) => r.file.kind === 'tracked').map(rollbackKey));
+    RollbackPanel.open(
+      this.extensionUri,
+      this.manager.all,
+      candidates,
+      candidates.filter((c) => keys.has(rollbackKey(c))),
+      { run: (refs, deleteAdded) => this.runRollback(refs, deleteAdded), openDiff: (ref) => this.openDiff(ref) },
     );
+  }
 
-    let selected: FileRef[];
-    if (direct && initial?.length) {
-      selected = initial.filter((r) => r.file.kind === 'tracked');
-    } else {
-      const picked = await pickFiles(candidates, preselected, this.manager.all);
-      if (!picked) return;
-      selected = picked;
-    }
-    if (selected.length === 0) return;
-
+  /** Revierte los archivos a HEAD; los añadidos quedan sin versionar o, con `deleteAdded`, se borran. */
+  private async runRollback(selected: readonly FileRef[], deleteAdded: boolean): Promise<boolean> {
     const groups = byRepo(selected, this.manager.all);
+    if (!groups.length) return false;
     const plans = new Map(groups.map((g) => [g.repo, planRollback(g.files)]));
-    const added = groups.flatMap((g) => plans.get(g.repo)!.added.map((p) => `${g.repo.name}/${p}`));
-
-    const detail = [
-      ...groups.flatMap((g) => [
-        `${g.repo.name}:`,
-        ...g.files.map((f) => `   ${f.status}  ${f.path}${f.origPath ? ` (← ${f.origPath})` : ''}`),
-      ]),
-      '',
-      'Se perderán los cambios locales de estos archivos (vuelven a como están en HEAD).',
-      ...(added.length
-        ? [`Los ${added.length} archivo(s) añadido(s) quedarán sin versionar, salvo que elijas borrarlos también del disco.`]
-        : []),
-    ].join('\n');
-    const ROLLBACK = 'Rollback';
-    const DELETE = 'Rollback y borrar del disco los añadidos';
-    const choice = await vscode.window.showWarningMessage(
-      `¿Rollback de ${selected.length} archivo(s)? (${describeCounts(selected.map((s) => s.file))})`,
-      { modal: true, detail },
-      ...(added.length ? [ROLLBACK, DELETE] : [ROLLBACK]),
-    );
-    if (!choice) return;
-    const deleteAdded = choice === DELETE;
-
-    await runInRepos(this.manager, {
+    const results = await runInRepos(this.manager, {
       title: `Rollback de ${selected.length} archivo(s)`,
       repos: groups.map((g) => g.repo),
       run: async (repo) => {
@@ -134,6 +112,7 @@ export class ChangesActions {
       },
     });
     await this.tree.refresh();
+    return results !== undefined;
   }
 
   // ------------------------------------------------------------------ shelf
@@ -398,48 +377,6 @@ function okRepos(results: StepResult[] | undefined, repos: readonly Repo[]): Rep
   return repos.filter((r) => ok.has(r.name));
 }
 
-/** QuickPick múltiple con los archivos agrupados por repo y el contador en el título. */
-function pickFiles(candidates: FileRef[], preselected: Set<string>, repos: readonly Repo[]): Promise<FileRef[] | undefined> {
-  type Item = vscode.QuickPickItem & { ref?: FileRef };
-  return new Promise((resolve) => {
-    const qp = vscode.window.createQuickPick<Item>();
-    qp.canSelectMany = true;
-    qp.matchOnDescription = true;
-    qp.placeholder = 'Marca los archivos a revertir y pulsa Enter';
-    const items: Item[] = [];
-    for (const repo of repos) {
-      const refs = candidates.filter((c) => c.repo === repo);
-      if (!refs.length) continue;
-      items.push({ label: repo.name, kind: vscode.QuickPickItemKind.Separator });
-      for (const ref of refs) {
-        items.push({
-          label: `${ref.file.status}  ${path.posix.basename(ref.file.path)}`,
-          description: path.posix.dirname(ref.file.path) === '.' ? '' : path.posix.dirname(ref.file.path),
-          ref,
-        });
-      }
-    }
-    qp.items = items;
-    qp.selectedItems = items.filter((i) => i.ref && preselected.has(`${i.ref.repo.root}\0${i.ref.file.path}`));
-    const updateTitle = () => {
-      const files = qp.selectedItems.flatMap((i) => (i.ref ? [i.ref.file] : []));
-      qp.title = `Rollback — ${files.length} archivo(s): ${describeCounts(files)}`;
-    };
-    updateTitle();
-    let done = false;
-    qp.onDidChangeSelection(updateTitle);
-    qp.onDidAccept(() => {
-      done = true;
-      resolve(qp.selectedItems.flatMap((i) => (i.ref ? [i.ref] : [])));
-      qp.hide();
-    });
-    qp.onDidHide(() => {
-      if (!done) resolve(undefined);
-      qp.dispose();
-    });
-    qp.show();
-  });
-}
 
 async function exists(file: string): Promise<boolean> {
   try {

@@ -953,3 +953,55 @@ button.claude-btn.running {
 .tree-row .track.outgoing {
   color: var(--vscode-charts-green);
 }
+
+/* ------------------------------------------------------------ Rollback Changes */
+
+.rollback {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.rb-toolbar {
+  border-bottom: 1px solid var(--vscode-panel-border, transparent);
+}
+.rb-body {
+  flex: 1;
+  overflow: auto;
+  padding: 4px 0;
+}
+.rb-row {
+  gap: 6px;
+}
+.rb-row input[type='checkbox'] {
+  margin: 0;
+  flex: none;
+}
+.rb-icon {
+  flex: none;
+  opacity: 0.8;
+}
+.rb-strong {
+  font-weight: 600;
+}
+.rb-summary {
+  padding: 6px 12px;
+  color: var(--vscode-textLink-foreground);
+}
+.rb-status-M,
+.rb-status-T {
+  color: var(--vscode-gitDecoration-modifiedResourceForeground);
+}
+.rb-status-A,
+.rb-status-C {
+  color: var(--vscode-gitDecoration-addedResourceForeground);
+}
+.rb-status-D {
+  color: var(--vscode-gitDecoration-deletedResourceForeground);
+  text-decoration: line-through;
+}
+.rb-status-R {
+  color: var(--vscode-gitDecoration-renamedResourceForeground);
+}
+.check.disabled {
+  opacity: 0.6;
+}

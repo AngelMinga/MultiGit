@@ -4,6 +4,7 @@ import { CommitBox } from './commit/CommitBox';
 import { LogApp } from './log/LogApp';
 import { Toolbar } from './toolbar/Toolbar';
 import { PushDialog } from './push/PushDialog';
+import { RollbackDialog } from './rollback/RollbackDialog';
 import { onHostMessage, post } from './vscode';
 
 export function App() {
@@ -31,7 +32,7 @@ export function App() {
           </button>
         </div>
       )}
-      {kind === 'push' ? <PushDialog /> : kind === 'commit' ? <CommitBox /> : kind === 'log' ? <LogApp /> : kind === 'toolbar' ? <Toolbar /> : <p className="muted pad">Cargando…</p>}
+      {kind === 'push' ? <PushDialog /> : kind === 'commit' ? <CommitBox /> : kind === 'log' ? <LogApp /> : kind === 'toolbar' ? <Toolbar /> : kind === 'rollback' ? <RollbackDialog /> : <p className="muted pad">Cargando…</p>}
     </>
   );
 }

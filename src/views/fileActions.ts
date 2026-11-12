@@ -155,7 +155,7 @@ export class FileActions {
       void vscode.window.showInformationMessage(`MultiGit: ${path.posix.basename(t.rel)} no tiene cambios para revertir.`);
       return;
     }
-    await this.changes.rollback([{ repo: t.repo, file }], true);
+    await this.changes.rollback([{ repo: t.repo, file }]);
   }
 
   // ------------------------------------------------------------------ Local History (de VS Code)
