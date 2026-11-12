@@ -166,6 +166,7 @@ npm install
 npm run build          # typecheck + extensión (esbuild) + webviews (React + Vite)
 npm run watch          # extensión en modo watch (y npm run watch:webview)
 npm test               # vitest: parsers, ramas comunes, grafo e integración con git real
+npm run test:e2e       # tests dentro de un VS Code real (descarga VS Code la primera vez)
 npm run package        # genera multigit-x.y.z.vsix
 npm run dev -- <ruta>  # abre una ventana con la extensión en desarrollo
 ```

@@ -697,7 +697,7 @@
           "group": "3_tags@1"
         },
         {
-          "submenu": "multigit.changes.groupBy",
+          "submenu": "multigit.changes.groupByMore",
           "when": "view == multigit.changes",
           "group": "0_group@1"
         },
@@ -1353,6 +1353,24 @@
           "when": "resourceScheme == file && multigit.hasRepos",
           "group": "9_multigit@2"
         }
+      ],
+      "multigit.changes.groupByMore": [
+        {
+          "command": "multigit.changes.toggleGroupByDir",
+          "group": "1@1"
+        },
+        {
+          "command": "multigit.changes.toggleGroupByRepo",
+          "group": "1@2"
+        },
+        {
+          "command": "multigit.changes.toggleGroupByModule",
+          "group": "1@3"
+        },
+        {
+          "command": "multigit.changes.toggleShowIgnored",
+          "group": "2@1"
+        }
       ]
     },
     "configuration": {
@@ -1736,6 +1754,10 @@
       {
         "id": "multigit.file.localHistoryMenu",
         "label": "Local History"
+      },
+      {
+        "id": "multigit.changes.groupByMore",
+        "label": "Group By"
       }
     ]
   },
@@ -1747,21 +1769,26 @@
     "build:webview": "vite build --config webview-ui/vite.config.mts",
     "watch": "node esbuild.mjs --watch",
     "watch:webview": "vite build --watch --config webview-ui/vite.config.mts",
-    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p webview-ui",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p webview-ui && tsc --noEmit -p test-e2e",
     "test": "vitest run",
     "test:watch": "vitest",
     "package": "vsce package --no-dependencies",
-    "vscode:prepublish": "npm run typecheck && node esbuild.mjs --production && npm run build:webview"
+    "vscode:prepublish": "npm run typecheck && node esbuild.mjs --production && npm run build:webview",
+    "test:e2e": "npm run build:dev && node esbuild.e2e.mjs && vscode-test"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
     "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/react-window": "^1.8.8",
     "@types/vscode": "~1.100.0",
     "@vitejs/plugin-react": "^6.3.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^4.1.0",
     "esbuild": "^0.28.2",
+    "mocha": "^12.0.3",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-window": "^1.8.11",

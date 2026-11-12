@@ -4,3 +4,5 @@ dist/
 .DS_Store
 .idea/
 *.iml
+.vscode-test/
+out-e2e/
