@@ -630,18 +630,35 @@ button.icon-btn.on {
   flex: none;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--vscode-descriptionForeground);
+  font-weight: 600;
 }
 .log-date {
   width: 120px;
   flex: none;
   color: var(--vscode-descriptionForeground);
 }
-.log-hash {
-  width: 64px;
+.log-refs {
   flex: none;
-  font-family: var(--vscode-editor-font-family);
-  color: var(--vscode-textPreformat-foreground);
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.log-refs .ref {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+.log-row.dim .log-subject,
+.log-row.dim .log-author,
+.log-row.dim .log-date {
+  opacity: 0.55;
+}
+.log-row.dim .log-author {
+  font-weight: normal;
+}
+.tree-search {
+  margin: 4px 6px;
 }
 .log-row.selected .log-author,
 .log-row.selected .log-date {

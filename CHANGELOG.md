@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.12
+
+- Git Log al estilo IntelliJ: etiquetas a la derecha, autor en negrita, fechas "Hoy 08:51" / "20/10/26, 12:04", commits fuera de la rama actual atenuados y buscador de ramas.
+
 ## 0.0.11
 
 - Changes y Commit dentro del panel MultiGit; Agrupar por Repositorio/Directorio combinables.

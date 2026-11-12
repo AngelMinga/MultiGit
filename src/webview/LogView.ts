@@ -134,6 +134,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         name: r.name,
         colorIndex: r.colorIndex,
         current: b.local.find((l) => l.current)?.name ?? null,
+        head: r.status?.oid ?? null,
         local: b.local.map((l) => l.name),
         remote: b.remote.map((x) => x.full),
       };

@@ -226,7 +226,7 @@ export function LogApp() {
           <span className="muted">Paths</span>
           <input
             value={paths}
-            placeholder="src/hooks, package.json"
+            placeholder="Rutas…"
             onChange={(e) => setPaths(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && apply({ paths: splitPaths(paths) })}
             onBlur={() => paths !== filters.paths.join(', ') && apply({ paths: splitPaths(paths) })}

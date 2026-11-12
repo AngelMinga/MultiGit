@@ -80,6 +80,8 @@ export interface LogRepoInfo {
   colorIndex: number;
   /** Rama actual (o null si HEAD está detached). */
   current: string | null;
+  /** SHA de HEAD (para atenuar los commits que no están en la rama actual). */
+  head: string | null;
   local: string[];
   /** Ramas remotas completas (`origin/develop`). */
   remote: string[];

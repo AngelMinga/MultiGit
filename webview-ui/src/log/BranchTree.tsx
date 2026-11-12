@@ -31,11 +31,12 @@ export function BranchTree(props: {
   const [byRepo, setByRepo] = useState(true);
   const [byDir, setByDir] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['remote']));
+  const [query, setQuery] = useState('');
 
-  const tree = useMemo(
-    () => buildTree(props.repos, props.favorites, byRepo, byDir),
-    [props.repos, props.favorites, byRepo, byDir],
-  );
+  const tree = useMemo(() => {
+    const full = buildTree(props.repos, props.favorites, byRepo, byDir);
+    return query.trim() ? filterTree(full, query.trim().toLowerCase()) : full;
+  }, [props.repos, props.favorites, byRepo, byDir, query]);
 
   const toggle = (key: string) =>
     setCollapsed((prev) => {
@@ -52,7 +53,8 @@ export function BranchTree(props: {
 
   const render = (nodes: Node[], depth: number): ReactElement[] =>
     nodes.flatMap((n) => {
-      const open = !collapsed.has(n.key);
+      // Con búsqueda todo se muestra expandido.
+      const open = query.trim() !== '' || !collapsed.has(n.key);
       const row = (
         <li
           key={n.key}
@@ -86,6 +88,7 @@ export function BranchTree(props: {
           Dir
         </button>
       </div>
+      <input className="tree-search" placeholder="Rama o tag" value={query} onChange={(e) => setQuery(e.target.value)} />
       <ul className="tree">
         <li
           className={`tree-row${props.selected.branch === null ? ' selected' : ''}`}
@@ -202,4 +205,13 @@ function leaves(prefix: string, items: LeafInput[], favorites: string[], byDir: 
 
 function sameIds(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((x) => b.includes(x));
+}
+
+/** Deja solo las ramas que contienen `q` (y las carpetas/repos que las contienen). */
+function filterTree(nodes: Node[], q: string): Node[] {
+  return nodes.flatMap((n) => {
+    if (!n.children) return (n.branch ?? n.label).toLowerCase().includes(q) ? [n] : [];
+    const children = filterTree(n.children, q);
+    return children.length ? [{ ...n, children }] : [];
+  });
 }
