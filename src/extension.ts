@@ -13,6 +13,7 @@ import { ToolbarView } from './views/ToolbarView';
 import { GitContentProvider } from './git/GitContentProvider';
 import { PushPanel } from './webview/PushPanel';
 import { LogView } from './webview/LogView';
+import { FileActions } from './views/fileActions';
 import { showPullDialog } from './views/pullDialog';
 import { ChangesActions } from './views/changesActions';
 import { ChangesTree, filesOf, type ChangeNode, type FileRef } from './views/ChangesTree';
@@ -243,6 +244,47 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     toolbarView,
     vscode.window.registerWebviewViewProvider(ToolbarView.viewId, toolbarView),
+  );
+
+  // ---------------------------------------------------------------- Acciones por archivo (submenú Git)
+  const fileActions = new FileActions(manager, logView, changesActions, changesTree);
+  type FileArg = vscode.Uri | ChangeNode | undefined;
+  context.subscriptions.push(
+    ...(
+      [
+        ['showHistory', (a) => fileActions.showHistory(a)],
+        ['blame', (a) => fileActions.blame(a)],
+        ['showDiff', (a) => fileActions.showDiff(a)],
+        ['compareRevision', (a) => fileActions.compareWithRevision(a)],
+        ['compareRef', (a) => fileActions.compareWithRef(a)],
+        ['currentRevision', (a) => fileActions.showCurrentRevision(a)],
+        ['add', (a) => fileActions.add(a)],
+        ['rollback', (a) => fileActions.rollback(a)],
+        ['localHistory', (a) => fileActions.localHistory('show', a)],
+        ['projectHistory', () => fileActions.localHistory('project')],
+        ['putLabel', (a) => fileActions.localHistory('label', a)],
+        [
+          'commitFile',
+          async (a) => {
+            const t = fileActions.resolve(a);
+            if (!t) return;
+            await changesTree.refresh();
+            const ref = changesTree.checkedFiles.concat(changesTree.trackedFiles).find((r) => r.repo === t.repo && r.file.path === t.rel)
+              ?? (await t.repo.git.getChanges()).map((file) => ({ repo: t.repo, file })).find((r) => r.file.path === t.rel);
+            if (!ref) {
+              void vscode.window.showInformationMessage('MultiGit: el archivo no tiene cambios para commitear.');
+              return;
+            }
+            await changesActions.commitOnly([ref]);
+          },
+        ],
+        ['push', (a) => vscode.commands.executeCommand('multigit.push', fileActions.resolve(a)?.repo)],
+        ['pull', (a) => vscode.commands.executeCommand('multigit.pull', fileActions.resolve(a)?.repo)],
+        ['branches', (a) => vscode.commands.executeCommand('multigit.repoBranches', fileActions.resolve(a)?.repo)],
+      ] as Array<[string, (arg: FileArg) => unknown]>
+    ).map(([id, run]) =>
+      vscode.commands.registerCommand(`multigit.file.${id}`, (arg?: FileArg) => void popup.safely(async () => run(arg))),
+    ),
   );
 
   log.info('MultiGit activado.');

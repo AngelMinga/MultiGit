@@ -61,6 +61,20 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
     );
   }
 
+  /** Archivo del "Show History": al elegir un commit se abre el diff de ese archivo. */
+  private historyFile: { repoId: string; path: string } | undefined;
+
+  /** Show History de un archivo: log de ese archivo en HEAD (siguiendo renombres). */
+  async showFileHistory(repoId: string, relPath: string): Promise<void> {
+    this.historyFile = { repoId, path: relPath };
+    this.filters = { ...EMPTY_FILTERS, branch: 'HEAD', repoIds: [repoId], paths: [relPath], follow: true };
+    await vscode.commands.executeCommand(`${LogView.viewId}.focus`);
+    if (this.ready) {
+      this.post({ type: 'log/filters', payload: this.filters });
+      await this.reload();
+    }
+  }
+
   /** Muestra el log filtrado por una rama (desde la vista Ramas o el popup). */
   async showBranch(branch: string | null, repoIds: string[] = []): Promise<void> {
     this.filters = { ...this.filters, branch, repoIds };
@@ -83,6 +97,16 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
           break;
         case 'log/setFilters':
           this.filters = message.payload;
+          // Si el usuario cambia el archivo o el repo, deja de ser el historial de un archivo.
+          if (
+            this.historyFile &&
+            (this.filters.paths.length !== 1 ||
+              this.filters.paths[0] !== this.historyFile.path ||
+              !this.filters.repoIds.includes(this.historyFile.repoId))
+          ) {
+            this.historyFile = undefined;
+            this.filters = { ...this.filters, follow: false };
+          }
           await this.reload();
           break;
         case 'log/loadMore':
@@ -93,6 +117,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
           break;
         case 'log/select':
           await this.sendDetails(message.payload.repoId, message.payload.hash);
+          await this.openHistoryDiff(message.payload.repoId, message.payload.hash);
           break;
         case 'log/openDiff':
           await openCommitFileDiff(message.payload.repoId, message.payload.hash, message.payload.file);
@@ -243,6 +268,21 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
     if (!repo) return;
     const [details, files] = await Promise.all([repo.git.commitDetails(hash), repo.git.commitFiles(hash)]);
     this.post({ type: 'log/details', payload: { repoId, hash, ...details, files } });
+  }
+
+  /** En "Show History", abre el diff del archivo en el commit elegido (como el panel derecho de IntelliJ). */
+  private async openHistoryDiff(repoId: string, hash: string): Promise<void> {
+    const target = this.historyFile;
+    const repo = this.repoById(repoId);
+    if (!target || target.repoId !== repoId || !repo) return;
+    const files = await repo.git.commitFiles(hash);
+    const name = target.path.split('/').pop();
+    // Por renombres, el archivo pudo tener otra ruta en ese commit: misma ruta, o mismo nombre, o el único.
+    const file =
+      files.find((f) => f.path === target.path) ??
+      files.find((f) => f.path.split('/').pop() === name) ??
+      (files.length === 1 ? files[0] : undefined);
+    if (file) await openCommitFileDiff(repoId, hash, file);
   }
 
   private computeSignature(): string {

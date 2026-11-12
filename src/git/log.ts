@@ -85,6 +85,8 @@ export interface LogFilters {
   paths: string[];
   /** Repos a incluir (ids); vacío = todos. */
   repoIds: string[];
+  /** Historial de UN archivo: seguir sus renombres (`--follow`). */
+  follow?: boolean;
 }
 
 export const EMPTY_FILTERS: LogFilters = {
@@ -127,6 +129,7 @@ export function logFilterArgs(
     if (!filters.matchCase) args.push('--regexp-ignore-case');
     args.push(filters.regex ? '--extended-regexp' : '--fixed-strings');
   }
+  if (filters.follow && filters.paths.length === 1) args.push('--follow');
   if (filters.since) args.push(`--since=${filters.since} 00:00`);
   if (filters.until) args.push(`--until=${filters.until} 23:59:59`);
   args.push(...refs);

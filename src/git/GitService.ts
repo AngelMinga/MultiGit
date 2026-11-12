@@ -343,6 +343,18 @@ export class GitService {
     return parseLogPage(out);
   }
 
+  /** Commits que tocaron un archivo (siguiendo renombres), del más nuevo al más viejo. */
+  async fileHistory(relPath: string, max = 300): Promise<CommitInfo[]> {
+    const out = await this.exec(['log', `--max-count=${max}`, '--follow', `--format=${LOG_FORMAT}`, 'HEAD', '--', relPath]);
+    return parseLog(out);
+  }
+
+  /** Tags, del más reciente al más antiguo. */
+  async listTags(): Promise<string[]> {
+    const out = await this.exec(['tag', '--list', '--sort=-creatordate']);
+    return out.split('\n').map((t) => t.trim()).filter(Boolean);
+  }
+
   /** Un commit concreto en el formato del log (o `null` si no existe en este repo). */
   async logCommit(ref: string): Promise<LogCommit | null> {
     if (!(await this.revisionExists(ref))) return null;

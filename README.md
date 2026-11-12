@@ -47,6 +47,13 @@ abre el popup de ramas, como el de IntelliJ:
 - Por rama: Checkout, New Branch from…, Checkout and Rebase, Compare, Show in Git Log, Rebase,
   Merge, New Worktree, Update, Push…, Rename… (F2) y Delete.
 
+### Historial y acciones por archivo
+
+Clic derecho en un archivo (Explorer, editor o Changes) → **Git (MultiGit)**: Commit File…, Add,
+Annotate with Git Blame, Show Diff, Compare with Revision…, Compare with Branch or Tag…,
+**Show History** (Git Log de ese archivo; al elegir un commit se abre su diff), Show Current
+Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (historial local de VS Code).
+
 ### Push y Pull
 
 - **Push Commits**: repos con checkbox y destino `rama → origin : rama` (**New** si la rama no

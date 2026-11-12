@@ -126,4 +126,19 @@ describe('commit / rollback (git real)', () => {
 
     expect(await theme.resolveGitPath('info/exclude')).toBe(path.join(theme.root, '.git', 'info', 'exclude'));
   });
+
+  it('historial de un archivo siguiendo renombres, y tags', async () => {
+    write(theme, 'historia.js', 'v1\n');
+    await theme.addPaths(['historia.js']);
+    await theme.commitPaths('feat: crear historia', ['historia.js'], false);
+    write(theme, 'historia.js', 'v2\n');
+    await theme.commitPaths('fix: cambiar historia', ['historia.js'], false);
+    await theme.exec(['mv', 'historia.js', 'renombrado.js']);
+    await theme.exec(['commit', '-q', '-m', 'refactor: renombrar']);
+    await theme.createTag('v9.0', 'HEAD');
+
+    const history = await theme.fileHistory('renombrado.js');
+    expect(history.map((c) => c.subject)).toEqual(['refactor: renombrar', 'fix: cambiar historia', 'feat: crear historia']);
+    expect(await theme.listTags()).toContain('v9.0');
+  });
 });

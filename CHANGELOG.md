@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.2
+
+- Submenú **Git (MultiGit)** en el Explorer, el editor y Changes, como IntelliJ: Commit File…, Add,
+  Annotate with Git Blame, Show Diff, Compare with Revision…, Compare with Branch or Tag…,
+  **Show History**, Show Current Revision, Rollback…, Push…, Pull… y Branches….
+- **Show History**: Git Log del archivo (en HEAD, siguiendo renombres); al elegir un commit se abre
+  el diff de ese archivo.
+- Submenú **Local History** (el historial local de VS Code): Show History…, Show Project History…
+  y Put Label….
+
 ## 0.2.1
 
 - Clic derecho en Changes como IntelliJ: Commit File/Directory…, Rollback… (⌥⌘Z), Show Diff (⌘D),

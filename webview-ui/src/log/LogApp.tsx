@@ -16,6 +16,7 @@ const EMPTY: LogFilters = {
   until: null,
   paths: [],
   repoIds: [],
+  follow: false,
 };
 
 type DatePreset = 'all' | 'today' | '7' | '30' | 'custom';
