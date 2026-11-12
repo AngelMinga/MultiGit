@@ -27,11 +27,13 @@ con varios repos independientes (por ejemplo, micro-frontends) que suelen estar 
 - **Pull…** (botón ⬇ de la vista, menú contextual de un repo o *Pull…* del popup): QuickPick
   encadenado Repositorio (o Todos) → Remote → Rama (por defecto el upstream) → Merge / Rebase /
   `--ff-only`. Si quedan conflictos, *Resolver conflictos* abre el merge editor de VS Code.
-- Contenedor **Commit (MultiGit)** en la Activity Bar, como la ventana Commit de IntelliJ:
-  - Vista **Changes** con checkboxes: *Changes* y *Unversioned Files*, agrupado por
-    repositorio (con su rama) → directorio → archivo, o por directorio. Clic → diff contra HEAD.
-  - Caja **Commit**: mensaje, *Amend last commit*, *Commit* y *Commit and Push…* (abre el diálogo
-    de Push). Hace commit solo de los archivos marcados, en cada repo, con el mismo mensaje.
+- Todo en el mismo panel MultiGit, como la ventana Commit de IntelliJ: **Changes**, **Commit**,
+  **Repositorios** y **Ramas**.
+  - **Changes** con checkboxes: *Changes* y *Unversioned Files*. *Agrupar por* Repositorio y/o
+    Directorio (combinables, como IntelliJ); sin carpetas, la ruta va en gris al lado del archivo.
+    Clic → diff contra HEAD.
+  - **Commit**: mensaje, *Amend last commit*, contador de archivos marcados, *Commit* y
+    *Commit and Push…* (abre el diálogo de Push). Commit solo de los archivos marcados, en cada repo.
   - **Rollback…** con selección de archivos, contador y confirmación que lista lo que se pierde;
     opción de borrar del disco los archivos añadidos. **Shelve / Unshelve** con nombre (git stash).
 - Toda operación multi-repo hace un *preflight* (si un repo lo impide no se toca ninguno), muestra

@@ -435,3 +435,14 @@ body:has(.commit) {
 .commit-buttons .primary {
   flex: 1;
 }
+
+.commit-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.commit-counter {
+  color: var(--vscode-textLink-foreground);
+}

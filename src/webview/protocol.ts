@@ -64,6 +64,8 @@ export interface CommitState {
   /** Archivos marcados en la vista Changes, por repo. */
   repos: Array<{ name: string; colorIndex: number; count: number }>;
   total: number;
+  /** "3 modificado(s), 1 añadido(s)" de los archivos marcados. */
+  summary: string;
   busy: boolean;
 }
 

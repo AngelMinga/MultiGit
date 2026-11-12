@@ -6,7 +6,7 @@ import { onHostMessage, post } from '../vscode';
 const DRAFT_KEY = 'multigit.commitDraft';
 
 export function CommitBox() {
-  const [state, setState] = useState<CommitState>({ repos: [], total: 0, busy: false });
+  const [state, setState] = useState<CommitState>({ repos: [], total: 0, summary: '', busy: false });
   const [message, setMessage] = useState(() => readDraft());
   const [amend, setAmend] = useState(false);
   const textarea = useRef<HTMLTextAreaElement>(null);
@@ -47,6 +47,7 @@ export function CommitBox() {
           }
         }}
       />
+      <div className="commit-options">
       <label className="check">
         <input
           type="checkbox"
@@ -59,6 +60,8 @@ export function CommitBox() {
         />
         <span>Amend last commit</span>
       </label>
+        {state.total > 0 && <span className="small commit-counter">{state.summary}</span>}
+      </div>
       <div className="commit-summary small muted">
         {state.total === 0
           ? 'Marca archivos en la vista Changes.'

@@ -101,7 +101,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   // ---------------------------------------------------------------- Changes + Commit (Fase 5)
-  const changesTree = new ChangesTree(manager);
+  const changesTree = new ChangesTree(manager, context.globalState);
   const changesView = vscode.window.createTreeView('multigit.changes', {
     treeDataProvider: changesTree,
     manageCheckboxStateManually: true,
@@ -137,8 +137,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     changesView.onDidChangeCheckboxState((e) => changesTree.onCheckboxChange(e)),
     vscode.commands.registerCommand('multigit.commitFocus', () => commitView.focus()),
     vscode.commands.registerCommand('multigit.changes.refresh', () => changesTree.refresh()),
-    vscode.commands.registerCommand('multigit.changes.groupByRepo', () => changesTree.setGroupBy('repo')),
-    vscode.commands.registerCommand('multigit.changes.groupByDirectory', () => changesTree.setGroupBy('directory')),
+    vscode.commands.registerCommand('multigit.changes.toggleGroupByRepo', () => changesTree.toggleGrouping('repo')),
+    vscode.commands.registerCommand('multigit.changes.toggleGroupByDir', () => changesTree.toggleGrouping('directory')),
     vscode.commands.registerCommand('multigit.changes.rollback', (node?: ChangeNode) =>
       changesActions.rollback(node ? filesOf(node) : undefined, !!node),
     ),
@@ -155,7 +155,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   log.info('MultiGit activado.');
-  void revealBranchesViewOnce(context, log);
+  void revealNewViewsOnce(context, log);
   try {
     await manager.initialize();
   } catch (error) {
@@ -190,20 +190,28 @@ function firstLine(text: string): string {
 }
 
 /**
- * VS Code recuerda qué vistas tenía visibles el contenedor antes de que existiera "Ramas" y puede
- * dejarla oculta. Enfocarla la vuelve visible; se hace una sola vez y luego el usuario decide.
+ * VS Code recuerda qué vistas tenía visibles el contenedor MultiGit y deja ocultas las que se
+ * agregan en versiones nuevas. Enfocar una vista la vuelve visible; se hace una sola vez por vista
+ * y luego el usuario decide (puede ocultarlas o moverlas).
  */
-async function revealBranchesViewOnce(context: vscode.ExtensionContext, log: vscode.LogOutputChannel): Promise<void> {
-  const key = 'multigit.branchesViewRevealed';
-  if (context.globalState.get<boolean>(key)) return;
-  try {
-    await vscode.commands.executeCommand('multigit.branches.focus');
-    await vscode.commands.executeCommand('multigit.repositories.focus');
-    await context.globalState.update(key, true);
-    log.info('Vista Ramas mostrada.');
-  } catch (error) {
-    log.error('No se pudo mostrar la vista Ramas', error);
+async function revealNewViewsOnce(context: vscode.ExtensionContext, log: vscode.LogOutputChannel): Promise<void> {
+  // 'multigit.branchesViewRevealed' es la clave de la 0.0.6 (vista Ramas).
+  const views = [
+    { id: 'multigit.branches', key: 'multigit.branchesViewRevealed' },
+    { id: 'multigit.changes', key: 'multigit.viewRevealed.changes' },
+    { id: 'multigit.commit', key: 'multigit.viewRevealed.commit' },
+  ].filter((v) => !context.globalState.get<boolean>(v.key));
+  if (views.length === 0) return;
+  for (const view of views) {
+    try {
+      await vscode.commands.executeCommand(`${view.id}.focus`);
+      await context.globalState.update(view.key, true);
+      log.info(`Vista ${view.id} mostrada.`);
+    } catch (error) {
+      log.error(`No se pudo mostrar la vista ${view.id}`, error);
+    }
   }
+  await vscode.commands.executeCommand('multigit.changes.focus').then(undefined, () => undefined);
 }
 
 export function deactivate(): void {

@@ -1,6 +1,9 @@
-// Vista "Changes" con checkboxes, como la ventana Commit de IntelliJ:
-//   Changes / Unversioned Files → Repositorio (⎇ rama) → Directorio → Archivo   (agrupar por repo)
-//   Changes / Unversioned Files → Directorio → Archivo                          (agrupar por directorio)
+// Vista "Changes" con checkboxes, como la ventana Commit de IntelliJ.
+// "Agrupar por" tiene dos opciones independientes (como IntelliJ):
+//   Repositorio ✓, Directorio ✗ → Changes → mfcomponents (⎇ rama) → archivo  apps/mfcomponents/src/hooks
+//   Repositorio ✓, Directorio ✓ → Changes → mfcomponents → src/hooks → archivo
+//   Repositorio ✗, Directorio ✓ → Changes → apps/mfcomponents/src/hooks → archivo  mfcomponents
+//   ninguna                     → Changes → archivo  apps/mfcomponents/src/hooks
 // Los cambios versionados empiezan marcados y los sin versionar desmarcados.
 import * as path from 'node:path';
 import * as vscode from 'vscode';
@@ -9,7 +12,12 @@ import { STATUS_LABEL, type StatusFile } from '../git/changes';
 import { describeHead } from '../git/parsers';
 import type { Repo, RepoManager } from '../git/RepoManager';
 
-export type ChangesGroupBy = 'repo' | 'directory';
+export interface ChangesGrouping {
+  repo: boolean;
+  directory: boolean;
+}
+
+const GROUPING_KEY = 'multigit.changesGrouping';
 type Section = 'changes' | 'unversioned';
 
 export interface FileRef {
@@ -35,11 +43,15 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
   private files: FileRef[] = [];
   /** Marcas explícitas del usuario; sin entrada = valor por defecto de su sección. */
   private readonly overrides = new Map<string, boolean>();
-  private groupBy: ChangesGroupBy = 'repo';
+  private grouping: ChangesGrouping;
   private loading: Promise<void> | undefined;
 
-  constructor(private readonly manager: RepoManager) {
-    void vscode.commands.executeCommand('setContext', 'multigit.changesGroupBy', this.groupBy);
+  constructor(
+    private readonly manager: RepoManager,
+    private readonly memento: vscode.Memento,
+  ) {
+    this.grouping = memento.get<ChangesGrouping>(GROUPING_KEY) ?? { repo: true, directory: false };
+    this.publishGrouping();
   }
 
   // ------------------------------------------------------------------ datos
@@ -100,10 +112,21 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
     this.checkedEmitter.fire();
   }
 
-  setGroupBy(groupBy: ChangesGroupBy): void {
-    this.groupBy = groupBy;
-    void vscode.commands.executeCommand('setContext', 'multigit.changesGroupBy', groupBy);
+  /** Activa o desactiva una de las opciones de "Agrupar por". */
+  toggleGrouping(option: keyof ChangesGrouping): void {
+    this.grouping = { ...this.grouping, [option]: !this.grouping[option] };
+    void this.memento.update(GROUPING_KEY, this.grouping);
+    this.publishGrouping();
     this.changeEmitter.fire(undefined);
+  }
+
+  private publishGrouping(): void {
+    void vscode.commands.executeCommand('setContext', 'multigit.changesGroupByRepo', this.grouping.repo);
+    void vscode.commands.executeCommand('setContext', 'multigit.changesGroupByDir', this.grouping.directory);
+  }
+
+  private get modeId(): string {
+    return `${this.grouping.repo ? 'r' : ''}${this.grouping.directory ? 'd' : ''}`;
   }
 
   // ------------------------------------------------------------------ árbol
@@ -120,14 +143,20 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
 
     switch (node.kind) {
       case 'section':
-        if (this.groupBy === 'repo') {
+        if (this.grouping.repo) {
           return this.manager.all
             .map((repo) => ({ kind: 'repo' as const, section: node.section, repo, files: node.files.filter((f) => f.repo === repo) }))
             .filter((n) => n.files.length > 0);
         }
-        return this.dirNodes(node.section, node.files, (ref) => this.relativeToWorkspace(ref), 'ws');
+        if (this.grouping.directory) {
+          return this.dirNodes(node.section, node.files, (ref) => this.relativeToWorkspace(ref), 'ws');
+        }
+        return this.flatFiles(node.section, node.files);
       case 'repo':
-        return this.dirNodes(node.section, node.files, (ref) => path.posix.dirname(ref.file.path), node.repo.root);
+        if (this.grouping.directory) {
+          return this.dirNodes(node.section, node.files, (ref) => path.posix.dirname(ref.file.path), node.repo.root);
+        }
+        return this.flatFiles(node.section, node.files);
       case 'dir':
         return sortFiles(node.files).map((ref) => ({ kind: 'file', section: node.section, ref }));
       case 'file':
@@ -140,7 +169,7 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
       case 'section': {
         const label = node.section === 'changes' ? 'Changes' : 'Unversioned Files';
         const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.Expanded);
-        item.id = `section/${node.section}/${this.groupBy}`;
+        item.id = `section/${node.section}/${this.modeId}`;
         item.description = `${node.files.length} archivo(s)`;
         item.checkboxState = this.containerState(node.files);
         item.contextValue = 'multigit.changes.section';
@@ -168,10 +197,12 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
       case 'file': {
         const { repo, file } = node.ref;
         const item = new vscode.TreeItem(path.posix.basename(file.path), vscode.TreeItemCollapsibleState.None);
-        item.id = `file/${node.section}/${this.groupBy}/${keyOf(node.ref)}`;
+        item.id = `file/${node.section}/${this.modeId}/${keyOf(node.ref)}`;
         // resourceUri: ícono del tema de archivos y color/letra de la extensión git integrada.
         item.resourceUri = vscode.Uri.file(path.join(repo.root, file.path));
-        const parts = [this.groupBy === 'directory' ? repo.name : '', file.origPath ? `← ${file.origPath}` : ''];
+        // Sin carpetas en el árbol, la ruta va en gris al lado (como IntelliJ); sin repos, el repo.
+        const where = this.grouping.directory ? (this.grouping.repo ? '' : repo.name) : this.relativeToWorkspace(node.ref);
+        const parts = [where, file.origPath ? `← ${file.origPath}` : ''];
         item.description = parts.filter(Boolean).join('  ');
         item.tooltip = `${STATUS_LABEL[file.status]}: ${repo.name}/${file.path}`;
         item.checkboxState = this.isChecked(node.ref)
@@ -210,11 +241,18 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
       if (dir === '.' || dir === '') {
         nodes.push(...sortFiles(list).map((ref) => ({ kind: 'file' as const, section, ref })));
       } else {
-        nodes.push({ kind: 'dir', section, id: `dir/${section}/${this.groupBy}/${scope}/${dir}`, label: dir, files: list });
+        nodes.push({ kind: 'dir', section, id: `dir/${section}/${this.modeId}/${scope}/${dir}`, label: dir, files: list });
       }
     }
     // Carpetas primero, luego archivos sueltos (como el explorador).
     return nodes.sort((a, b) => Number(a.kind === 'file') - Number(b.kind === 'file'));
+  }
+
+  /** Archivos sin carpetas, ordenados por ruta. */
+  private flatFiles(section: Section, files: readonly FileRef[]): ChangeNode[] {
+    return [...files]
+      .sort((a, b) => a.file.path.localeCompare(b.file.path))
+      .map((ref) => ({ kind: 'file' as const, section, ref }));
   }
 
   private relativeToWorkspace(ref: FileRef): string {

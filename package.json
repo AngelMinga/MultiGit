@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "Manejo de Git multi-repositorio al estilo IntelliJ IDEA para workspaces con varios repos.",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -37,30 +37,11 @@
           "id": "multigit",
           "title": "MultiGit",
           "icon": "media/multigit.svg"
-        },
-        {
-          "id": "multigit-commit",
-          "title": "Commit (MultiGit)",
-          "icon": "media/multigit-commit.svg"
         }
       ]
     },
     "views": {
       "multigit": [
-        {
-          "id": "multigit.repositories",
-          "name": "Repositorios",
-          "icon": "media/multigit.svg",
-          "visibility": "visible"
-        },
-        {
-          "id": "multigit.branches",
-          "name": "Ramas",
-          "icon": "$(git-branch)",
-          "visibility": "visible"
-        }
-      ],
-      "multigit-commit": [
         {
           "id": "multigit.changes",
           "name": "Changes",
@@ -72,6 +53,18 @@
           "name": "Commit",
           "type": "webview",
           "icon": "media/multigit-commit.svg",
+          "visibility": "visible"
+        },
+        {
+          "id": "multigit.repositories",
+          "name": "Repositorios",
+          "icon": "media/multigit.svg",
+          "visibility": "visible"
+        },
+        {
+          "id": "multigit.branches",
+          "name": "Ramas",
+          "icon": "$(git-branch)",
           "visibility": "visible"
         }
       ]
@@ -183,18 +176,6 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "multigit.changes.groupByRepo",
-        "title": "Agrupar por repositorio",
-        "category": "MultiGit",
-        "icon": "$(list-tree)"
-      },
-      {
-        "command": "multigit.changes.groupByDirectory",
-        "title": "Agrupar por directorio",
-        "category": "MultiGit",
-        "icon": "$(folder)"
-      },
-      {
         "command": "multigit.changes.rollback",
         "title": "Rollback…",
         "category": "MultiGit",
@@ -223,6 +204,18 @@
         "title": "Abrir archivo",
         "category": "MultiGit",
         "icon": "$(go-to-file)"
+      },
+      {
+        "command": "multigit.changes.toggleGroupByRepo",
+        "title": "Repositorio",
+        "category": "MultiGit",
+        "toggled": "multigit.changesGroupByRepo"
+      },
+      {
+        "command": "multigit.changes.toggleGroupByDir",
+        "title": "Directorio",
+        "category": "MultiGit",
+        "toggled": "multigit.changesGroupByDir"
       }
     ],
     "menus": {
@@ -283,16 +276,6 @@
           "group": "navigation@1"
         },
         {
-          "command": "multigit.changes.groupByDirectory",
-          "when": "view == multigit.changes && multigit.changesGroupBy == repo",
-          "group": "navigation@5"
-        },
-        {
-          "command": "multigit.changes.groupByRepo",
-          "when": "view == multigit.changes && multigit.changesGroupBy == directory",
-          "group": "navigation@5"
-        },
-        {
           "command": "multigit.changes.refresh",
           "when": "view == multigit.changes",
           "group": "navigation@9"
@@ -311,6 +294,11 @@
           "command": "multigit.commitFocus",
           "when": "view == multigit.repositories",
           "group": "z_log@-1"
+        },
+        {
+          "submenu": "multigit.changes.groupBy",
+          "when": "view == multigit.changes",
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [
@@ -404,12 +392,22 @@
           "when": "false"
         },
         {
-          "command": "multigit.changes.groupByRepo",
+          "command": "multigit.changes.toggleGroupByRepo",
           "when": "false"
         },
         {
-          "command": "multigit.changes.groupByDirectory",
+          "command": "multigit.changes.toggleGroupByDir",
           "when": "false"
+        }
+      ],
+      "multigit.changes.groupBy": [
+        {
+          "command": "multigit.changes.toggleGroupByRepo",
+          "group": "1@1"
+        },
+        {
+          "command": "multigit.changes.toggleGroupByDir",
+          "group": "1@2"
         }
       ]
     },
@@ -575,6 +573,13 @@
         "command": "multigit.branchesTree.rename",
         "key": "f2",
         "when": "focusedView == multigit.branches"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "multigit.changes.groupBy",
+        "label": "Agrupar por",
+        "icon": "$(list-tree)"
       }
     ]
   },

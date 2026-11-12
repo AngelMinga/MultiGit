@@ -1,6 +1,7 @@
 // Caja de commit (WebviewView debajo de Changes): mensaje, Amend, Commit y Commit and Push….
 import * as vscode from 'vscode';
 import type { Repo, RepoManager } from '../git/RepoManager';
+import { describeCounts } from '../git/changes';
 import type { CommitState, WebviewMessage } from '../webview/protocol';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from '../webview/webviewHtml';
 import type { ChangesActions } from './changesActions';
@@ -79,7 +80,7 @@ export class CommitView implements vscode.WebviewViewProvider, vscode.Disposable
     const repos = this.manager.all
       .map((r) => ({ name: r.name, colorIndex: r.colorIndex, count: checked.filter((c) => c.repo === r).length }))
       .filter((r) => r.count > 0);
-    const state: CommitState = { repos, total: checked.length, busy: this.busy };
+    const state: CommitState = { repos, total: checked.length, summary: describeCounts(checked.map((c) => c.file)), busy: this.busy };
     void postToWebview(this.view.webview, { type: 'commit/state', payload: state });
   }
 
