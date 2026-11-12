@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.2
+
+- Menús, comandos y ajustes en **inglés y español** según el idioma de VS Code (`package.nls`).
+- Corrige el submenú **Group By** del menú ⋯ de Changes, que VS Code descartaba por estar repetido.
+- Menos consumo en repos grandes: los repos que no abrió la extensión Git ya no se vigilan con
+  `**/*`, solo `.git` y los archivos que VS Code guarda, crea, borra o renombra.
+- Interno: `extension.ts` dividido por área, tests dentro de VS Code real (e2e) y CI en Linux,
+  macOS y Windows.
+
 ## 0.3.1
 
 - Corrige la vista Repositorios: el repo en una rama distinta a la mayoría (`≠`) no se mostraba.
