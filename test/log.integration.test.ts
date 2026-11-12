@@ -33,6 +33,9 @@ function commitAt(root: string, file: string, author: string, email: string, t: 
 beforeAll(() => {
   process.env.GIT_CONFIG_GLOBAL = devNull;
   process.env.GIT_CONFIG_NOSYSTEM = '1';
+  // Identidad por defecto para los comandos que no la pasan (p. ej. git tag -a).
+  process.env.GIT_AUTHOR_NAME = process.env.GIT_COMMITTER_NAME = 'Test';
+  process.env.GIT_AUTHOR_EMAIL = process.env.GIT_COMMITTER_EMAIL = 'test@example.com';
   base = mkdtempSync(path.join(tmpdir(), 'multigit-log-'));
   const me = ['Angel', 'afminga@example.com'] as const;
   const other = ['Otra', 'otra@example.com'] as const;
