@@ -2,15 +2,79 @@
 // Este archivo lo importan ambos lados (`import type` desde webview-ui), así que no debe
 // importar `vscode` ni módulos de Node.
 
-/** Paneles webview que existen (se irán agregando: push en la Fase 3, log en la Fase 6). */
-export type WebviewKind = 'placeholder';
+/** Paneles webview que existen (el log llega en la Fase 6). */
+export type WebviewKind = 'push';
+
+// ------------------------------------------------------------------ Push
+
+export type PushTagsMode = 'none' | 'all' | 'follow';
+
+export interface PushCommit {
+  hash: string;
+  shortHash: string;
+  subject: string;
+  author: string;
+  /** ISO 8601. */
+  date: string;
+  refs: string[];
+}
+
+export interface PushFile {
+  status: string;
+  path: string;
+  oldPath?: string;
+}
+
+export type PushRowState = 'idle' | 'running' | 'ok' | 'failed' | 'skipped' | 'pending';
+
+export interface PushRepoView {
+  /** Ruta raíz del repo (identificador estable). */
+  id: string;
+  name: string;
+  colorIndex: number;
+  /** Rama local a subir; `null` si HEAD está detached. */
+  branch: string | null;
+  remote: string | null;
+  remoteBranch: string | null;
+  remotes: string[];
+  /** La rama destino no existe en el remote. */
+  isNew: boolean;
+  commits: PushCommit[];
+  /** Hay más commits de los que se listan. */
+  truncated: boolean;
+  checked: boolean;
+  /** Motivo por el que no se puede subir (detached, sin remotes…). */
+  skipReason?: string;
+  state: PushRowState;
+  message?: string;
+  /** El remote rechazó el push (no fast-forward): se puede ofrecer "Pull y reintentar". */
+  rejected?: boolean;
+}
+
+export interface PushState {
+  repos: PushRepoView[];
+  busy: boolean;
+  /** Ya se intentó un push en esta sesión del diálogo. */
+  attempted: boolean;
+}
+
+// ------------------------------------------------------------------ mensajes
 
 /** Host → webview. */
 export type HostMessage =
   | { type: 'init'; payload: { kind: WebviewKind } }
-  | { type: 'error'; payload: { message: string } };
+  | { type: 'error'; payload: { message: string } }
+  | { type: 'push/state'; payload: PushState }
+  | { type: 'push/files'; payload: { repoId: string; hash: string; files: PushFile[] } };
 
 /** Webview → host. */
 export type WebviewMessage =
   | { type: 'ready'; payload: Record<string, never> }
-  | { type: 'log'; payload: { level: 'info' | 'warn' | 'error'; message: string } };
+  | { type: 'log'; payload: { level: 'info' | 'warn' | 'error'; message: string } }
+  | { type: 'push/toggle'; payload: { repoIds: string[]; checked: boolean } }
+  | { type: 'push/setTarget'; payload: { repoIds: string[]; remote?: string; branch?: string } }
+  | { type: 'push/selectCommit'; payload: { repoId: string; hash: string } }
+  | { type: 'push/openDiff'; payload: { repoId: string; hash: string; file: PushFile } }
+  | { type: 'push/run'; payload: { repoIds: string[]; tags: PushTagsMode; force: boolean } }
+  | { type: 'push/pullAndRetry'; payload: { tags: PushTagsMode } }
+  | { type: 'push/close'; payload: Record<string, never> };

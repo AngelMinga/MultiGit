@@ -62,3 +62,8 @@ export function firstLine(text: string): string {
   const line = text.split('\n').map((l) => l.trim()).find((l) => l.length > 0) ?? text;
   return line.replace(/^(error|fatal|hint): /, '');
 }
+
+/** El remote rechazó el push porque tiene commits que no están en local (o el lease no coincide). */
+export function isRejection(stderr: string): boolean {
+  return /\[rejected\]|non-fast-forward|fetch first|stale info/i.test(stderr);
+}

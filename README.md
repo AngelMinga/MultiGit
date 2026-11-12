@@ -3,7 +3,7 @@
 Manejo de Git **multi-repositorio** al estilo IntelliJ IDEA para VS Code: pensado para workspaces
 con varios repos independientes (por ejemplo, micro-frontends) que suelen estar en la misma rama.
 
-> Estado: en desarrollo (Fase 2: popup de ramas). Ver [PLAN.md](PLAN.md) para la hoja de ruta.
+> Estado: en desarrollo (Fase 3: diálogo de Push). Ver [PLAN.md](PLAN.md) para la hoja de ruta.
 
 ## Qué hace hoy
 
@@ -19,6 +19,11 @@ con varios repos independientes (por ejemplo, micro-frontends) que suelen estar 
     New Worktree, Update, Push…, Rename… (F2) y Delete.
 - Vista **Ramas**: árbol Local / Remote (como el panel de ramas del Git Log de IntelliJ), agrupado
   por repositorio o por rama (`n/9` repos donde existe). Clic en una rama → sus acciones; F2 renombra.
+- Diálogo **Push Commits** (botón ⬆ de la vista, *Push…* del popup o *MultiGit: Push Commits…*):
+  repos con checkbox y destino `rama → origin : rama` (etiqueta **New** si no existe en el remote),
+  commits por subir y sus archivos (doble clic → diff), *Edit all targets*, *Push tags*
+  (Current Branch / All), *Force push (with lease)* con confirmación y *Pull y reintentar* si el
+  remote rechaza el push.
 - Toda operación multi-repo hace un *preflight* (si un repo lo impide no se toca ninguno), muestra
   el progreso repo por repo y, si algo falla, se detiene con un resumen ✅ / ❌ / ⏭.
 - Detecta los repos con la API de la extensión integrada `vscode.git` y, además, escaneando las

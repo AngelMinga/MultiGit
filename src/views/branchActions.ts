@@ -34,6 +34,7 @@ export class BranchActions {
   constructor(
     private readonly manager: RepoManager,
     private readonly compareView: CompareView,
+    private readonly openPush: (scope: Scope, branch?: string) => Promise<void>,
   ) {}
 
   // ------------------------------------------------------------------ acciones generales
@@ -119,72 +120,9 @@ export class BranchActions {
     });
   }
 
-  /** Push… de la rama actual (o de `branch`) en cada repo. La Fase 3 lo reemplaza por el diálogo. */
+  /** Push…: abre el diálogo Push Commits para la rama actual (o `branch`) de cada repo. */
   async push(scope: Scope, branch?: string): Promise<void> {
-    interface Plan {
-      branch: string;
-      remote: string;
-      remoteBranch: string;
-      isNew: boolean;
-      ahead: number;
-    }
-    const plans = new Map<Repo, Plan | { skip: string }>();
-
-    await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'MultiGit: preparando push…' }, () =>
-      Promise.all(
-        scope.repos.map(async (repo) => {
-          try {
-            const [branches, status] = await Promise.all([repo.git.getBranches(), repo.git.getStatus()]);
-            const name = branch ?? status.branch;
-            if (!name) return void plans.set(repo, { skip: 'HEAD detached' });
-            const lb = branches.local.find((b) => b.name === name);
-            if (!lb) return void plans.set(repo, { skip: `no existe la rama '${name}'` });
-            const remote = lb.upstreamRemote ?? pickRemote(branches.remotes);
-            if (!remote) return void plans.set(repo, { skip: 'el repositorio no tiene remotes' });
-            const isNew = !lb.upstream || lb.gone;
-            if (!isNew && lb.ahead === 0) return void plans.set(repo, { skip: 'nada por subir' });
-            plans.set(repo, { branch: name, remote, remoteBranch: lb.upstreamBranch ?? name, isNew, ahead: lb.ahead });
-          } catch (error) {
-            plans.set(repo, { skip: errorText(error) });
-          }
-        }),
-      ),
-    );
-
-    const ordered = scope.repos.map((repo) => ({ repo, plan: plans.get(repo)! }));
-    const toPush = ordered.filter((p): p is { repo: Repo; plan: Plan } => !('skip' in p.plan));
-    if (toPush.length === 0) {
-      void vscode.window.showInformationMessage('MultiGit: no hay nada por subir.');
-      return;
-    }
-
-    const detail = ordered
-      .map(({ repo, plan }) =>
-        'skip' in plan
-          ? `⏭ ${repo.name}: ${plan.skip}`
-          : `⬆ ${repo.name}: ${plan.branch} → ${plan.remote}:${plan.remoteBranch} ${plan.isNew ? '(New)' : `(↑${plan.ahead})`}`,
-      )
-      .join('\n');
-    const ok = await vscode.window.showInformationMessage(
-      `¿Hacer push en ${toPush.length} repositorio(s)?`,
-      { modal: true, detail },
-      'Push',
-    );
-    if (ok !== 'Push') return;
-
-    await runInRepos(this.manager, {
-      title: branch ? `Push de '${branch}'` : 'Push',
-      repos: scope.repos,
-      check: (repo) => {
-        const plan = plans.get(repo)!;
-        return 'skip' in plan ? { skip: plan.skip } : undefined;
-      },
-      run: async (repo) => {
-        const plan = plans.get(repo) as Plan;
-        await repo.git.push(plan.remote, plan.branch, plan.remoteBranch, plan.isNew);
-        return plan.isNew ? `nueva rama en ${plan.remote}` : `↑${plan.ahead}`;
-      },
-    });
+    await this.openPush(scope, branch);
   }
 
   // ------------------------------------------------------------------ acciones sobre una rama
@@ -532,10 +470,6 @@ export class BranchActions {
     );
     return choice === 'Continuar';
   }
-}
-
-function pickRemote(remotes: readonly string[]): string | undefined {
-  return remotes.includes('origin') ? 'origin' : remotes[0];
 }
 
 async function pathExists(p: string): Promise<boolean> {

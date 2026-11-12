@@ -132,3 +132,65 @@ export function describeHead(status: Pick<RepoStatus, 'branch' | 'oid'>): string
   if (status.oid) return `(detached ${status.oid.slice(0, 7)})`;
   return '(sin commits)';
 }
+
+// ------------------------------------------------------------------ log y archivos de commit
+
+/** Formato de `git log` que entiende `parseLog`: campos separados por NUL, registros por 0x1E. */
+export const LOG_FORMAT = '%H%x00%h%x00%s%x00%an%x00%aI%x00%D%x1e';
+
+export interface CommitInfo {
+  hash: string;
+  shortHash: string;
+  subject: string;
+  author: string;
+  /** Fecha de autor en ISO 8601. */
+  date: string;
+  /** Decoraciones (`HEAD -> develop`, `origin/develop`, `tag: v1.0`). */
+  refs: string[];
+}
+
+export function parseLog(output: string): CommitInfo[] {
+  const commits: CommitInfo[] = [];
+  for (const record of output.split('\x1e')) {
+    const trimmed = record.replace(/^\n+/, '');
+    if (!trimmed) continue;
+    const [hash = '', shortHash = '', subject = '', author = '', date = '', refs = ''] = trimmed.split('\0');
+    if (!hash) continue;
+    commits.push({
+      hash,
+      shortHash,
+      subject,
+      author,
+      date,
+      refs: refs ? refs.split(', ').map((r) => r.trim()).filter(Boolean) : [],
+    });
+  }
+  return commits;
+}
+
+export interface ChangedFile {
+  /** Letra de estado de git: A, M, D, R, C, T, U… */
+  status: string;
+  path: string;
+  /** Ruta anterior en renombrados/copias. */
+  oldPath?: string;
+}
+
+/** Parsea `--name-status -z`: estado, ruta (y ruta nueva en R/C), todo separado por NUL. */
+export function parseNameStatusZ(output: string): ChangedFile[] {
+  const tokens = output.split('\0');
+  const files: ChangedFile[] = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const raw = tokens[i];
+    if (!raw) continue;
+    const status = raw[0]!;
+    if (status === 'R' || status === 'C') {
+      const oldPath = tokens[++i] ?? '';
+      const newPath = tokens[++i] ?? '';
+      files.push({ status, path: newPath, oldPath });
+    } else {
+      files.push({ status, path: tokens[++i] ?? '' });
+    }
+  }
+  return files;
+}

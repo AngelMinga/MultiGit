@@ -1,31 +1,34 @@
 import { useEffect, useState } from 'react';
 import type { WebviewKind } from '../../src/webview/protocol';
+import { PushDialog } from './push/PushDialog';
 import { onHostMessage, post } from './vscode';
 
 export function App() {
-  const [kind, setKind] = useState<WebviewKind | null>(null);
+  const [kind, setKind] = useState<WebviewKind | null>(
+    (document.body.dataset.kind as WebviewKind | undefined) ?? null,
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onHostMessage((message) => {
-      switch (message.type) {
-        case 'init':
-          setKind(message.payload.kind);
-          break;
-        case 'error':
-          setError(message.payload.message);
-          break;
-      }
+      if (message.type === 'init') setKind(message.payload.kind);
+      if (message.type === 'error') setError(message.payload.message);
     });
     post({ type: 'ready', payload: {} });
     return unsubscribe;
   }, []);
 
   return (
-    <main className="app">
-      <h1>MultiGit</h1>
-      <p className="muted">{kind ? `Panel: ${kind}` : 'Esperando al host…'}</p>
-      {error && <p className="error">{error}</p>}
-    </main>
+    <>
+      {error && (
+        <div className="banner error" role="alert">
+          {error}
+          <button className="link" onClick={() => setError(null)} aria-label="Cerrar">
+            ✕
+          </button>
+        </div>
+      )}
+      {kind === 'push' ? <PushDialog /> : <p className="muted pad">Cargando…</p>}
+    </>
   );
 }

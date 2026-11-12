@@ -4,7 +4,17 @@ import { execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import { parseRefs, REF_FORMAT, type RepoBranches } from './branches';
-import { parseLeftRightCount, parseStatusV2, type AheadBehind, type RepoStatus } from './parsers';
+import {
+  LOG_FORMAT,
+  parseLeftRightCount,
+  parseLog,
+  parseNameStatusZ,
+  parseStatusV2,
+  type AheadBehind,
+  type ChangedFile,
+  type CommitInfo,
+  type RepoStatus,
+} from './parsers';
 import type { OperationInProgress } from './preflight';
 
 const DEFAULT_TIMEOUT_MS = 60_000;
@@ -27,6 +37,12 @@ export class GitError extends Error {
     super(message);
     this.name = 'GitError';
   }
+}
+
+export interface PushOptions {
+  setUpstream?: boolean;
+  forceWithLease?: boolean;
+  tags?: 'none' | 'all' | 'follow';
 }
 
 export class GitService {
@@ -172,6 +188,27 @@ export class GitService {
     return Number(out.trim()) || 0;
   }
 
+  /** Commits según `args` (rango, `--not`, etc.), como máximo `max`. */
+  async logCommits(args: readonly string[], max = 500): Promise<CommitInfo[]> {
+    const out = await this.exec(['log', `--max-count=${max}`, `--format=${LOG_FORMAT}`, ...args, '--']);
+    return parseLog(out);
+  }
+
+  /** Archivos cambiados por un commit (contra su primer padre; contra vacío si es el commit raíz). */
+  async commitFiles(hash: string): Promise<ChangedFile[]> {
+    const parents = (await this.exec(['rev-list', '--parents', '-n', '1', hash, '--'])).trim().split(/\s+/);
+    const out =
+      parents.length > 1
+        ? await this.exec(['diff', '--name-status', '-z', '-M', parents[1]!, hash, '--'])
+        : await this.exec(['diff-tree', '--root', '-r', '--name-status', '-z', '-M', '--no-commit-id', hash]);
+    return parseNameStatusZ(out);
+  }
+
+  /** Contenido de `filePath` en `ref` (`git show ref:path`). */
+  showFile(ref: string, filePath: string): Promise<string> {
+    return this.exec(['show', `${ref}:${filePath}`]);
+  }
+
   /** Commits de un rango, una línea cada uno: `abc1234 asunto (autor, hace 2 días)`. */
   async logOneline(range: string, max = 200): Promise<string[]> {
     const out = await this.exec(['log', `--max-count=${max}`, '--format=%h %s (%an, %ar)', range, '--']);
@@ -242,9 +279,19 @@ export class GitService {
     });
   }
 
-  /** Push de `localBranch` a `remote/remoteBranch`; con `setUpstream`, `-u`. */
-  push(remote: string, localBranch: string, remoteBranch: string, setUpstream: boolean): Promise<string> {
-    const args = ['push', ...(setUpstream ? ['-u'] : []), remote, `refs/heads/${localBranch}:refs/heads/${remoteBranch}`];
+  /**
+   * Push de `localBranch` a `remote/remoteBranch`.
+   * - `setUpstream`: `-u` (rama nueva o sin upstream).
+   * - `forceWithLease`: sobrescribe el remote solo si sigue donde lo vimos en el último fetch.
+   * - `tags`: `all` → `--tags`; `follow` → `--follow-tags` (tags anotados alcanzables desde lo que se sube).
+   */
+  pushBranch(remote: string, localBranch: string, remoteBranch: string, options: PushOptions = {}): Promise<string> {
+    const args = ['push'];
+    if (options.setUpstream) args.push('-u');
+    if (options.forceWithLease) args.push('--force-with-lease');
+    if (options.tags === 'all') args.push('--tags');
+    if (options.tags === 'follow') args.push('--follow-tags');
+    args.push(remote, `refs/heads/${localBranch}:refs/heads/${remoteBranch}`);
     return this.exec(args, { timeoutMs: NETWORK_TIMEOUT_MS });
   }
 

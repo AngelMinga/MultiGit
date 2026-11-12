@@ -70,7 +70,7 @@ describe('GitService (git real)', () => {
   it('push -u de una rama nueva y borrado local', async () => {
     const r = repos[2]!;
     await r.createBranch('feature-x', 'HEAD', false);
-    await r.push('origin', 'feature-x', 'feature-x', true);
+    await r.pushBranch('origin', 'feature-x', 'feature-x', { setUpstream: true });
     const lb = (await r.getBranches()).local.find((b) => b.name === 'feature-x')!;
     expect(lb.upstream).toBe('origin/feature-x');
 

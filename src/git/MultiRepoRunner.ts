@@ -21,6 +21,12 @@ export interface MultiRepoOperation {
   check?: (repo: Repo, status: RepoStatus) => Promise<Verdict> | Verdict;
   /** Ejecuta la operación en un repo. Puede devolver un mensaje para el resumen. */
   run: (repo: Repo) => Promise<string | void>;
+  /** No mostrar los mensajes finales (el llamador muestra el resumen; los bloqueos sí se muestran). */
+  silent?: boolean;
+  /** Se llama justo antes de ejecutar en cada repo. */
+  onStart?: (repo: Repo) => void;
+  /** Se llama con el resultado de cada repo (también los omitidos y los no ejecutados). */
+  onStep?: (repo: Repo, result: StepResult) => void;
 }
 
 export async function runInRepos(manager: RepoManager, op: MultiRepoOperation): Promise<StepResult[] | undefined> {
@@ -55,6 +61,7 @@ export async function runInRepos(manager: RepoManager, op: MultiRepoOperation): 
         if (token.isCancellationRequested) break;
         const repo = repos[i]!;
         progress.report({ message: `${++done}/${toRun} ${repo.name}…`, increment: 100 / toRun });
+        op.onStart?.(repo);
         try {
           const message = await op.run(repo);
           result.state = 'ok';
@@ -62,9 +69,13 @@ export async function runInRepos(manager: RepoManager, op: MultiRepoOperation): 
         } catch (error) {
           result.state = 'failed';
           result.message = errorText(error);
-          break; // 3. se detiene al primer fallo
         }
+        op.onStep?.(repo, result);
+        if (result.state === 'failed') break; // 3. se detiene al primer fallo
       }
+      results.forEach((r, i) => {
+        if (r.state === 'skipped' || r.state === 'pending') op.onStep?.(repos[i]!, r);
+      });
       return { kind: 'done', results } as const;
     },
   );
@@ -82,6 +93,7 @@ export async function runInRepos(manager: RepoManager, op: MultiRepoOperation): 
   }
 
   const { results } = outcome;
+  if (op.silent) return results;
   const counts = countByState(results);
   const summary = formatSummary(results);
   if (counts.failed > 0 || counts.pending > 0) {

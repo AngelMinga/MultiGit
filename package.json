@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "Manejo de Git multi-repositorio al estilo IntelliJ IDEA para workspaces con varios repos.",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -125,6 +125,12 @@
         "title": "Refrescar ramas",
         "category": "MultiGit",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "multigit.push",
+        "title": "Push Commits…",
+        "category": "MultiGit",
+        "icon": "$(repo-push)"
       }
     ],
     "menus": {
@@ -138,6 +144,11 @@
           "command": "multigit.fetch",
           "when": "view == multigit.repositories",
           "group": "navigation@2"
+        },
+        {
+          "command": "multigit.push",
+          "when": "view == multigit.repositories",
+          "group": "navigation@3"
         },
         {
           "command": "multigit.refresh",

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.4
+
+- Vista de árbol **Ramas** (Local / Remote), agrupada por repositorio o por rama.
+- Fase 3: diálogo **Push Commits** en webview: New, Edit all targets, Push tags, Force push (with lease), resumen por repo y Pull y reintentar.
+
 ## 0.0.3
 
 - Fase 2: popup de ramas multi-repo (ramas comunes, favoritas, checkout, new branch, merge, rebase, compare, worktree, update, push, rename y delete) con preflight y resumen.
