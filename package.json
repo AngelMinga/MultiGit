@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "Git multi-repositorio al estilo IntelliJ IDEA: ramas comunes, commit, push, pull y log con grafo para todos los repos del workspace a la vez.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -124,7 +124,7 @@
       },
       {
         "command": "multigit.branches",
-        "title": "Ramas…",
+        "title": "Ramas de todos los repositorios…",
         "category": "MultiGit",
         "icon": "$(git-branch)"
       },
@@ -328,6 +328,11 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "multigit.branches",
+          "when": "view == workbench.explorer.fileView && multigit.hasRepos",
+          "group": "navigation@-1"
+        },
         {
           "command": "multigit.branches",
           "when": "view == multigit.repositories",

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- Botón ⎇ en la barra del Explorer: acceso directo al popup de ramas.
+
 ## 0.1.3
 
 - Vista **Proyecto** al principio del panel MultiGit con los botones de IntelliJ: `[B] proyecto ⌄` (proyectos recientes) y `⎇ rama ⌄` (popup de ramas), más una línea de resumen que abre el Git Log.

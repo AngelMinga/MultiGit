@@ -25,6 +25,7 @@ export class StatusBar implements vscode.Disposable {
   private update(): void {
     const repos = this.manager.all;
     const summary = summarizeBranches(repos);
+    void vscode.commands.executeCommand('setContext', 'multigit.hasRepos', summary.kind !== 'empty');
     if (summary.kind === 'empty') {
       this.item.hide();
       this.project.hide();
