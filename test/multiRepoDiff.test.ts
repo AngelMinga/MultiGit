@@ -1,3 +1,4 @@
+import { devNull } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -24,7 +25,7 @@ function repo(name: string, files: Record<string, string>): GitService {
 }
 
 beforeAll(() => {
-  process.env.GIT_CONFIG_GLOBAL = '/dev/null';
+  process.env.GIT_CONFIG_GLOBAL = devNull;
   process.env.GIT_CONFIG_NOSYSTEM = '1';
   process.env.GIT_AUTHOR_NAME = process.env.GIT_COMMITTER_NAME = 'Test';
   process.env.GIT_AUTHOR_EMAIL = process.env.GIT_COMMITTER_EMAIL = 'test@example.com';

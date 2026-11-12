@@ -1,3 +1,4 @@
+import { devNull } from 'node:os';
 // Log combinado con git real: mezcla por fecha, filtros por usuario y rama, paginación y acciones.
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -30,7 +31,7 @@ function commitAt(root: string, file: string, author: string, email: string, t: 
 }
 
 beforeAll(() => {
-  process.env.GIT_CONFIG_GLOBAL = '/dev/null';
+  process.env.GIT_CONFIG_GLOBAL = devNull;
   process.env.GIT_CONFIG_NOSYSTEM = '1';
   base = mkdtempSync(path.join(tmpdir(), 'multigit-log-'));
   const me = ['Angel', 'afminga@example.com'] as const;

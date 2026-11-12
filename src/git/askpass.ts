@@ -97,12 +97,20 @@ export class AskpassServer {
 
   /** Variables de entorno para los procesos git (también para ssh, vía SSH_ASKPASS). */
   get env(): Record<string, string> {
+    // git ejecuta GIT_ASKPASS con su sh (también en Windows). El ssh nativo de Windows no puede
+    // ejecutar un script .sh, así que allí solo se usa para git (HTTPS).
+    const ssh =
+      process.platform === 'win32'
+        ? {}
+        : {
+            SSH_ASKPASS: this.scriptPath,
+            // OpenSSH ≥ 8.4: usar SSH_ASKPASS aunque no haya DISPLAY (no hay terminal).
+            SSH_ASKPASS_REQUIRE: 'force',
+            ...(process.env.DISPLAY ? {} : { DISPLAY: ':0' }),
+          };
     return {
       GIT_ASKPASS: this.scriptPath,
-      SSH_ASKPASS: this.scriptPath,
-      // OpenSSH ≥ 8.4: usar SSH_ASKPASS aunque no haya DISPLAY (no hay terminal).
-      SSH_ASKPASS_REQUIRE: 'force',
-      ...(process.env.DISPLAY ? {} : { DISPLAY: ':0' }),
+      ...ssh,
       MULTIGIT_ASKPASS_NODE: this.nodePath,
       MULTIGIT_ASKPASS_MAIN: this.mainPath,
       MULTIGIT_ASKPASS_HANDLE: this.handle,

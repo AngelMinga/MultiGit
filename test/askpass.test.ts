@@ -1,7 +1,7 @@
 // Askpass de punta a punta: git real pidiendo la contraseña de un remoto HTTP con auth básica.
 import { execFile } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { devNull, tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -27,21 +27,24 @@ afterAll(async () => {
 });
 
 describe('askpass', () => {
-  it('el script devuelve la respuesta del servidor', async () => {
+  // En Windows el .sh lo ejecuta el sh de git, no el sistema: se prueba a través de git.
+  const unixOnly = process.platform === 'win32' ? it.skip : it;
+
+  unixOnly('el script devuelve la respuesta del servidor', async () => {
     const env = { ...process.env, ...server.env };
     const { stdout } = await run(server.env.GIT_ASKPASS!, ["Password for 'https://angel@github.com': "], { env });
     expect(stdout).toBe('token-123\n');
     expect(asked.at(-1)).toBe("Password for 'https://angel@github.com': ");
   });
 
-  it('si el usuario cancela, el script sale con error (git aborta la operación)', async () => {
+  unixOnly('si el usuario cancela, el script sale con error (git aborta la operación)', async () => {
     const env = { ...process.env, ...server.env };
     await expect(run(server.env.GIT_ASKPASS!, ['cancel please'], { env })).rejects.toThrow();
   });
 
   it('git usa GIT_ASKPASS para pedir usuario y contraseña', async () => {
     // git credential fill pide usuario y contraseña con el askpass cuando no hay helper.
-    const env = { ...process.env, ...server.env, GIT_TERMINAL_PROMPT: '0', GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1' };
+    const env = { ...process.env, ...server.env, GIT_TERMINAL_PROMPT: '0', GIT_CONFIG_GLOBAL: devNull, GIT_CONFIG_NOSYSTEM: '1' };
     const child = execFile('git', ['credential', 'fill'], { env });
     child.stdin!.end('protocol=https\nhost=example.com\n\n');
     const out = await new Promise<string>((resolve, reject) => {

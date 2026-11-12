@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v7
 
@@ -31,10 +31,12 @@ jobs:
 
       # Los tests crean repositorios temporales y hacen commits en ellos.
       - name: Configure git for the tests
+        shell: bash
         run: |
           git config --global user.name "CI"
           git config --global user.email "ci@example.com"
           git config --global init.defaultBranch main
+          git config --global core.autocrlf false
 
       - name: Typecheck
         run: npm run typecheck

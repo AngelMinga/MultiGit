@@ -1,3 +1,4 @@
+import { devNull } from 'node:os';
 // Push con git real: rama New, rechazo por commits remotos, force-with-lease y archivos de un commit.
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -22,7 +23,7 @@ async function commit(repo: GitService, file: string, content: string, message: 
 }
 
 beforeAll(() => {
-  process.env.GIT_CONFIG_GLOBAL = '/dev/null';
+  process.env.GIT_CONFIG_GLOBAL = devNull;
   process.env.GIT_CONFIG_NOSYSTEM = '1';
   process.env.GIT_AUTHOR_NAME = process.env.GIT_COMMITTER_NAME = 'Test';
   process.env.GIT_AUTHOR_EMAIL = process.env.GIT_COMMITTER_EMAIL = 'test@example.com';
