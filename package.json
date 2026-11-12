@@ -1,0 +1,248 @@
+{
+  "name": "multigit",
+  "displayName": "MultiGit",
+  "description": "Manejo de Git multi-repositorio al estilo IntelliJ IDEA para workspaces con varios repos.",
+  "version": "0.0.1",
+  "publisher": "angelminga",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AngelMinga/claude-commit",
+    "directory": "MultiGit"
+  },
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "Other"
+  ],
+  "keywords": [
+    "git",
+    "multi-repo",
+    "monorepo",
+    "micro-frontends",
+    "intellij"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "workspaceContains:.git",
+    "workspaceContains:*/.git/HEAD",
+    "workspaceContains:*/*/.git/HEAD"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "multigit",
+          "title": "MultiGit",
+          "icon": "media/multigit.svg"
+        }
+      ]
+    },
+    "views": {
+      "multigit": [
+        {
+          "id": "multigit.repositories",
+          "name": "Repositorios",
+          "icon": "media/multigit.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "multigit.repositories",
+        "contents": "No se detectaron repositorios Git en el workspace.\n[Refrescar repositorios](command:multigit.refresh)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "multigit.refresh",
+        "title": "Refrescar repositorios",
+        "category": "MultiGit",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "multigit.showLog",
+        "title": "Mostrar log",
+        "category": "MultiGit",
+        "icon": "$(output)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "multigit.refresh",
+          "when": "view == multigit.repositories",
+          "group": "navigation@9"
+        },
+        {
+          "command": "multigit.showLog",
+          "when": "view == multigit.repositories",
+          "group": "z_log"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "MultiGit",
+      "properties": {
+        "multigit.scanDepth": {
+          "type": "integer",
+          "default": 2,
+          "minimum": 0,
+          "maximum": 5,
+          "markdownDescription": "Profundidad máxima (en carpetas) para buscar repositorios `.git` dentro de cada carpeta del workspace. `0` revisa solo la carpeta raíz."
+        }
+      }
+    },
+    "colors": [
+      {
+        "id": "multigit.repo0",
+        "description": "Color de repositorio 0 (azul).",
+        "defaults": {
+          "dark": "#4FA3F7",
+          "light": "#1F6FC5",
+          "highContrast": "#6CB6FF",
+          "highContrastLight": "#0B5AA8"
+        }
+      },
+      {
+        "id": "multigit.repo1",
+        "description": "Color de repositorio 1 (naranja).",
+        "defaults": {
+          "dark": "#F0A05A",
+          "light": "#C4621B",
+          "highContrast": "#FFB070",
+          "highContrastLight": "#A34E10"
+        }
+      },
+      {
+        "id": "multigit.repo2",
+        "description": "Color de repositorio 2 (verde).",
+        "defaults": {
+          "dark": "#73C991",
+          "light": "#2E8B4E",
+          "highContrast": "#89E0A6",
+          "highContrastLight": "#1E6B39"
+        }
+      },
+      {
+        "id": "multigit.repo3",
+        "description": "Color de repositorio 3 (violeta).",
+        "defaults": {
+          "dark": "#C792EA",
+          "light": "#8A4FBF",
+          "highContrast": "#DAAAF5",
+          "highContrastLight": "#6E3A9E"
+        }
+      },
+      {
+        "id": "multigit.repo4",
+        "description": "Color de repositorio 4 (rojo).",
+        "defaults": {
+          "dark": "#F07178",
+          "light": "#C23B44",
+          "highContrast": "#FF8A90",
+          "highContrastLight": "#A12A33"
+        }
+      },
+      {
+        "id": "multigit.repo5",
+        "description": "Color de repositorio 5 (turquesa).",
+        "defaults": {
+          "dark": "#4EC9B0",
+          "light": "#1A8C78",
+          "highContrast": "#66E0C6",
+          "highContrastLight": "#0F6E5E"
+        }
+      },
+      {
+        "id": "multigit.repo6",
+        "description": "Color de repositorio 6 (amarillo).",
+        "defaults": {
+          "dark": "#E5C07B",
+          "light": "#A07A16",
+          "highContrast": "#F5D48F",
+          "highContrastLight": "#7F600D"
+        }
+      },
+      {
+        "id": "multigit.repo7",
+        "description": "Color de repositorio 7 (rosa).",
+        "defaults": {
+          "dark": "#F48FB1",
+          "light": "#C2185B",
+          "highContrast": "#FFA6C4",
+          "highContrastLight": "#9C1249"
+        }
+      },
+      {
+        "id": "multigit.repo8",
+        "description": "Color de repositorio 8 (índigo).",
+        "defaults": {
+          "dark": "#8C9EFF",
+          "light": "#3F51B5",
+          "highContrast": "#A6B4FF",
+          "highContrastLight": "#303F9F"
+        }
+      },
+      {
+        "id": "multigit.repo9",
+        "description": "Color de repositorio 9 (lima).",
+        "defaults": {
+          "dark": "#B5CC5A",
+          "light": "#6B8E23",
+          "highContrast": "#CBE070",
+          "highContrastLight": "#55711A"
+        }
+      },
+      {
+        "id": "multigit.repo10",
+        "description": "Color de repositorio 10 (cian).",
+        "defaults": {
+          "dark": "#56D4E8",
+          "light": "#0E8FA6",
+          "highContrast": "#70E6F7",
+          "highContrastLight": "#0A7387"
+        }
+      },
+      {
+        "id": "multigit.repo11",
+        "description": "Color de repositorio 11 (marrón).",
+        "defaults": {
+          "dark": "#D19A66",
+          "light": "#8D5A2B",
+          "highContrast": "#E5B07E",
+          "highContrastLight": "#704620"
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "build": "npm run typecheck && npm run build:ext && npm run build:webview",
+    "build:dev": "npm run build:ext && npm run build:webview",
+    "build:ext": "node esbuild.mjs",
+    "build:webview": "vite build --config webview-ui/vite.config.mts",
+    "watch": "node esbuild.mjs --watch",
+    "watch:webview": "vite build --watch --config webview-ui/vite.config.mts",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p webview-ui",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "package": "vsce package --no-dependencies",
+    "vscode:prepublish": "npm run typecheck && node esbuild.mjs --production && npm run build:webview"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/vscode": "~1.100.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "@vscode/vsce": "^4.1.0",
+    "esbuild": "^0.28.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
+  }
+}

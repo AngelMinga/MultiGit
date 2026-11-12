@@ -1,0 +1,31 @@
+/* Solo colores del tema de VS Code: se adapta a oscuro, claro y alto contraste. */
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--vscode-editor-background);
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+.app {
+  padding: 12px 16px;
+}
+
+h1 {
+  font-size: 1.2em;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.muted {
+  color: var(--vscode-descriptionForeground);
+}
+
+.error {
+  color: var(--vscode-errorForeground);
+}
