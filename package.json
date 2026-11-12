@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "Manejo de Git multi-repositorio al estilo IntelliJ IDEA para workspaces con varios repos.",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {

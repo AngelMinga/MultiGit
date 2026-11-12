@@ -1,6 +1,16 @@
 /* Solo colores del tema de VS Code: se adapta a oscuro, claro y alto contraste. */
 :root {
   color-scheme: light dark;
+  /* Colores de rama del grafo (Fase 7): colores de gráficos del tema. */
+  --graph-0: var(--vscode-charts-blue, #3794ff);
+  --graph-1: var(--vscode-charts-green, #89d185);
+  --graph-2: var(--vscode-charts-orange, #d18616);
+  --graph-3: var(--vscode-charts-purple, #b180d7);
+  --graph-4: var(--vscode-charts-red, #f14c4c);
+  --graph-5: var(--vscode-charts-yellow, #cca700);
+  --graph-6: var(--vscode-terminal-ansiCyan, #29b8db);
+  --graph-7: var(--vscode-terminal-ansiMagenta, #bc3fbc);
+  --graph-bg: var(--vscode-panel-background, var(--vscode-editor-background));
 }
 
 * {
@@ -751,4 +761,23 @@ button.icon-btn.on {
   .log-details {
     display: none;
   }
+}
+
+/* ------------------------------------------------------------ grafo */
+
+.graph {
+  flex: none;
+  overflow: hidden;
+  margin-left: -4px;
+}
+.graph path {
+  fill: none;
+  stroke-width: 1.6;
+}
+.graph path.stub {
+  stroke-dasharray: 2 2;
+  opacity: 0.7;
+}
+.log-row.dim .graph {
+  opacity: 0.6;
 }

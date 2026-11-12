@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.13
+
+- Fase 7: grafo de commits en el Git Log (algoritmo propio de carriles, merges, ramas paralelas y octopus; colores por rama; un SVG por fila compatible con la virtualización).
+
 ## 0.0.12
 
 - Git Log al estilo IntelliJ: etiquetas a la derecha, autor en negrita, fechas "Hoy 08:51" / "20/10/26, 12:04", commits fuera de la rama actual atenuados y buscador de ramas.

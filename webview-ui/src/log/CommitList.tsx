@@ -2,7 +2,9 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { FixedSizeList, type ListChildComponentProps } from 'react-window';
 import type { LogRepoInfo, LogRow } from '../../../src/webview/protocol';
+import { computeGraph, type GraphRow } from '../../../src/git/graph';
 import { relativeDate } from '../format';
+import { GraphCell, graphWidth } from './GraphCell';
 
 export const ROW_HEIGHT = 24;
 
@@ -10,6 +12,8 @@ interface RowData {
   rows: LogRow[];
   /** Commits alcanzables desde el HEAD de su repo (los demás se atenúan). */
   onHead: Set<string>;
+  graph: GraphRow[];
+  graphWidth: number;
   repos: Map<string, LogRepoInfo>;
   selected: string | null;
   onSelect: (row: LogRow) => void;
@@ -44,9 +48,19 @@ export function CommitList(props: {
   };
 
   const onHead = useMemo(() => reachableFromHead(props.rows, props.repos), [props.rows, props.repos]);
+  // El grafo se recalcula entero al cambiar las filas (5 000 commits ≈ pocos ms) y se dibuja por fila.
+  const graph = useMemo(
+    () =>
+      computeGraph(
+        props.rows.map((r) => ({ id: key(r), parents: r.parents.map((p) => `${r.repoId}@${p}`), group: r.repoId })),
+      ),
+    [props.rows],
+  );
   const data: RowData = {
     rows: props.rows,
     onHead,
+    graph: graph.rows,
+    graphWidth: graphWidth(graph.maxLanes),
     repos: props.repos,
     selected: props.selected,
     onSelect: props.onSelect,
@@ -99,6 +113,7 @@ const Row = memo(function Row({ index, style, data }: ListChildComponentProps<Ro
       title={`${repo?.name ?? ''} · ${row.shortHash}`}
     >
       <span className="stripe" style={{ background: `var(--vscode-multigit-repo${repo?.colorIndex ?? 0})` }} />
+      {data.graph[index] && <GraphCell row={data.graph[index]} width={data.graphWidth} height={ROW_HEIGHT} />}
       <span className="log-subject">{row.subject}</span>
       {row.refs.length > 0 && (
         <span className="log-refs">
