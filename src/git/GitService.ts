@@ -343,6 +343,13 @@ export class GitService {
     return parseLogPage(out);
   }
 
+  /** Hash del commit al que apunta `ref`, o `null` si no existe en este repo. */
+  async resolveCommit(ref: string): Promise<string | null> {
+    if (!(await this.revisionExists(ref))) return null;
+    // revisionExists ya descartó refs que empiezan con '-'; con --verify solo se imprime el hash.
+    return (await this.exec(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`])).trim() || null;
+  }
+
   /** Commits que tocaron un archivo (siguiendo renombres), del más nuevo al más viejo. */
   async fileHistory(relPath: string, max = 300): Promise<CommitInfo[]> {
     const out = await this.exec(['log', `--max-count=${max}`, '--follow', `--format=${LOG_FORMAT}`, 'HEAD', '--', relPath]);

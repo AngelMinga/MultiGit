@@ -29,10 +29,16 @@ export function CommitList(props: {
   onSelect: (row: LogRow) => void;
   onLoadMore: () => void;
   onContextMenu: (row: LogRow, x: number, y: number) => void;
+  /** Desplazar la lista hasta esta fila (token distinto en cada pedido). */
+  scrollTo?: { index: number; token: number } | null;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const list = useRef<FixedSizeList>(null);
   const size = useSize(container);
+
+  useEffect(() => {
+    if (props.scrollTo) list.current?.scrollToItem(props.scrollTo.index, 'center');
+  }, [props.scrollTo]);
 
   // Flechas ↑/↓ para moverse entre commits.
   const onKeyDown = (e: React.KeyboardEvent) => {

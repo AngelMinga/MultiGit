@@ -23,3 +23,14 @@ export function onHostMessage(handler: (message: HostMessage) => void): () => vo
   window.addEventListener('message', listener);
   return () => window.removeEventListener('message', listener);
 }
+
+/** Estado del webview que VS Code conserva al ocultarlo y recargarlo (preferencias de la vista). */
+export function getState<T>(key: string, fallback: T): T {
+  const state = (api.getState() as Record<string, unknown> | undefined) ?? {};
+  return (state[key] as T | undefined) ?? fallback;
+}
+
+export function setState(key: string, value: unknown): void {
+  const state = (api.getState() as Record<string, unknown> | undefined) ?? {};
+  api.setState({ ...state, [key]: value });
+}

@@ -113,6 +113,9 @@ describe('log combinado (git real)', () => {
     expect((await git.commitDetails(head!.hash)).body).toBe('mftheme: feat en develop');
 
     await git.createTag('v1.0', head!.hash, 'versión 1');
+    expect(await git.resolveCommit('refs/tags/v1.0')).toBe(head!.hash);
+    expect(await git.resolveCommit('dev-afminga-scheduled-transfers')).toMatch(/^[0-9a-f]{40}$/);
+    expect(await git.resolveCommit('no-existe')).toBeNull();
     const [tagged] = await git.logPage(['HEAD'], [], 0, 1);
     expect(tagged!.decorations).toContain('tag: v1.0');
 

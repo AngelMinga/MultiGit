@@ -31,6 +31,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
   private pager: MergedLogPager | undefined;
   private loading = false;
   private branches = new Map<Repo, RepoBranches>();
+  private tags = new Map<Repo, string[]>();
   /** Rama/HEAD de cada repo en la última carga: si cambia, se recarga el log. */
   private signature = '';
   private stale = false;
@@ -112,6 +113,21 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         case 'log/loadMore':
           if (message.payload.generation === this.generation) await this.loadMore();
           break;
+        case 'log/resolveRef': {
+          // Navigate Log to Branch Head: commit al que apunta la rama/tag, en el primer repo que la tenga.
+          const repos = this.manager.all.filter(
+            (r) => message.payload.repoIds.length === 0 || message.payload.repoIds.includes(r.root),
+          );
+          for (const repo of repos) {
+            const hash = await repo.git.resolveCommit(message.payload.ref);
+            if (hash) {
+              this.post({ type: 'log/reveal', payload: { repoId: repo.root, hash } });
+              return;
+            }
+          }
+          this.post({ type: 'error', payload: { message: `No se encontró '${message.payload.ref}'.` } });
+          break;
+        }
         case 'log/refresh':
           await this.init();
           break;
@@ -147,6 +163,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
       repos.map(async (r) => [r, await r.git.getBranches().catch(() => ({ local: [], remote: [], remotes: [] }))] as const),
     );
     this.branches = new Map(entries);
+    this.tags = new Map(await Promise.all(repos.map(async (r) => [r, await r.git.listTags().catch(() => [])] as const)));
     this.signature = this.computeSignature();
     const first = repos[0];
     const me = first
@@ -162,6 +179,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         head: r.status?.oid ?? null,
         local: b.local.map((l) => l.name),
         remote: b.remote.map((x) => x.full),
+        tags: this.tags.get(r) ?? [],
       };
     });
     this.post({
@@ -198,6 +216,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         this.filters.branch,
         b?.local.map((l) => l.name) ?? [],
         b?.remote.map((x) => x.full) ?? [],
+        this.tags.get(repo) ?? [],
       );
       if (!refs) return [];
       const args = this.filterArgsFor(refs);

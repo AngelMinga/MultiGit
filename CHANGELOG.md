@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.3
+
+- Git Log: menú ⋮ en el árbol de ramas como IntelliJ: **On Single Click** (Update Branch Filter /
+  Navigate Log to Branch Head), Group by Directory, Group by Repository y **Show Tags**. Las opciones
+  se recuerdan.
+- Navigate Log to Branch Head: selecciona y desplaza hasta el último commit de la rama o tag (carga
+  más páginas si hace falta), sin filtrar el log.
+- Sección Tags en el árbol de ramas; clic en un tag filtra o navega igual que una rama.
+
 ## 0.2.2
 
 - Submenú **Git (MultiGit)** en el Explorer, el editor y Changes, como IntelliJ: Commit File…, Add,

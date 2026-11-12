@@ -1,7 +1,21 @@
-// Árbol de ramas del log: HEAD / Local / Remote, agrupable por repositorio y por directorio
-// (prefijos `feature/…`). Clic en una rama → filtra el log.
-import { useMemo, useState, type ReactElement } from 'react';
+// Árbol de ramas del log: HEAD / Local / Remote / Tags, agrupable por repositorio y por directorio
+// (prefijos `feature/…`). Opciones en el menú ⋮, como IntelliJ: qué hace un clic (filtrar el log o
+// navegar al último commit de la rama), Group by Directory / Repository y Show Tags.
+import { useEffect, useMemo, useState, type ReactElement } from 'react';
 import type { LogRepoInfo } from '../../../src/webview/protocol';
+import { getState, setState } from '../vscode';
+
+/** Qué hace un clic en una rama: filtrar el log o saltar a su último commit. */
+export type ClickMode = 'filter' | 'navigate';
+
+interface TreeOptions {
+  clickMode: ClickMode;
+  byRepo: boolean;
+  byDir: boolean;
+  showTags: boolean;
+}
+
+const DEFAULT_OPTIONS: TreeOptions = { clickMode: 'filter', byRepo: true, byDir: false, showTags: true };
 
 export interface BranchSelection {
   branch: string | null;
@@ -26,17 +40,29 @@ export function BranchTree(props: {
   repos: LogRepoInfo[];
   favorites: string[];
   selected: BranchSelection;
-  onSelect: (selection: BranchSelection) => void;
+  onSelect: (selection: BranchSelection, mode: ClickMode) => void;
 }) {
-  const [byRepo, setByRepo] = useState(true);
-  const [byDir, setByDir] = useState(false);
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['remote']));
+  const [options, setOptions] = useState<TreeOptions>(() => ({ ...DEFAULT_OPTIONS, ...getState('branchTree', {}) }));
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(['remote', 'tags']));
   const [query, setQuery] = useState('');
+  const { byRepo, byDir, showTags } = options;
+
+  useEffect(() => setState('branchTree', options), [options]);
+  // Cerrar el menú ⋮ al hacer clic fuera.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => setMenuOpen(false);
+    window.addEventListener('click', close);
+    return () => window.removeEventListener('click', close);
+  }, [menuOpen]);
+  const update = (patch: Partial<TreeOptions>) => setOptions((o) => ({ ...o, ...patch }));
 
   const tree = useMemo(() => {
-    const full = buildTree(props.repos, props.favorites, byRepo, byDir);
+    const full = buildTree(props.repos, props.favorites, byRepo, byDir, showTags);
     return query.trim() ? filterTree(full, query.trim().toLowerCase()) : full;
-  }, [props.repos, props.favorites, byRepo, byDir, query]);
+  }, [props.repos, props.favorites, byRepo, byDir, showTags, query]);
+  const select = (selection: BranchSelection) => props.onSelect(selection, options.clickMode);
 
   const toggle = (key: string) =>
     setCollapsed((prev) => {
@@ -61,7 +87,7 @@ export function BranchTree(props: {
           className={`tree-row${isSelected(n) ? ' selected' : ''}`}
           style={{ paddingLeft: 6 + depth * 12 }}
           onClick={() =>
-            n.children ? toggle(n.key) : props.onSelect({ branch: n.branch ?? null, repoIds: n.repoIds ?? [] })
+            n.children ? toggle(n.key) : select({ branch: n.branch ?? null, repoIds: n.repoIds ?? [] })
           }
           title={n.branch ?? n.label}
         >
@@ -69,7 +95,11 @@ export function BranchTree(props: {
           {n.colorIndex !== undefined && (
             <span className="dot" style={{ background: `var(--vscode-multigit-repo${n.colorIndex})` }} />
           )}
-          {n.branch !== undefined && <span className={`branch-icon${n.current ? ' current' : n.favorite ? ' favorite' : ''}`}>{n.current ? '◆' : n.favorite ? '★' : '⑂'}</span>}
+          {n.branch !== undefined && (
+            <span className={`branch-icon${n.current ? ' current' : n.favorite ? ' favorite' : n.branch.startsWith('refs/tags/') ? ' tag' : ''}`}>
+              {n.current ? '◆' : n.favorite ? '★' : n.branch.startsWith('refs/tags/') ? '🏷' : '⑂'}
+            </span>
+          )}
           <span className="tree-label">{n.label}</span>
           {n.count && <span className="muted small">{n.count}</span>}
         </li>
@@ -81,19 +111,37 @@ export function BranchTree(props: {
     <div className="branch-tree">
       <div className="pane-toolbar">
         <span className="pane-title">Ramas</span>
-        <button className={`toggle${byRepo ? ' on' : ''}`} title="Agrupar por repositorio" onClick={() => setByRepo((v) => !v)}>
-          Repo
+        <button className={`icon-btn${menuOpen ? ' on' : ''}`} title="Opciones" onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}>
+          ⋮
         </button>
-        <button className={`toggle${byDir ? ' on' : ''}`} title="Agrupar por directorio" onClick={() => setByDir((v) => !v)}>
-          Dir
-        </button>
+        {menuOpen && (
+          <div className="menu tree-menu" role="menu" onClick={(e) => e.stopPropagation()}>
+            <div className="menu-title muted small">On Single Click</div>
+            <MenuCheck checked={options.clickMode === 'filter'} radio onClick={() => update({ clickMode: 'filter' })}>
+              Update Branch Filter
+            </MenuCheck>
+            <MenuCheck checked={options.clickMode === 'navigate'} radio onClick={() => update({ clickMode: 'navigate' })}>
+              Navigate Log to Branch Head
+            </MenuCheck>
+            <div className="menu-sep" />
+            <MenuCheck checked={byDir} onClick={() => update({ byDir: !byDir })}>
+              Group by Directory
+            </MenuCheck>
+            <MenuCheck checked={byRepo} onClick={() => update({ byRepo: !byRepo })}>
+              Group by Repository
+            </MenuCheck>
+            <MenuCheck checked={showTags} onClick={() => update({ showTags: !showTags })}>
+              Show Tags
+            </MenuCheck>
+          </div>
+        )}
       </div>
       <input className="tree-search" placeholder="Rama o tag" value={query} onChange={(e) => setQuery(e.target.value)} />
       <ul className="tree">
         <li
           className={`tree-row${props.selected.branch === null ? ' selected' : ''}`}
           style={{ paddingLeft: 6 }}
-          onClick={() => props.onSelect({ branch: null, repoIds: [] })}
+          onClick={() => select({ branch: null, repoIds: [] })}
         >
           <span className="twisty" />
           <span className="tree-label">Todas las ramas</span>
@@ -101,7 +149,7 @@ export function BranchTree(props: {
         <li
           className={`tree-row${props.selected.branch === 'HEAD' ? ' selected' : ''}`}
           style={{ paddingLeft: 6 }}
-          onClick={() => props.onSelect({ branch: 'HEAD', repoIds: [] })}
+          onClick={() => select({ branch: 'HEAD', repoIds: [] })}
         >
           <span className="twisty" />
           <span className="branch-icon current">◆</span>
@@ -113,12 +161,23 @@ export function BranchTree(props: {
   );
 }
 
-function buildTree(repos: LogRepoInfo[], favorites: string[], byRepo: boolean, byDir: boolean): Node[] {
-  const section = (kind: 'local' | 'remote'): Node => {
-    const namesOf = (r: LogRepoInfo) => (kind === 'local' ? r.local : r.remote);
+function MenuCheck(props: { checked: boolean; radio?: boolean; onClick: () => void; children: string }) {
+  return (
+    <button role={props.radio ? 'menuitemradio' : 'menuitemcheckbox'} aria-checked={props.checked} onClick={props.onClick}>
+      <span className="menu-check">{props.checked ? (props.radio ? '●' : '✓') : ''}</span>
+      {props.children}
+    </button>
+  );
+}
+
+function buildTree(repos: LogRepoInfo[], favorites: string[], byRepo: boolean, byDir: boolean, showTags: boolean): Node[] {
+  const section = (kind: 'local' | 'remote' | 'tags'): Node => {
+    // Los tags se filtran como `refs/tags/<nombre>` para no confundirlos con ramas del mismo nombre.
+    const namesOf = (r: LogRepoInfo) =>
+      kind === 'local' ? r.local : kind === 'remote' ? r.remote : r.tags.map((t) => `refs/tags/${t}`);
     let children: Node[];
     if (byRepo) {
-      children = repos.map((r) => ({
+      children = repos.filter((r) => kind !== 'tags' || r.tags.length > 0).map((r) => ({
         key: `${kind}/repo/${r.id}`,
         label: r.name,
         colorIndex: r.colorIndex,
@@ -151,9 +210,11 @@ function buildTree(repos: LogRepoInfo[], favorites: string[], byRepo: boolean, b
         byDir,
       );
     }
-    return { key: kind, label: kind === 'local' ? 'Local' : 'Remote', children };
+    return { key: kind, label: kind === 'local' ? 'Local' : kind === 'remote' ? 'Remote' : 'Tags', children };
   };
-  return [section('local'), section('remote')];
+  const sections = [section('local'), section('remote')];
+  if (showTags && repos.some((r) => r.tags.length > 0)) sections.push(section('tags'));
+  return sections;
 }
 
 interface LeafInput {
@@ -182,11 +243,12 @@ function leaves(prefix: string, items: LeafInput[], favorites: string[], byDir: 
     favorite: favorites.includes(i.name) || favorites.includes(short(i.name)),
     count: i.count,
   });
-  if (!byDir) return sorted.map((i) => leaf(i, i.name));
+  const shown = (name: string) => name.replace(/^refs\/tags\//, '');
+  if (!byDir) return sorted.map((i) => leaf(i, shown(i.name)));
 
   const root: Node[] = [];
   for (const i of sorted) {
-    const parts = i.name.split('/');
+    const parts = shown(i.name).split('/');
     let level = root;
     let path = prefix;
     for (const dir of parts.slice(0, -1)) {

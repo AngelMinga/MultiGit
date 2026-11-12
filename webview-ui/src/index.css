@@ -920,3 +920,23 @@ button.claude-btn.running {
     transform: rotate(360deg);
   }
 }
+
+/* menú ⋮ del árbol de ramas */
+.pane-toolbar {
+  position: relative;
+}
+.menu.tree-menu {
+  position: absolute;
+  top: 100%;
+  right: 4px;
+  bottom: auto;
+  min-width: 230px;
+}
+.menu-check {
+  display: inline-block;
+  width: 16px;
+  color: var(--vscode-textLink-foreground);
+}
+.branch-icon.tag {
+  color: var(--vscode-charts-yellow);
+}

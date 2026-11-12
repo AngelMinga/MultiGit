@@ -46,6 +46,9 @@ export function LogApp() {
   const [details, setDetails] = useState<LogDetails | null>(null);
   const [menu, setMenu] = useState<{ row: LogRow; x: number; y: number } | null>(null);
   const [showBranches, setShowBranches] = useState(true);
+  /** Navigate Log to Branch Head: commit a mostrar cuando aparezca en la lista. */
+  const [pendingReveal, setPendingReveal] = useState<{ key: string; pages: number } | null>(null);
+  const [scrollTo, setScrollTo] = useState<{ index: number; token: number } | null>(null);
   const [showDetails, setShowDetails] = useState(true);
 
   // Campos de texto con edición local (se aplican con debounce / Enter).
@@ -83,6 +86,9 @@ export function LogApp() {
           case 'log/details':
             setDetails(m.payload);
             break;
+          case 'log/reveal':
+            setPendingReveal({ key: `${m.payload.repoId}@${m.payload.hash}`, pages: 0 });
+            break;
         }
       }),
     [],
@@ -116,6 +122,26 @@ export function LogApp() {
     const remote = [...new Set(repos.flatMap((r) => r.remote))].sort();
     return { local, remote };
   }, [repos]);
+
+  // Navigate Log to Branch Head: si el commit ya está cargado se selecciona; si no, se cargan más
+  // páginas (hasta 40, unos 12 000 commits) mientras haya.
+  useEffect(() => {
+    if (!pendingReveal) return;
+    const index = rows.findIndex((r) => `${r.repoId}@${r.hash}` === pendingReveal.key);
+    if (index >= 0) {
+      select(rows[index]!);
+      setScrollTo({ index, token: Date.now() });
+      setPendingReveal(null);
+    } else if (hasMore && pendingReveal.pages < 40) {
+      if (!loading) {
+        setPendingReveal({ ...pendingReveal, pages: pendingReveal.pages + 1 });
+        post({ type: 'log/loadMore', payload: { generation: generation.current } });
+      }
+    } else {
+      setPendingReveal(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingReveal, rows, hasMore, loading]);
 
   const select = (row: LogRow) => {
     setSelected(row);
@@ -268,7 +294,13 @@ export function LogApp() {
             repos={repos}
             favorites={favorites}
             selected={{ branch: filters.branch, repoIds: filters.repoIds }}
-            onSelect={(s) => apply({ branch: s.branch, repoIds: s.repoIds })}
+            onSelect={(s, mode) => {
+              if (mode === 'navigate' && s.branch) {
+                post({ type: 'log/resolveRef', payload: { ref: s.branch, repoIds: s.repoIds } });
+              } else {
+                apply({ branch: s.branch, repoIds: s.repoIds });
+              }
+            }}
           />
         )}
         <CommitList
@@ -280,6 +312,7 @@ export function LogApp() {
           onSelect={select}
           onLoadMore={() => post({ type: 'log/loadMore', payload: { generation: generation.current } })}
           onContextMenu={(row, x, y) => setMenu({ row, x, y })}
+          scrollTo={scrollTo}
         />
         {showDetails && (
           <aside className="log-details">

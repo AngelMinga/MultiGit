@@ -87,6 +87,7 @@ export interface LogRepoInfo {
   local: string[];
   /** Ramas remotas completas (`origin/develop`). */
   remote: string[];
+  tags: string[];
 }
 
 export interface LogRow {
@@ -151,6 +152,7 @@ export type HostMessage =
   | { type: 'log/rows'; payload: { generation: number; reset: boolean; rows: LogRow[]; hasMore: boolean } }
   | { type: 'log/loading'; payload: { generation: number; loading: boolean } }
   | { type: 'log/details'; payload: LogDetails }
+  | { type: 'log/reveal'; payload: { repoId: string; hash: string } }
   | { type: 'toolbar/state'; payload: ToolbarState };
 
 /** Webview → host. */
@@ -174,4 +176,5 @@ export type WebviewMessage =
   | { type: 'log/openDiff'; payload: { repoId: string; hash: string; file: PushFile } }
   | { type: 'log/action'; payload: { action: LogAction; repoId: string; hash: string } }
   | { type: 'log/refresh'; payload: Record<string, never> }
+  | { type: 'log/resolveRef'; payload: { ref: string; repoIds: string[] } }
   | { type: 'toolbar/action'; payload: { action: ToolbarAction } };

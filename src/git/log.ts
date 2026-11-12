@@ -144,9 +144,11 @@ export function resolveBranchRefs(
   branch: string | null,
   local: readonly string[],
   remote: readonly string[],
+  tags: readonly string[] = [],
 ): string[] | null {
   if (branch === null) return ALL_REFS;
   if (branch === 'HEAD') return ['HEAD'];
+  if (branch.startsWith('refs/tags/')) return tags.includes(branch.slice('refs/tags/'.length)) ? [branch] : null;
   if (local.includes(branch)) return [branch];
   if (remote.includes(branch)) return [branch];
   const tracking = remote.find((r) => r.endsWith(`/${branch}`));

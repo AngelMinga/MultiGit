@@ -154,5 +154,7 @@ describe('filtros', () => {
     expect(resolveBranchRefs('solo-remota', local, remote)).toEqual(['origin/solo-remota']);
     expect(resolveBranchRefs('origin/develop', local, remote)).toEqual(['origin/develop']);
     expect(resolveBranchRefs('no-existe', local, remote)).toBeNull();
+    expect(resolveBranchRefs('refs/tags/v1.0', local, remote, ['v1.0'])).toEqual(['refs/tags/v1.0']);
+    expect(resolveBranchRefs('refs/tags/v2.0', local, remote, ['v1.0'])).toBeNull();
   });
 });
