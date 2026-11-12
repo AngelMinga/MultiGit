@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "Git multi-repositorio al estilo IntelliJ IDEA: ramas comunes, commit, push, pull y log con grafo para todos los repos del workspace a la vez.",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -547,6 +547,36 @@
         "title": "Show Ignored Files",
         "category": "MultiGit",
         "toggled": "multigit.changesShowIgnored"
+      },
+      {
+        "command": "multigit.operation.menu",
+        "title": "Operaciones en curso…",
+        "category": "MultiGit",
+        "icon": "$(warning)"
+      },
+      {
+        "command": "multigit.operation.resolve",
+        "title": "Resolve Conflicts…",
+        "category": "MultiGit",
+        "icon": "$(git-merge)"
+      },
+      {
+        "command": "multigit.operation.continue",
+        "title": "Continue",
+        "category": "MultiGit",
+        "icon": "$(debug-continue)"
+      },
+      {
+        "command": "multigit.operation.abort",
+        "title": "Abort",
+        "category": "MultiGit",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "multigit.alignBranches",
+        "title": "Alinear ramas con la de la mayoría",
+        "category": "MultiGit",
+        "icon": "$(git-branch)"
       }
     ],
     "menus": {
@@ -680,12 +710,12 @@
       "view/item/context": [
         {
           "command": "multigit.repoBranches",
-          "when": "view == multigit.repositories && viewItem == multigit.repo",
+          "when": "view == multigit.repositories && viewItem =~ /^multigit\\.repo(\\.operation)?$/",
           "group": "inline"
         },
         {
           "command": "multigit.repoBranches",
-          "when": "view == multigit.repositories && viewItem == multigit.repo",
+          "when": "view == multigit.repositories && viewItem =~ /^multigit\\.repo(\\.operation)?$/",
           "group": "navigation"
         },
         {
@@ -695,12 +725,12 @@
         },
         {
           "command": "multigit.pull",
-          "when": "view == multigit.repositories && viewItem == multigit.repo",
+          "when": "view == multigit.repositories && viewItem =~ /^multigit\\.repo(\\.operation)?$/",
           "group": "navigation@2"
         },
         {
           "command": "multigit.push",
-          "when": "view == multigit.repositories && viewItem == multigit.repo",
+          "when": "view == multigit.repositories && viewItem =~ /^multigit\\.repo(\\.operation)?$/",
           "group": "navigation@3"
         },
         {
@@ -852,6 +882,36 @@
           "command": "multigit.branchesTree.showInLog",
           "when": "view == multigit.branches && viewItem == multigit.tag",
           "group": "7_log@1"
+        },
+        {
+          "command": "multigit.operation.resolve",
+          "when": "view == multigit.repositories && viewItem == multigit.repo.operation",
+          "group": "inline@0"
+        },
+        {
+          "command": "multigit.operation.continue",
+          "when": "view == multigit.repositories && viewItem == multigit.repo.operation",
+          "group": "inline@0"
+        },
+        {
+          "command": "multigit.operation.abort",
+          "when": "view == multigit.repositories && viewItem == multigit.repo.operation",
+          "group": "inline@0"
+        },
+        {
+          "command": "multigit.operation.resolve",
+          "when": "view == multigit.repositories && viewItem == multigit.repo.operation",
+          "group": "0_operation@1"
+        },
+        {
+          "command": "multigit.operation.continue",
+          "when": "view == multigit.repositories && viewItem == multigit.repo.operation",
+          "group": "0_operation@2"
+        },
+        {
+          "command": "multigit.operation.abort",
+          "when": "view == multigit.repositories && viewItem == multigit.repo.operation",
+          "group": "0_operation@3"
         }
       ],
       "commandPalette": [
@@ -1082,6 +1142,22 @@
         {
           "command": "multigit.changes.toggleShowIgnored",
           "when": "false"
+        },
+        {
+          "command": "multigit.operation.resolve",
+          "when": "multigit.operationInProgress"
+        },
+        {
+          "command": "multigit.operation.continue",
+          "when": "multigit.operationInProgress"
+        },
+        {
+          "command": "multigit.operation.abort",
+          "when": "multigit.operationInProgress"
+        },
+        {
+          "command": "multigit.operation.menu",
+          "when": "multigit.operationInProgress"
         }
       ],
       "multigit.changes.groupBy": [
@@ -1443,6 +1519,12 @@
           "scope": "machine",
           "markdownDescription": "Ruta del ejecutable `claude` si no está en el `PATH`.",
           "order": 20
+        },
+        "multigit.warnBranchMismatch": {
+          "type": "boolean",
+          "default": true,
+          "order": 5,
+          "markdownDescription": "Avisar cuando la mayoría de los repos está en una rama y algunos en otra (con la opción de alinearlos)."
         }
       }
     },

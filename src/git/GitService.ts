@@ -19,6 +19,7 @@ import {
   type RepoStatus,
 } from './parsers';
 import type { OperationInProgress } from './preflight';
+import { hasConflictMarkers, type Operation } from './operations';
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 const NETWORK_TIMEOUT_MS = 180_000;
@@ -53,6 +54,14 @@ export interface PushOptions {
 }
 
 export class GitService {
+  /**
+   * Variables extra para todos los procesos git (las del askpass, que activa la extensión).
+   * Es estático porque hay un askpass por ventana, compartido por todos los repos.
+   */
+  static extraEnv: Record<string, string> = {};
+  /** Se llama cuando git rechaza una credencial (para olvidar respuestas recordadas). */
+  static onAuthFailure: (() => void) | undefined;
+
   readonly name: string;
 
   constructor(
@@ -77,7 +86,8 @@ export class GitService {
           windowsHide: true,
           env: {
             ...process.env,
-            // Nunca bloquear esperando credenciales en una terminal invisible.
+            ...GitService.extraEnv,
+            // Nunca bloquear esperando credenciales en una terminal invisible (las pide el askpass).
             GIT_TERMINAL_PROMPT: '0',
             // Mensajes en inglés y estables para poder parsearlos.
             LC_ALL: 'C',
@@ -89,6 +99,9 @@ export class GitService {
           if (error) {
             const code = typeof error.code === 'number' ? error.code : null;
             const detail = stderr.trim() || stdout.trim() || error.message;
+            if (/Authentication failed|Invalid username or password|Permission denied \(publickey|could not read (Username|Password)/i.test(stderr)) {
+              GitService.onAuthFailure?.();
+            }
             reject(new GitError(`git ${args.join(' ')} falló en ${this.name}: ${detail}`, args, code, stderr, stdout));
             return;
           }
@@ -154,6 +167,34 @@ export class GitService {
       if (p && (await exists(path.resolve(this.root, p)))) return markers[i]![1];
     }
     return null;
+  }
+
+  /** `git <merge|rebase|cherry-pick|revert> --continue` (el editor es ":", acepta el mensaje propuesto). */
+  continueOperation(op: Operation): Promise<string> {
+    return this.exec([op, '--continue']);
+  }
+
+  /** `git <op> --abort`: vuelve al estado anterior a la operación. */
+  abortOperation(op: Operation): Promise<string> {
+    return this.exec([op, '--abort']);
+  }
+
+  /** `git rebase --skip` / `git cherry-pick --skip`: salta el commit actual. */
+  skipOperation(op: Operation): Promise<string> {
+    return this.exec([op, '--skip']);
+  }
+
+  /** De los archivos dados, los que todavía tienen marcas de conflicto (<<<<<<< … >>>>>>>). */
+  async filesWithConflictMarkers(paths: readonly string[]): Promise<string[]> {
+    const result: string[] = [];
+    for (const p of paths) {
+      try {
+        if (hasConflictMarkers(await fs.readFile(path.join(this.root, p), 'utf8'))) result.push(p);
+      } catch {
+        // borrado como resolución: no tiene marcas
+      }
+    }
+    return result;
   }
 
   /** Valida un nombre de rama con `git check-ref-format --branch`. */

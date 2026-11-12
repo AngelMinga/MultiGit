@@ -2,6 +2,8 @@
 import * as vscode from 'vscode';
 import { formatAheadBehind } from '../git/branchSummary';
 import { describeHead } from '../git/parsers';
+import { OPERATION_LABEL } from '../git/operations';
+import { computeAlignment } from '../git/alignment';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import { repoDecorationUri } from './RepoDecorations';
 
@@ -43,6 +45,20 @@ export class RepositoriesView implements vscode.TreeDataProvider<Repo>, vscode.D
     const counters = formatAheadBehind(status);
     // Los contadores van primero: la rama suele ser larga y se recorta por la derecha.
     item.description = counters ? `${counters}  ⎇ ${head}` : `⎇ ${head}`;
+    const alignment = computeAlignment(this.manager.all);
+    if (alignment?.outliers.some((o) => o.repo === repo.name)) {
+      item.description = `≠ ${item.description}`;
+      item.tooltip = new vscode.MarkdownString(
+        `${(item.tooltip as vscode.MarkdownString).value}  \n$(warning) El resto de los repos está en \`${alignment.target}\``,
+        true,
+      );
+    }
+    if (repo.operation) {
+      // Operación a medias: primero el aviso, con botones Resolve / Continue / Abort al pasar el ratón.
+      const conflicts = status.changes.conflicted;
+      item.description = `⚠ ${OPERATION_LABEL[repo.operation]}${conflicts ? ` · ${conflicts} conflicto(s)` : ''}  ${item.description}`;
+      item.contextValue = 'multigit.repo.operation';
+    }
     item.tooltip = buildTooltip(repo, head);
     return item;
   }

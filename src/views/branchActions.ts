@@ -106,6 +106,37 @@ export class BranchActions {
     });
   }
 
+  /**
+   * Alinear: checkout de `target` en los repos que están en otra rama (local si existe; si no,
+   * se crea siguiendo a la remota). Los repos sin esa rama se omiten.
+   */
+  async alignTo(target: string, repos: readonly Repo[]): Promise<void> {
+    const scope: Scope = { repos, label: `${repos.length} repositorio(s)` };
+    if (!(await this.confirmDirty(scope, `Checkout de '${target}'`))) return;
+    const remoteRef = new Map<Repo, string>();
+    await runInRepos(this.manager, {
+      title: `Alinear con '${target}'`,
+      repos,
+      check: async (repo, status) => {
+        if (status.branch === target) return { skip: 'ya está en esa rama' };
+        const b = await repo.git.getBranches();
+        if (b.local.some((l) => l.name === target)) return undefined;
+        const remote = b.remote.find((r) => r.name === target && r.remote === 'origin') ?? b.remote.find((r) => r.name === target);
+        if (!remote) return { skip: `no existe '${target}' (ni local ni remota)` };
+        remoteRef.set(repo, remote.full);
+        return undefined;
+      },
+      run: async (repo) => {
+        const remote = remoteRef.get(repo);
+        if (remote) {
+          await repo.git.checkoutTracking(target, remote);
+          return `nueva rama local desde ${remote}`;
+        }
+        await repo.git.checkout(target);
+      },
+    });
+  }
+
   /** Checkout de un tag o revisión conocida (HEAD queda detached). */
   async checkoutRef(scope: Scope, ref: string): Promise<void> {
     if (!(await this.confirmDirty(scope, `Checkout de '${ref}'`))) return;

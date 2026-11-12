@@ -1,0 +1,54 @@
+name: CI
+
+# Typecheck, tests (incluyen tests de integración con git real) y empaquetado del .vsix
+# en cada push a main y en cada pull request.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Los tests crean repositorios temporales y hacen commits en ellos.
+      - name: Configure git for the tests
+        run: |
+          git config --global user.name "CI"
+          git config --global user.email "ci@example.com"
+          git config --global init.defaultBranch main
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Package
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run package -- --out multigit.vsix
+
+      - name: Upload vsix
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v7
+        with:
+          name: multigit-vsix
+          path: multigit.vsix

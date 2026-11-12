@@ -1,0 +1,86 @@
+name: Release
+
+# Publica una versión cuando se sube un tag vX.Y.Z que coincide con `version` de package.json:
+#   npm version 0.3.0 --no-git-tag-version   (y una sección "## 0.3.0" en CHANGELOG.md)
+#   git commit -am "chore(release): 0.3.0" && git tag v0.3.0 && git push origin main v0.3.0
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Marketplace, Open VSX y GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check that the tag matches the extension version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Tag: $GITHUB_REF_NAME · package.json: $VERSION"
+          if [ "${GITHUB_REF_NAME#v}" != "$VERSION" ]; then
+            echo "::error::El tag $GITHUB_REF_NAME no coincide con la versión $VERSION de package.json. No se publicó nada."
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      # VSCE_PAT y OVSX_PAT son opcionales: sin ellos se omite esa tienda (con un aviso) y solo se crea el Release.
+      - name: Check publishing tokens
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -n "$VSCE_PAT" ]; then echo "PUBLISH_MARKETPLACE=true" >> "$GITHUB_ENV"; else echo "::warning::Falta el secreto VSCE_PAT: no se publica en el VS Code Marketplace."; fi
+          if [ -n "$OVSX_PAT" ]; then echo "PUBLISH_OPEN_VSX=true" >> "$GITHUB_ENV"; else echo "::warning::Falta el secreto OVSX_PAT: no se publica en Open VSX."; fi
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Configure git for the tests
+        run: |
+          git config --global user.name "CI"
+          git config --global user.email "ci@example.com"
+          git config --global init.defaultBranch main
+
+      # Mismos controles que CI: si fallan, no se publica nada.
+      - name: Test and package
+        run: |
+          npm test
+          npm run package -- --out "multigit-$VERSION.vsix"
+
+      - name: Publish to VS Code Marketplace
+        if: env.PUBLISH_MARKETPLACE == 'true'
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --packagePath "multigit-$VERSION.vsix"
+
+      - name: Publish to Open VSX
+        if: env.PUBLISH_OPEN_VSX == 'true'
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: npx --yes ovsx publish "multigit-$VERSION.vsix"
+
+      - name: Release notes from CHANGELOG.md
+        run: |
+          awk -v version="$VERSION" '
+            /^## / { if (found) exit; found = ($2 == version); next }
+            found { print }
+          ' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          if [ ! -s "$RUNNER_TEMP/notes.md" ]; then echo "Ver CHANGELOG.md." > "$RUNNER_TEMP/notes.md"; fi
+          printf '\nInstalación: descarga el .vsix y usa *Extensions → ⋯ → Install from VSIX…* o `code --install-extension multigit-%s.vsix`.\n' "$VERSION" >> "$RUNNER_TEMP/notes.md"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "multigit-$VERSION.vsix" --title "MultiGit $VERSION" --notes-file "$RUNNER_TEMP/notes.md"

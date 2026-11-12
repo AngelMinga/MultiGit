@@ -1,6 +1,7 @@
 // Barra de estado: "⎇ rama" si todos los repos están en la misma, o "⎇ N ramas" si difieren.
 // Al hacer clic abre el popup de ramas (comando multigit.branches).
 import * as vscode from 'vscode';
+import { alignmentKey, computeAlignment } from '../git/alignment';
 import { summarizeBranches, sumCounters } from '../git/branchSummary';
 import type { RepoManager } from '../git/RepoManager';
 
@@ -38,8 +39,15 @@ export class StatusBar implements vscode.Disposable {
 
     const { ahead, behind, dirtyRepos } = sumCounters(repos.map((r) => r.status));
     const counters = [ahead && `↑${ahead}`, behind && `↓${behind}`].filter(Boolean).join(' ');
-    const label = summary.kind === 'single' ? summary.branch : `${summary.byBranch.length} ramas`;
+    // Desalineados: la rama de la mayoría con un aviso (⚠N repos en otra rama).
+    const alignment = computeAlignment(repos);
+    const label = alignment
+      ? `${alignment.target} $(warning)${alignment.outliers.length}`
+      : summary.kind === 'single'
+        ? summary.branch
+        : `${summary.byBranch.length} ramas`;
     this.item.text = `$(git-branch) ${label}${counters ? ` ${counters}` : ''}`;
+    this.notifyMisalignment(alignment);
 
     const md = new vscode.MarkdownString('', true);
     md.appendMarkdown(`**MultiGit** — ${repos.length} repositorios\n\n`);
@@ -50,11 +58,40 @@ export class StatusBar implements vscode.Disposable {
         md.appendMarkdown(`$(git-branch) \`${group.branch}\`: ${group.repos.join(', ')}\n\n`);
       }
     }
+    if (alignment) {
+      md.appendMarkdown(
+        `$(warning) ${alignment.outliers.length} repo(s) fuera de \`${alignment.target}\`: ${alignment.outliers.map((o) => o.repo).join(', ')}\n\n`,
+      );
+    }
     if (ahead || behind) md.appendMarkdown(`↑${ahead} por subir · ↓${behind} por bajar\n\n`);
     if (dirtyRepos) md.appendMarkdown(`${dirtyRepos} repo(s) con cambios sin commit\n\n`);
     md.appendMarkdown('_Clic para ver las ramas_');
     this.item.tooltip = md;
     this.item.show();
+  }
+
+  /** Último aviso mostrado: solo se avisa cuando la desalineación aparece o cambia. */
+  private lastAlignment = '';
+
+  private notifyMisalignment(alignment: ReturnType<typeof computeAlignment>): void {
+    const key = alignmentKey(alignment);
+    if (key === this.lastAlignment) return;
+    this.lastAlignment = key;
+    if (!alignment || !vscode.workspace.getConfiguration('multigit').get<boolean>('warnBranchMismatch', true)) return;
+    const ALIGN = `Alinear con '${alignment.target}'`;
+    const NEVER = 'No avisar más';
+    void vscode.window
+      .showWarningMessage(
+        `MultiGit: ${alignment.outliers.map((o) => `${o.repo} está en '${o.branch}'`).join(', ')}; el resto en '${alignment.target}'.`,
+        ALIGN,
+        NEVER,
+      )
+      .then((choice) => {
+        if (choice === ALIGN) void vscode.commands.executeCommand('multigit.alignBranches');
+        if (choice === NEVER) {
+          void vscode.workspace.getConfiguration('multigit').update('warnBranchMismatch', false, vscode.ConfigurationTarget.Global);
+        }
+      });
   }
 
   dispose(): void {

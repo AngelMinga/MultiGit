@@ -3,6 +3,7 @@
 import * as vscode from 'vscode';
 import { GitService } from './GitService';
 import { describeHead, type RepoStatus } from './parsers';
+import type { OperationInProgress } from './preflight';
 import { assignRepoColors, repoColorId } from './repoColor';
 import { canonicalPath, isIgnoredRepo, scanForRepos } from './repoScanner';
 import * as path from 'node:path';
@@ -18,6 +19,8 @@ export interface Repo {
   status?: RepoStatus;
   /** Mensaje del último error al leer el estado. */
   error?: string;
+  /** Merge, rebase, cherry-pick o revert a medias. */
+  operation?: OperationInProgress;
 }
 
 export interface FetchResult {
@@ -173,7 +176,12 @@ export class RepoManager implements vscode.Disposable {
     await Promise.all(
       repos.map(async (repo) => {
         try {
-          repo.status = await repo.git.getStatus();
+          const [status, operation] = await Promise.all([
+            repo.git.getStatus(),
+            repo.git.getOperationInProgress().catch(() => null),
+          ]);
+          repo.status = status;
+          repo.operation = operation;
           repo.error = undefined;
         } catch (error) {
           repo.status = undefined;

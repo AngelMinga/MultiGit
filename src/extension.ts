@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { AutoFetcher } from './git/AutoFetcher';
 import { RepoManager } from './git/RepoManager';
+import { startCredentials } from './views/credentials';
+import { OperationsBar } from './views/OperationsBar';
+import { computeAlignment } from './git/alignment';
 import { BranchActions, type BranchRef, type Scope } from './views/branchActions';
 import { BranchPopup } from './views/branchPopup';
 import { BranchesTree, type BranchNode } from './views/BranchesTree';
@@ -25,6 +28,8 @@ import type { Repo } from './git/RepoManager';
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const log = vscode.window.createOutputChannel('MultiGit', { log: true });
   installTranslations();
+  // Askpass antes de cualquier fetch/pull/push (también el auto-fetch).
+  context.subscriptions.push(await startCredentials(context, log));
   const manager = new RepoManager(log);
   const repositoriesView = new RepositoriesView(manager);
   const decorations = new RepoDecorations(manager);
@@ -325,6 +330,34 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ).map(([id, run]) =>
       vscode.commands.registerCommand(`multigit.file.${id}`, (arg?: FileArg) => void popup.safely(async () => run(arg))),
     ),
+  );
+
+  // ---------------------------------------------------------------- Operaciones a medias (merge/rebase…)
+  const operationsBar = new OperationsBar(manager);
+  const repoArg = (repo?: Repo) => repo ?? treeView.selection[0];
+  context.subscriptions.push(
+    operationsBar,
+    vscode.commands.registerCommand('multigit.operation.menu', () => operationsBar.showMenu()),
+    vscode.commands.registerCommand('multigit.alignBranches', async () => {
+      const alignment = computeAlignment(manager.all);
+      if (!alignment) {
+        void vscode.window.showInformationMessage('MultiGit: todos los repos están en la misma rama.');
+        return;
+      }
+      await actions.alignTo(alignment.target, manager.all.filter((r) => alignment.outliers.some((o) => o.repo === r.name)));
+    }),
+    vscode.commands.registerCommand('multigit.operation.resolve', (repo?: Repo) => {
+      const r = repoArg(repo);
+      return r && operationsBar.resolve(r);
+    }),
+    vscode.commands.registerCommand('multigit.operation.continue', (repo?: Repo) => {
+      const r = repoArg(repo);
+      return r && operationsBar.continue(r);
+    }),
+    vscode.commands.registerCommand('multigit.operation.abort', (repo?: Repo) => {
+      const r = repoArg(repo);
+      return r && operationsBar.abort(r);
+    }),
   );
 
   log.info('MultiGit activado.');

@@ -2,6 +2,7 @@
 // Common Remote Branches. Al elegir una rama se abre un segundo QuickPick con sus acciones.
 import * as vscode from 'vscode';
 import { formatAheadBehind } from '../git/branchSummary';
+import { computeAlignment } from '../git/alignment';
 import { commonLocalBranches, commonRemoteBranches, type RepoBranchesInput } from '../git/branches';
 import { errorText } from '../git/MultiRepoRunner';
 import { describeHead } from '../git/parsers';
@@ -101,6 +102,17 @@ export class BranchPopup {
     const total = scope.repos.length;
     const a = this.actions;
     const key = shortcutLabels();
+
+    // ---- Desalineados: primero la acción para alinear
+    const alignment = allRepos ? computeAlignment(scope.repos) : null;
+    if (alignment) {
+      items.push({
+        label: `Alinear ${alignment.outliers.length} repo(s) con '${alignment.target}'`,
+        iconPath: new vscode.ThemeIcon('warning'),
+        description: alignment.outliers.map((o) => `${o.repo}: ${o.branch}`).join(' · '),
+        action: () => a.alignTo(alignment.target, scope.repos.filter((r) => alignment.outliers.some((o) => o.repo === r.name))),
+      });
+    }
 
     // ---- Acciones (con los atajos, como IntelliJ)
     items.push(

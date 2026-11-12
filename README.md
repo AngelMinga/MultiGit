@@ -75,6 +75,20 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
   New branch here y New tag.
 - Lista virtualizada: carga de 300 en 300 y se mantiene fluida con miles de commits.
 
+## Credenciales, conflictos y ramas desalineadas
+
+- **Credenciales**: si git o ssh necesitan usuario, contraseña/token, la passphrase de la clave o
+  confirmar la huella de un servidor, MultiGit lo pide en un cuadro de VS Code (como la extensión
+  Git integrada). En un fetch/push de varios repos al mismo servidor pregunta una sola vez (la
+  respuesta se recuerda unos minutos, solo en memoria). Si tus credenciales están en el llavero o en
+  el agente SSH, no pregunta nada.
+- **Operaciones a medias**: si un merge, rebase, cherry-pick o revert queda en conflicto, el repo se
+  marca `⚠ REBASE · 2 conflictos` y la barra de estado muestra el aviso, con **Resolve Conflicts**,
+  **Continue** (marca los resueltos y continúa), **Skip** y **Abort**, por repo o en todos.
+- **Ramas desalineadas**: si la mayoría de los repos está en una rama y algunos en otra, la barra de
+  estado muestra `⎇ dev-x ⚠1`, el repo se marca `≠` y el popup de ramas ofrece **Alinear** (checkout
+  de la rama, o creándola desde `origin`). Aviso desactivable con `multigit.warnBranchMismatch`.
+
 ## Operaciones seguras
 
 - **Preflight**: antes de una operación en varios repos (checkout, merge, rebase, pull, push…) se
@@ -111,6 +125,7 @@ Para usarlos en todas partes, cámbialos en *Preferences → Keyboard Shortcuts*
 | `multigit.favoriteBranches` | `["develop", "production-lt"]` | Ramas que van arriba con ★. |
 | `multigit.autoFetchMinutes` | `0` | `git fetch --all --prune` periódico (`0` = desactivado). |
 | `multigit.confirmCheckoutWithChanges` | `true` | Avisar antes de un checkout en repos con cambios. |
+| `multigit.warnBranchMismatch` | `true` | Avisar cuando algún repo queda en otra rama que la mayoría. |
 | `multigit.claude.*` | — | Modelo, esfuerzo, idioma, modo rápido, estilo del repo, scope, instrucciones, timeout y ruta de `claude` para *Generar con Claude*. |
 
 Los colores de los repos (`multigit.repo0` … `multigit.repo11`) se pueden cambiar en
@@ -155,7 +170,11 @@ npm run package        # genera multigit-x.y.z.vsix
 npm run dev -- <ruta>  # abre una ventana con la extensión en desarrollo
 ```
 
-O abre esta carpeta en VS Code y pulsa **F5**. La hoja de ruta por fases está en [PLAN.md](PLAN.md).
+O abre esta carpeta en VS Code y pulsa **F5**.
+
+**CI**: cada push a `main` y cada PR corre typecheck, tests (Linux y macOS) y empaqueta el `.vsix`.
+**Release**: con un tag `vX.Y.Z` igual a la versión de `package.json` se publica en el VS Code
+Marketplace (secreto `VSCE_PAT`), en Open VSX (`OVSX_PAT`) y se crea el GitHub Release con el `.vsix`. La hoja de ruta por fases está en [PLAN.md](PLAN.md).
 
 ## Licencia
 

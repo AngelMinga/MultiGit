@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0
+
+- **Credenciales**: askpass propio. MultiGit pide en VS Code el usuario, token, passphrase SSH o la
+  confirmación del host cuando git los necesita (antes fetch/pull/push fallaban), una sola vez para
+  todos los repos.
+- **Operaciones a medias**: aviso en la barra de estado y en Repositorios con Resolve Conflicts,
+  Continue, Skip y Abort, por repo o en todos.
+- **Ramas desalineadas**: aviso `⎇ rama ⚠N`, marca `≠` en Repositorios y acción **Alinear** en el
+  popup de ramas (`multigit.warnBranchMismatch`).
+- **CI y releases**: workflows de GitHub Actions (tests en Linux y macOS, empaquetado) y publicación
+  por tag en Marketplace, Open VSX y GitHub Releases.
+
 ## 0.2.5
 
 - Changes: **Group By ›** en el menú ⋯ (además del botón ☰) con **Directory**, **Repository** y
