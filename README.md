@@ -3,7 +3,7 @@
 Manejo de Git **multi-repositorio** al estilo IntelliJ IDEA para VS Code: pensado para workspaces
 con varios repos independientes (por ejemplo, micro-frontends) que suelen estar en la misma rama.
 
-> Estado: en desarrollo (Fase 4: diálogo de Pull). Ver [PLAN.md](PLAN.md) para la hoja de ruta.
+> Estado: en desarrollo (Fase 5: Changes, Commit y Rollback). Ver [PLAN.md](PLAN.md) para la hoja de ruta.
 
 ## Qué hace hoy
 
@@ -27,6 +27,13 @@ con varios repos independientes (por ejemplo, micro-frontends) que suelen estar 
 - **Pull…** (botón ⬇ de la vista, menú contextual de un repo o *Pull…* del popup): QuickPick
   encadenado Repositorio (o Todos) → Remote → Rama (por defecto el upstream) → Merge / Rebase /
   `--ff-only`. Si quedan conflictos, *Resolver conflictos* abre el merge editor de VS Code.
+- Contenedor **Commit (MultiGit)** en la Activity Bar, como la ventana Commit de IntelliJ:
+  - Vista **Changes** con checkboxes: *Changes* y *Unversioned Files*, agrupado por
+    repositorio (con su rama) → directorio → archivo, o por directorio. Clic → diff contra HEAD.
+  - Caja **Commit**: mensaje, *Amend last commit*, *Commit* y *Commit and Push…* (abre el diálogo
+    de Push). Hace commit solo de los archivos marcados, en cada repo, con el mismo mensaje.
+  - **Rollback…** con selección de archivos, contador y confirmación que lista lo que se pierde;
+    opción de borrar del disco los archivos añadidos. **Shelve / Unshelve** con nombre (git stash).
 - Toda operación multi-repo hace un *preflight* (si un repo lo impide no se toca ninguno), muestra
   el progreso repo por repo y, si algo falla, se detiene con un resumen ✅ / ❌ / ⏭.
 - Detecta los repos con la API de la extensión integrada `vscode.git` y, además, escaneando las

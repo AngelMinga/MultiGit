@@ -11,6 +11,9 @@ import { StatusBar } from './views/StatusBar';
 import { GitContentProvider } from './git/GitContentProvider';
 import { PushPanel } from './webview/PushPanel';
 import { showPullDialog } from './views/pullDialog';
+import { ChangesActions } from './views/changesActions';
+import { ChangesTree, filesOf, type ChangeNode } from './views/ChangesTree';
+import { CommitView } from './views/CommitView';
 import type { Repo } from './git/RepoManager';
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
@@ -95,6 +98,60 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('multigit.showBranchesView', () =>
       vscode.commands.executeCommand('multigit.branches.focus'),
     ),
+  );
+
+  // ---------------------------------------------------------------- Changes + Commit (Fase 5)
+  const changesTree = new ChangesTree(manager);
+  const changesView = vscode.window.createTreeView('multigit.changes', {
+    treeDataProvider: changesTree,
+    manageCheckboxStateManually: true,
+    showCollapseAll: true,
+  });
+  const changesActions = new ChangesActions(manager, changesTree);
+  const commitView = new CommitView(context.extensionUri, manager, changesTree, changesActions, (repos) => openPush(repos));
+  let changesStale = true;
+  const refreshChanges = () => {
+    if (changesView.visible) {
+      changesStale = false;
+      void changesTree.refresh();
+    } else {
+      changesStale = true;
+    }
+  };
+  const updateChangesBadge = () => {
+    const n = changesTree.trackedFiles.length;
+    changesView.badge = n ? { value: n, tooltip: `${n} archivo(s) con cambios` } : undefined;
+  };
+  const fileNode = (node?: ChangeNode) => (node?.kind === 'file' ? node.ref : undefined);
+
+  context.subscriptions.push(
+    changesTree,
+    changesView,
+    commitView,
+    vscode.window.registerWebviewViewProvider(CommitView.viewId, commitView, { webviewOptions: { retainContextWhenHidden: true } }),
+    manager.onDidChange(refreshChanges),
+    changesTree.onDidChangeChecked(updateChangesBadge),
+    changesView.onDidChangeVisibility((e) => {
+      if (e.visible && changesStale) refreshChanges();
+    }),
+    changesView.onDidChangeCheckboxState((e) => changesTree.onCheckboxChange(e)),
+    vscode.commands.registerCommand('multigit.commitFocus', () => commitView.focus()),
+    vscode.commands.registerCommand('multigit.changes.refresh', () => changesTree.refresh()),
+    vscode.commands.registerCommand('multigit.changes.groupByRepo', () => changesTree.setGroupBy('repo')),
+    vscode.commands.registerCommand('multigit.changes.groupByDirectory', () => changesTree.setGroupBy('directory')),
+    vscode.commands.registerCommand('multigit.changes.rollback', (node?: ChangeNode) =>
+      changesActions.rollback(node ? filesOf(node) : undefined, !!node),
+    ),
+    vscode.commands.registerCommand('multigit.changes.shelve', () => changesActions.shelve()),
+    vscode.commands.registerCommand('multigit.changes.unshelve', () => changesActions.unshelve()),
+    vscode.commands.registerCommand('multigit.changes.openDiff', (node?: ChangeNode) => {
+      const ref = fileNode(node ?? changesView.selection[0]);
+      if (ref) void changesActions.openDiff(ref);
+    }),
+    vscode.commands.registerCommand('multigit.changes.openFile', (node?: ChangeNode) => {
+      const ref = fileNode(node ?? changesView.selection[0]);
+      if (ref) void changesActions.openFile(ref);
+    }),
   );
 
   log.info('MultiGit activado.');

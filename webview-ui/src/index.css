@@ -379,3 +379,59 @@ input[type='checkbox'] {
     border-bottom: 1px solid var(--vscode-panel-border);
   }
 }
+
+/* ------------------------------------------------------------ commit */
+
+.commit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px 12px;
+  height: 100%;
+}
+body:has(.commit) {
+  background: var(--vscode-sideBar-background);
+  overflow: auto;
+}
+.commit-message {
+  font: inherit;
+  min-height: 64px;
+  flex: 1;
+  resize: vertical;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  border-radius: 2px;
+  padding: 6px;
+}
+.commit-message::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+}
+.commit-message:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+.commit-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.commit-repo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.commit-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.commit-buttons .primary {
+  flex: 1;
+}

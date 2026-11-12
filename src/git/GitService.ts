@@ -5,6 +5,7 @@ import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import { parseRefs, REF_FORMAT, type RepoBranches } from './branches';
 import { pullArgs, type PullMode } from './pull';
+import { parseStashList, parseStatusFiles, SHELF_PREFIX, type StashEntry, type StatusFile } from './changes';
 import {
   LOG_FORMAT,
   parseLeftRightCount,
@@ -20,6 +21,8 @@ import type { OperationInProgress } from './preflight';
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 const NETWORK_TIMEOUT_MS = 180_000;
+/** Los hooks de pre-commit (husky, lint-staged) pueden tardar. */
+const COMMIT_TIMEOUT_MS = 300_000;
 const MAX_BUFFER = 64 * 1024 * 1024;
 
 export interface GitExecOptions {
@@ -318,7 +321,55 @@ export class GitService {
     return this.exec(args, { timeoutMs: NETWORK_TIMEOUT_MS });
   }
 
-  /** `git worktree add <dir> <branch>` (rama local existente). */
+  // ---------------------------------------------------------------- changes / commit / rollback
+
+  /** Archivos con cambios (incluye cada archivo dentro de carpetas sin versionar). */
+  async getChanges(): Promise<StatusFile[]> {
+    const out = await this.exec(['--no-optional-locks', 'status', '--porcelain=v2', '-z', '--untracked-files=all']);
+    return parseStatusFiles(out);
+  }
+
+  /** `git add -- <paths>` (para incluir archivos sin versionar en un commit). */
+  async addPaths(paths: readonly string[]): Promise<void> {
+    if (paths.length) await this.exec(['add', '--', ...paths]);
+  }
+
+  /** Commit solo de `paths` (`git commit --only`), opcionalmente `--amend`. */
+  commitPaths(message: string, paths: readonly string[], amend: boolean): Promise<string> {
+    const args = ['commit', '--only', '-m', message];
+    if (amend) args.push('--amend');
+    return this.exec([...args, '--', ...paths], { timeoutMs: COMMIT_TIMEOUT_MS });
+  }
+
+  /** Mensaje completo del último commit (para Amend). */
+  async lastCommitMessage(): Promise<string> {
+    return (await this.exec(['log', '-1', '--format=%B'])).trim();
+  }
+
+  /** Vuelve `paths` a como están en HEAD (índice y working tree). */
+  async restorePaths(paths: readonly string[]): Promise<void> {
+    if (paths.length) await this.exec(['restore', '--source=HEAD', '--staged', '--worktree', '--', ...paths]);
+  }
+
+  /** Saca `paths` del índice sin tocar el disco (los añadidos vuelven a "sin versionar"). */
+  async unstageAdded(paths: readonly string[]): Promise<void> {
+    if (paths.length) await this.exec(['rm', '--cached', '-q', '--ignore-unmatch', '--', ...paths]);
+  }
+
+  /** Shelve: `git stash push -u -m "MultiGit: <nombre>" -- <paths>`. */
+  async stashPush(name: string, paths: readonly string[]): Promise<void> {
+    await this.exec(['stash', 'push', '--include-untracked', '-m', `${SHELF_PREFIX}${name}`, '--', ...paths]);
+  }
+
+  async listStashes(): Promise<StashEntry[]> {
+    return parseStashList(await this.exec(['stash', 'list', '--format=%gd%x00%gs']));
+  }
+
+  stashPop(ref: string): Promise<string> {
+    return this.exec(['stash', 'pop', ref]);
+  }
+
+
   addWorktree(dir: string, branch: string): Promise<string> {
     return this.exec(['worktree', 'add', dir, branch]);
   }

@@ -3,7 +3,7 @@
 // importar `vscode` ni módulos de Node.
 
 /** Paneles webview que existen (el log llega en la Fase 6). */
-export type WebviewKind = 'push';
+export type WebviewKind = 'push' | 'commit';
 
 // ------------------------------------------------------------------ Push
 
@@ -58,6 +58,15 @@ export interface PushState {
   attempted: boolean;
 }
 
+// ------------------------------------------------------------------ Commit
+
+export interface CommitState {
+  /** Archivos marcados en la vista Changes, por repo. */
+  repos: Array<{ name: string; colorIndex: number; count: number }>;
+  total: number;
+  busy: boolean;
+}
+
 // ------------------------------------------------------------------ mensajes
 
 /** Host → webview. */
@@ -65,7 +74,10 @@ export type HostMessage =
   | { type: 'init'; payload: { kind: WebviewKind } }
   | { type: 'error'; payload: { message: string } }
   | { type: 'push/state'; payload: PushState }
-  | { type: 'push/files'; payload: { repoId: string; hash: string; files: PushFile[] } };
+  | { type: 'push/files'; payload: { repoId: string; hash: string; files: PushFile[] } }
+  | { type: 'commit/state'; payload: CommitState }
+  | { type: 'commit/setMessage'; payload: { message: string } }
+  | { type: 'commit/done'; payload: Record<string, never> };
 
 /** Webview → host. */
 export type WebviewMessage =
@@ -77,4 +89,6 @@ export type WebviewMessage =
   | { type: 'push/openDiff'; payload: { repoId: string; hash: string; file: PushFile } }
   | { type: 'push/run'; payload: { repoIds: string[]; tags: PushTagsMode; force: boolean } }
   | { type: 'push/pullAndRetry'; payload: { tags: PushTagsMode } }
-  | { type: 'push/close'; payload: Record<string, never> };
+  | { type: 'push/close'; payload: Record<string, never> }
+  | { type: 'commit/run'; payload: { message: string; amend: boolean; push: boolean } }
+  | { type: 'commit/requestLastMessage'; payload: Record<string, never> };

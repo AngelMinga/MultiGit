@@ -66,9 +66,9 @@ export class BranchActions {
     await showPullDialog(this.manager, scope.repos.length === 1 ? scope.repos[0] : undefined);
   }
 
-  /** Commit…: por ahora abre Source Control (la caja de commit propia llega en la Fase 5). */
+  /** Commit…: enfoca la caja de commit de MultiGit. */
   async commit(): Promise<void> {
-    await vscode.commands.executeCommand('workbench.view.scm');
+    await vscode.commands.executeCommand('multigit.commitFocus');
   }
 
   /** New Branch… desde la rama actual (o desde `start`). */

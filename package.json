@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "Manejo de Git multi-repositorio al estilo IntelliJ IDEA para workspaces con varios repos.",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -37,6 +37,11 @@
           "id": "multigit",
           "title": "MultiGit",
           "icon": "media/multigit.svg"
+        },
+        {
+          "id": "multigit-commit",
+          "title": "Commit (MultiGit)",
+          "icon": "media/multigit-commit.svg"
         }
       ]
     },
@@ -54,12 +59,31 @@
           "icon": "$(git-branch)",
           "visibility": "visible"
         }
+      ],
+      "multigit-commit": [
+        {
+          "id": "multigit.changes",
+          "name": "Changes",
+          "icon": "media/multigit-commit.svg",
+          "visibility": "visible"
+        },
+        {
+          "id": "multigit.commit",
+          "name": "Commit",
+          "type": "webview",
+          "icon": "media/multigit-commit.svg",
+          "visibility": "visible"
+        }
       ]
     },
     "viewsWelcome": [
       {
         "view": "multigit.repositories",
         "contents": "No se detectaron repositorios Git en el workspace.\n[Refrescar repositorios](command:multigit.refresh)"
+      },
+      {
+        "view": "multigit.changes",
+        "contents": "No hay cambios sin commit en los repositorios.\n[Refrescar](command:multigit.changes.refresh)"
       }
     ],
     "commands": [
@@ -145,6 +169,60 @@
         "title": "Pull…",
         "category": "MultiGit",
         "icon": "$(repo-pull)"
+      },
+      {
+        "command": "multigit.commitFocus",
+        "title": "Commit…",
+        "category": "MultiGit",
+        "icon": "$(git-commit)"
+      },
+      {
+        "command": "multigit.changes.refresh",
+        "title": "Refrescar cambios",
+        "category": "MultiGit",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "multigit.changes.groupByRepo",
+        "title": "Agrupar por repositorio",
+        "category": "MultiGit",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "multigit.changes.groupByDirectory",
+        "title": "Agrupar por directorio",
+        "category": "MultiGit",
+        "icon": "$(folder)"
+      },
+      {
+        "command": "multigit.changes.rollback",
+        "title": "Rollback…",
+        "category": "MultiGit",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "multigit.changes.shelve",
+        "title": "Shelve Changes…",
+        "category": "MultiGit",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "multigit.changes.unshelve",
+        "title": "Unshelve…",
+        "category": "MultiGit",
+        "icon": "$(inbox)"
+      },
+      {
+        "command": "multigit.changes.openDiff",
+        "title": "Ver diff",
+        "category": "MultiGit",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "multigit.changes.openFile",
+        "title": "Abrir archivo",
+        "category": "MultiGit",
+        "icon": "$(go-to-file)"
       }
     ],
     "menus": {
@@ -198,6 +276,36 @@
           "command": "multigit.showBranchesView",
           "when": "view == multigit.repositories",
           "group": "z_log@0"
+        },
+        {
+          "command": "multigit.changes.rollback",
+          "when": "view == multigit.changes",
+          "group": "navigation@1"
+        },
+        {
+          "command": "multigit.changes.groupByDirectory",
+          "when": "view == multigit.changes && multigit.changesGroupBy == repo",
+          "group": "navigation@5"
+        },
+        {
+          "command": "multigit.changes.groupByRepo",
+          "when": "view == multigit.changes && multigit.changesGroupBy == directory",
+          "group": "navigation@5"
+        },
+        {
+          "command": "multigit.changes.refresh",
+          "when": "view == multigit.changes",
+          "group": "navigation@9"
+        },
+        {
+          "command": "multigit.changes.shelve",
+          "when": "view == multigit.changes",
+          "group": "shelf@1"
+        },
+        {
+          "command": "multigit.changes.unshelve",
+          "when": "view == multigit.changes",
+          "group": "shelf@2"
         }
       ],
       "view/item/context": [
@@ -230,6 +338,31 @@
           "command": "multigit.push",
           "when": "view == multigit.repositories && viewItem == multigit.repo",
           "group": "navigation@3"
+        },
+        {
+          "command": "multigit.changes.openFile",
+          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.file/",
+          "group": "inline@1"
+        },
+        {
+          "command": "multigit.changes.rollback",
+          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file\\.tracked|repo|dir|section)/",
+          "group": "inline@2"
+        },
+        {
+          "command": "multigit.changes.openDiff",
+          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.file/",
+          "group": "navigation@1"
+        },
+        {
+          "command": "multigit.changes.openFile",
+          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.file/",
+          "group": "navigation@2"
+        },
+        {
+          "command": "multigit.changes.rollback",
+          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file\\.tracked|repo|dir|section)/",
+          "group": "navigation@3"
         }
       ],
       "commandPalette": [
@@ -255,6 +388,22 @@
         },
         {
           "command": "multigit.branchesTree.groupByRepo",
+          "when": "false"
+        },
+        {
+          "command": "multigit.changes.openDiff",
+          "when": "false"
+        },
+        {
+          "command": "multigit.changes.openFile",
+          "when": "false"
+        },
+        {
+          "command": "multigit.changes.groupByRepo",
+          "when": "false"
+        },
+        {
+          "command": "multigit.changes.groupByDirectory",
           "when": "false"
         }
       ]

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.8
+
+- Fase 5: vista Changes con checkboxes (por repo o por directorio), caja de Commit con Amend y Commit and Push…, Rollback con confirmación y Shelve/Unshelve.
+
 ## 0.0.7
 
 - Fase 4: diálogo de Pull (repositorio → remote → rama → merge/rebase/--ff-only) y resolución de conflictos con el merge editor.
