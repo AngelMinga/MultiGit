@@ -96,6 +96,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   log.info('MultiGit activado.');
+  void revealBranchesViewOnce(context, log);
   try {
     await manager.initialize();
   } catch (error) {
@@ -127,6 +128,23 @@ async function fetchWithProgress(manager: RepoManager): Promise<void> {
 
 function firstLine(text: string): string {
   return text.split('\n').find((l) => l.trim()) ?? text;
+}
+
+/**
+ * VS Code recuerda qué vistas tenía visibles el contenedor antes de que existiera "Ramas" y puede
+ * dejarla oculta. Enfocarla la vuelve visible; se hace una sola vez y luego el usuario decide.
+ */
+async function revealBranchesViewOnce(context: vscode.ExtensionContext, log: vscode.LogOutputChannel): Promise<void> {
+  const key = 'multigit.branchesViewRevealed';
+  if (context.globalState.get<boolean>(key)) return;
+  try {
+    await vscode.commands.executeCommand('multigit.branches.focus');
+    await vscode.commands.executeCommand('multigit.repositories.focus');
+    await context.globalState.update(key, true);
+    log.info('Vista Ramas mostrada.');
+  } catch (error) {
+    log.error('No se pudo mostrar la vista Ramas', error);
+  }
 }
 
 export function deactivate(): void {
