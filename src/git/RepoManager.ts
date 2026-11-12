@@ -5,7 +5,7 @@ import { GitService } from './GitService';
 import { describeHead, type RepoStatus } from './parsers';
 import { assignRepoColors, repoColorId } from './repoColor';
 import { canonicalPath, scanForRepos } from './repoScanner';
-import type { GitAPI, GitExtension } from './vscodeGit';
+import type { GitAPI, GitExtension, GitRepository } from './vscodeGit';
 
 export interface Repo {
   readonly git: GitService;
@@ -19,15 +19,29 @@ export interface Repo {
   error?: string;
 }
 
+export interface FetchResult {
+  repo: Repo;
+  error?: string;
+}
+
 const API_INIT_TIMEOUT_MS = 10_000;
+/** Espera tras un cambio antes de releer el estado (agrupa ráfagas de eventos). */
+const STATUS_DEBOUNCE_MS = 400;
+/** Fetches simultáneos como máximo. */
+const FETCH_CONCURRENCY = 4;
 
 export class RepoManager implements vscode.Disposable {
+  /** Clave: ruta canónica (sin symlinks; en macOS/Windows en minúsculas). */
   private readonly repos = new Map<string, Repo>();
+  /** Watchers por repo (misma clave que `repos`). */
+  private readonly watchers = new Map<string, vscode.Disposable>();
   private readonly disposables: vscode.Disposable[] = [];
   private readonly changeEmitter = new vscode.EventEmitter<void>();
   private gitApi: GitAPI | undefined;
   private refreshRunning: Promise<void> | undefined;
   private refreshQueued = false;
+  private readonly pendingStatus = new Set<string>();
+  private statusTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** Se dispara después de cada refresco (repos añadidos/quitados o estado actualizado). */
   readonly onDidChange = this.changeEmitter.event;
@@ -60,6 +74,10 @@ export class RepoManager implements vscode.Disposable {
       vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration('multigit.scanDepth')) void this.refresh();
       }),
+      // Al volver a la ventana releemos todo: pudo haber cambios desde una terminal externa.
+      vscode.window.onDidChangeWindowState((e) => {
+        if (e.focused) this.scheduleStatusRefresh();
+      }),
     );
 
     await this.refresh();
@@ -87,29 +105,59 @@ export class RepoManager implements vscode.Disposable {
     return this.refreshRunning;
   }
 
-  private async doRefresh(): Promise<void> {
-    const roots = await this.discoverRoots();
-    const gitPath = this.gitApi?.git.path ?? 'git';
+  /**
+   * Relee solo el estado (rama, ↑/↓, cambios) de los repos indicados, o de todos,
+   * con debounce. No vuelve a descubrir repos.
+   */
+  scheduleStatusRefresh(keys?: Iterable<string>): void {
+    for (const key of keys ?? this.repos.keys()) this.pendingStatus.add(key);
+    if (this.statusTimer) clearTimeout(this.statusTimer);
+    this.statusTimer = setTimeout(() => void this.flushStatusRefresh(), STATUS_DEBOUNCE_MS);
+  }
 
-    // Sincroniza el mapa: conserva los repos que siguen, crea los nuevos, quita los que ya no están.
-    const next = new Map<string, Repo>();
-    for (const [key, root] of roots) {
-      const existing = this.repos.get(key);
-      if (existing) {
-        next.set(key, existing);
-      } else {
-        const git = new GitService(root, gitPath);
-        next.set(key, { git, name: git.name, root, colorIndex: 0 });
+  /**
+   * `git fetch --all --prune` en todos los repos (máx. FETCH_CONCURRENCY a la vez)
+   * y después relee su estado. Nunca lanza: los errores vienen en el resultado.
+   */
+  async fetchAll(onProgress?: (done: number, total: number, repo: Repo) => void): Promise<FetchResult[]> {
+    const repos = this.all;
+    const results: FetchResult[] = [];
+    let done = 0;
+    let next = 0;
+
+    const worker = async (): Promise<void> => {
+      while (next < repos.length) {
+        const repo = repos[next++]!;
+        try {
+          await repo.git.fetchAll();
+          results.push({ repo });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.log.warn(`Fetch falló en ${repo.name}: ${message}`);
+          results.push({ repo, error: message });
+        }
+        onProgress?.(++done, repos.length, repo);
       }
-    }
-    this.repos.clear();
-    for (const [key, repo] of next) this.repos.set(key, repo);
+    };
+    await Promise.all(Array.from({ length: Math.min(FETCH_CONCURRENCY, repos.length) }, worker));
 
-    const colors = assignRepoColors(this.all.map((r) => r.name));
-    for (const repo of this.repos.values()) repo.colorIndex = colors.get(repo.name) ?? 0;
+    await this.readStatuses(repos);
+    this.changeEmitter.fire();
+    return results.sort((a, b) => a.repo.name.localeCompare(b.repo.name));
+  }
 
+  private async flushStatusRefresh(): Promise<void> {
+    this.statusTimer = undefined;
+    const repos = [...this.pendingStatus].map((k) => this.repos.get(k)).filter((r): r is Repo => !!r);
+    this.pendingStatus.clear();
+    if (repos.length === 0) return;
+    await this.readStatuses(repos);
+    this.changeEmitter.fire();
+  }
+
+  private async readStatuses(repos: readonly Repo[]): Promise<void> {
     await Promise.all(
-      [...this.repos.values()].map(async (repo) => {
+      repos.map(async (repo) => {
         try {
           repo.status = await repo.git.getStatus();
           repo.error = undefined;
@@ -119,9 +167,76 @@ export class RepoManager implements vscode.Disposable {
         }
       }),
     );
+  }
+
+  private async doRefresh(): Promise<void> {
+    const roots = await this.discoverRoots();
+    const gitPath = this.gitApi?.git.path ?? 'git';
+
+    // Quita los repos que ya no están (y sus watchers).
+    for (const key of [...this.repos.keys()]) {
+      if (!roots.has(key)) {
+        this.repos.delete(key);
+        this.watchers.get(key)?.dispose();
+        this.watchers.delete(key);
+      }
+    }
+    // Agrega los nuevos; los existentes se conservan (mismo objeto).
+    for (const [key, root] of roots) {
+      if (!this.repos.has(key)) {
+        const git = new GitService(root, gitPath);
+        this.repos.set(key, { git, name: git.name, root, colorIndex: 0 });
+      }
+    }
+    // Watchers: se recrean siempre, porque la API de vscode.git pudo abrir/cerrar repos.
+    for (const [key, repo] of this.repos) {
+      this.watchers.get(key)?.dispose();
+      this.watchers.set(key, await this.watchRepo(key, repo));
+    }
+
+    const colors = assignRepoColors(this.all.map((r) => r.name));
+    for (const repo of this.repos.values()) repo.colorIndex = colors.get(repo.name) ?? 0;
+
+    await this.readStatuses([...this.repos.values()]);
 
     this.logRepos();
     this.changeEmitter.fire();
+  }
+
+  /**
+   * Detecta cambios en un repo. Si la extensión vscode.git lo tiene abierto, usamos su
+   * evento de estado (cubre working tree, índice y refs). Si no, vigilamos `.git`
+   * (HEAD, index, refs) y los archivos guardados dentro del repo.
+   */
+  private async watchRepo(key: string, repo: Repo): Promise<vscode.Disposable> {
+    const onChange = () => this.scheduleStatusRefresh([key]);
+
+    const apiRepo = await this.findApiRepository(key);
+    if (apiRepo) return apiRepo.state.onDidChange(onChange);
+
+    const base = vscode.Uri.file(repo.root);
+    const gitWatcher = vscode.workspace.createFileSystemWatcher(
+      new vscode.RelativePattern(base, '.git/{HEAD,index,FETCH_HEAD,MERGE_HEAD,REBASE_HEAD,refs/**}'),
+    );
+    const treeWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(base, '**/*'));
+    const subs = [
+      gitWatcher,
+      gitWatcher.onDidChange(onChange),
+      gitWatcher.onDidCreate(onChange),
+      gitWatcher.onDidDelete(onChange),
+      treeWatcher,
+      treeWatcher.onDidChange(onChange),
+      treeWatcher.onDidCreate(onChange),
+      treeWatcher.onDidDelete(onChange),
+    ];
+    return vscode.Disposable.from(...subs);
+  }
+
+  private async findApiRepository(key: string): Promise<GitRepository | undefined> {
+    for (const r of this.gitApi?.repositories ?? []) {
+      if ((await canonicalPath(r.rootUri.fsPath)) === key) return r;
+    }
+    return undefined;
   }
 
   /** Une los repos que conoce la API de vscode.git con los encontrados escaneando el disco. */
@@ -182,6 +297,9 @@ export class RepoManager implements vscode.Disposable {
   }
 
   dispose(): void {
+    if (this.statusTimer) clearTimeout(this.statusTimer);
+    for (const w of this.watchers.values()) w.dispose();
+    this.watchers.clear();
     for (const d of this.disposables) d.dispose();
     this.disposables.length = 0;
   }

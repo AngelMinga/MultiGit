@@ -76,14 +76,24 @@ export class GitService {
     return parseStatusV2(out);
   }
 
-  /** Commits por subir/bajar respecto al upstream. `null` si la rama no tiene upstream. */
-  async getAheadBehind(): Promise<AheadBehind | null> {
+  /**
+   * Commits por subir/bajar de `head` respecto a `base` (por defecto, el upstream).
+   * `null` si `base` no existe (p. ej. la rama no tiene upstream).
+   * Nota: el estado normal ya trae estos contadores (`branch.ab` de getStatus);
+   * esto sirve para comparar contra otras ramas.
+   */
+  async getAheadBehind(base = '@{u}', head = 'HEAD'): Promise<AheadBehind | null> {
     try {
-      const out = await this.exec(['rev-list', '--left-right', '--count', '@{u}...HEAD']);
+      const out = await this.exec(['rev-list', '--left-right', '--count', `${base}...${head}`, '--']);
       return parseLeftRightCount(out);
     } catch (error) {
       if (error instanceof GitError) return null;
       throw error;
     }
+  }
+
+  /** `git fetch --all --prune`. Nunca pide credenciales (GIT_TERMINAL_PROMPT=0). */
+  async fetchAll(options: GitExecOptions = {}): Promise<void> {
+    await this.exec(['fetch', '--all', '--prune'], { timeoutMs: 120_000, ...options });
   }
 }

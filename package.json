@@ -63,6 +63,18 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "multigit.fetch",
+        "title": "Fetch en todos los repositorios",
+        "category": "MultiGit",
+        "icon": "$(repo-fetch)"
+      },
+      {
+        "command": "multigit.branches",
+        "title": "Ramas…",
+        "category": "MultiGit",
+        "icon": "$(git-branch)"
+      },
+      {
         "command": "multigit.showLog",
         "title": "Mostrar log",
         "category": "MultiGit",
@@ -71,6 +83,16 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "multigit.branches",
+          "when": "view == multigit.repositories",
+          "group": "navigation@1"
+        },
+        {
+          "command": "multigit.fetch",
+          "when": "view == multigit.repositories",
+          "group": "navigation@2"
+        },
         {
           "command": "multigit.refresh",
           "when": "view == multigit.repositories",
@@ -92,6 +114,13 @@
           "minimum": 0,
           "maximum": 5,
           "markdownDescription": "Profundidad máxima (en carpetas) para buscar repositorios `.git` dentro de cada carpeta del workspace. `0` revisa solo la carpeta raíz."
+        },
+        "multigit.autoFetchMinutes": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 1440,
+          "markdownDescription": "Cada cuántos minutos hacer `git fetch --all --prune` en todos los repositorios. `0` lo desactiva."
         }
       }
     },
