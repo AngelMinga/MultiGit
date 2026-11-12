@@ -236,21 +236,32 @@ export class RepoManager implements vscode.Disposable {
     const apiRepo = await this.findApiRepository(key);
     if (apiRepo) return apiRepo.state.onDidChange(onChange);
 
-    const base = vscode.Uri.file(repo.root);
-    const gitWatcher = vscode.workspace.createFileSystemWatcher(
-      new vscode.RelativePattern(base, '.git/{HEAD,index,FETCH_HEAD,MERGE_HEAD,REBASE_HEAD,refs/**}'),
+    // Repo que la extensión git integrada no abrió: en vez de vigilar todo el árbol (caro en repos
+    // grandes) se vigila lo que cambia en .git y los archivos que VS Code guarda/crea/borra/renombra
+    // dentro del repo. Los cambios hechos fuera de VS Code se leen al volver a la ventana.
+    const subs: vscode.Disposable[] = [];
+    try {
+      const gitDir = path.dirname(await repo.git.resolveGitPath('HEAD'));
+      const commonDir = path.dirname(await repo.git.resolveGitPath('refs/heads'));
+      const watch = (base: string, glob: string) => {
+        const w = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(base), glob));
+        subs.push(w, w.onDidChange(onChange), w.onDidCreate(onChange), w.onDidDelete(onChange));
+      };
+      watch(gitDir, '{HEAD,index,FETCH_HEAD,MERGE_HEAD,REBASE_HEAD,CHERRY_PICK_HEAD,REVERT_HEAD,ORIG_HEAD}');
+      watch(commonDir, 'refs/**');
+    } catch {
+      // sin .git legible: queda el refresco al guardar archivos y al volver a la ventana
+    }
+    const inRepo = (uri: vscode.Uri) => uri.scheme === 'file' && isInside(repo.root, uri.fsPath);
+    const anyInRepo = (uris: readonly vscode.Uri[]) => {
+      if (uris.some(inRepo)) onChange();
+    };
+    subs.push(
+      vscode.workspace.onDidSaveTextDocument((doc) => anyInRepo([doc.uri])),
+      vscode.workspace.onDidCreateFiles((e) => anyInRepo(e.files)),
+      vscode.workspace.onDidDeleteFiles((e) => anyInRepo(e.files)),
+      vscode.workspace.onDidRenameFiles((e) => anyInRepo(e.files.flatMap((f) => [f.oldUri, f.newUri]))),
     );
-    const treeWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(base, '**/*'));
-    const subs = [
-      gitWatcher,
-      gitWatcher.onDidChange(onChange),
-      gitWatcher.onDidCreate(onChange),
-      gitWatcher.onDidDelete(onChange),
-      treeWatcher,
-      treeWatcher.onDidChange(onChange),
-      treeWatcher.onDidCreate(onChange),
-      treeWatcher.onDidDelete(onChange),
-    ];
     return vscode.Disposable.from(...subs);
   }
 
@@ -349,4 +360,10 @@ function waitForInitialized(api: GitAPI): Promise<void> {
 function relativeToWorkspace(p: string): string {
   const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(p));
   return folder ? path.relative(folder.uri.fsPath, p) || path.basename(p) : path.basename(p);
+}
+
+/** ¿`file` está dentro de `root`? */
+function isInside(root: string, file: string): boolean {
+  const rel = path.relative(root, file);
+  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
 }
