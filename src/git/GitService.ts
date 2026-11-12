@@ -211,6 +211,11 @@ export class GitService {
     return parseNameStatusZ(out);
   }
 
+  /** Archivos que difieren entre `ref` y el working tree. */
+  async diffWithWorkingTree(ref: string): Promise<ChangedFile[]> {
+    return parseNameStatusZ(await this.exec(['diff', '--name-status', '-z', '-M', ref, '--']));
+  }
+
   /** Contenido de `filePath` en `ref` (`git show ref:path`). */
   showFile(ref: string, filePath: string): Promise<string> {
     return this.exec(['show', `${ref}:${filePath}`]);

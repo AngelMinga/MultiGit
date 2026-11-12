@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { AutoFetcher } from './git/AutoFetcher';
 import { RepoManager } from './git/RepoManager';
-import { BranchActions } from './views/branchActions';
+import { BranchActions, type BranchRef, type Scope } from './views/branchActions';
 import { BranchPopup } from './views/branchPopup';
 import { BranchesTree, type BranchNode } from './views/BranchesTree';
 import { CompareView } from './views/compareView';
@@ -80,6 +80,27 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const ref = target?.ref;
       if (target && ref?.type === 'local') void popup.safely(() => actions.rename(target.scope, ref));
     }),
+    // Menú contextual de la vista Ramas (como el de IntelliJ). Cada comando recibe el nodo.
+    ...(
+      [
+        ['checkout', (sc, ref) => actions.checkout(sc, ref)],
+        ['newBranchFrom', (sc, ref) => actions.newBranch(sc, ref)],
+        ['checkoutAndRebase', (sc, ref) => (ref.type === 'local' ? actions.checkoutAndRebase(sc, ref) : undefined)],
+        ['compare', (sc, ref) => actions.compare(sc, ref)],
+        ['diffWorkingTree', (sc, ref) => actions.diffWithWorkingTree(sc, ref)],
+        ['rebaseOnto', (sc, ref) => actions.rebaseOnto(sc, ref)],
+        ['merge', (sc, ref) => actions.merge(sc, ref)],
+        ['newWorktree', (sc, ref) => actions.newWorktree(sc, ref)],
+        ['update', (sc, ref) => actions.update(sc, ref)],
+        ['push', (sc, ref) => (ref.type === 'local' ? actions.push(sc, ref.name) : undefined)],
+        ['delete', (sc, ref) => (ref.type === 'local' ? actions.deleteLocal(sc, ref) : actions.deleteRemote(sc, ref))],
+      ] as Array<[string, (scope: Scope, ref: BranchRef) => Promise<unknown> | undefined]>
+    ).map(([id, run]) =>
+      vscode.commands.registerCommand(`multigit.branch.${id}`, (node?: BranchNode) => {
+        const target = branchActionsFor(node);
+        if (target) void popup.safely(async () => run(target.scope, target.ref));
+      }),
+    ),
     vscode.commands.registerCommand('multigit.branchesTree.groupByBranch', () => branchesTree.setGroupBy('branch')),
     vscode.commands.registerCommand('multigit.branchesTree.groupByRepo', () => branchesTree.setGroupBy('repo')),
     vscode.commands.registerCommand('multigit.branchesTree.refresh', () => branchesTree.refresh()),

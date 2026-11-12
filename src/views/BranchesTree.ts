@@ -135,7 +135,9 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
         } else if (current) {
           item.description = 'actual';
         }
-        item.contextValue = `multigit.branch.${node.ref.type}`;
+        // local.current = rama actual en todos sus repos (oculta Checkout, Merge, Delete…).
+        const allCurrent = node.ref.type === 'local' && node.currentIn.length === node.repos.length;
+        item.contextValue = `multigit.branch.${node.ref.type}${allCurrent ? '.current' : ''}`;
         item.command = { command: 'multigit.branchesTree.actions', title: 'Acciones', arguments: [node] };
         return item;
       }
@@ -144,7 +146,7 @@ export class BranchesTree implements vscode.TreeDataProvider<BranchNode>, vscode
         item.id = `branchRepo/${node.repo.root}/${node.ref.type === 'local' ? node.ref.name : node.ref.full}`;
         item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor(this.manager.colorIdOf(node.repo)));
         if (node.current) item.description = 'actual';
-        item.contextValue = `multigit.branch.${node.ref.type}`;
+        item.contextValue = `multigit.branch.${node.ref.type}${node.current ? '.current' : ''}`;
         item.command = { command: 'multigit.branchesTree.actions', title: 'Acciones', arguments: [node] };
         return item;
       }

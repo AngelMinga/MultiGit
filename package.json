@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "Git multi-repositorio al estilo IntelliJ IDEA: ramas comunes, commit, push, pull y log con grafo para todos los repos del workspace a la vez.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -262,6 +262,61 @@
         "title": "Update Project",
         "category": "MultiGit",
         "icon": "$(sync)"
+      },
+      {
+        "command": "multigit.branch.checkout",
+        "title": "Checkout",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branch.newBranchFrom",
+        "title": "New Branch from Selected…",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branch.checkoutAndRebase",
+        "title": "Checkout and Rebase onto Current",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branch.compare",
+        "title": "Compare with Current",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branch.diffWorkingTree",
+        "title": "Show Diff with Working Tree",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branch.rebaseOnto",
+        "title": "Rebase Current onto Selected",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branch.merge",
+        "title": "Merge Selected into Current",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branch.newWorktree",
+        "title": "New Worktree from Selected…",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branch.update",
+        "title": "Update",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branch.push",
+        "title": "Push…",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branch.delete",
+        "title": "Delete",
+        "category": "MultiGit"
       }
     ],
     "menus": {
@@ -374,11 +429,6 @@
           "group": "inline"
         },
         {
-          "command": "multigit.branchesTree.rename",
-          "when": "view == multigit.branches && viewItem == multigit.branch.local",
-          "group": "navigation"
-        },
-        {
           "command": "multigit.pull",
           "when": "view == multigit.repositories && viewItem == multigit.repo",
           "group": "navigation@2"
@@ -419,9 +469,69 @@
           "group": "inline@0"
         },
         {
+          "command": "multigit.branch.checkout",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\.(local|remote)$/",
+          "group": "1_checkout@1"
+        },
+        {
+          "command": "multigit.branch.newBranchFrom",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\./",
+          "group": "1_checkout@2"
+        },
+        {
+          "command": "multigit.branch.checkoutAndRebase",
+          "when": "view == multigit.branches && viewItem == multigit.branch.local",
+          "group": "1_checkout@3"
+        },
+        {
+          "command": "multigit.branch.compare",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\.(local|remote)$/",
+          "group": "2_compare@1"
+        },
+        {
+          "command": "multigit.branch.diffWorkingTree",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\./",
+          "group": "2_compare@2"
+        },
+        {
+          "command": "multigit.branch.rebaseOnto",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\.(local|remote)$/",
+          "group": "3_merge@1"
+        },
+        {
+          "command": "multigit.branch.merge",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\.(local|remote)$/",
+          "group": "3_merge@2"
+        },
+        {
+          "command": "multigit.branch.newWorktree",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\.(local|remote)$/",
+          "group": "4_worktree@1"
+        },
+        {
+          "command": "multigit.branch.update",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\./",
+          "group": "5_update@1"
+        },
+        {
+          "command": "multigit.branch.push",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\.local/",
+          "group": "5_update@2"
+        },
+        {
+          "command": "multigit.branch.delete",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\.(local|remote)$/",
+          "group": "6_edit@2"
+        },
+        {
+          "command": "multigit.branchesTree.rename",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\.local/",
+          "group": "6_edit@1"
+        },
+        {
           "command": "multigit.branchesTree.showInLog",
           "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\./",
-          "group": "navigation@0"
+          "group": "7_log@1"
         }
       ],
       "commandPalette": [
@@ -471,6 +581,50 @@
         },
         {
           "command": "multigit.branchesTree.showInLog",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branch.checkout",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branch.newBranchFrom",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branch.checkoutAndRebase",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branch.compare",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branch.diffWorkingTree",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branch.rebaseOnto",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branch.merge",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branch.newWorktree",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branch.update",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branch.push",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branch.delete",
           "when": "false"
         }
       ],
@@ -688,6 +842,12 @@
         "command": "multigit.branches",
         "key": "ctrl+shift+alt+b",
         "mac": "cmd+shift+alt+b"
+      },
+      {
+        "command": "multigit.branch.push",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k",
+        "when": "focusedView == multigit.branches && viewItem =~ /^multigit\\.branch\\.local/"
       }
     ],
     "submenus": [

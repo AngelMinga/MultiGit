@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Clic derecho en una rama (vista Ramas) con el menú de IntelliJ: Checkout, New Branch from, Checkout and Rebase onto Current, Compare with Current, Show Diff with Working Tree, Rebase, Merge, New Worktree, Update, Push…, Rename… (F2), Delete y Show in Git Log.
+- Nueva acción *Show Diff with Working Tree* (también en el popup).
+
 ## 0.1.1
 
 - Popup de ramas al estilo IntelliJ: acciones con sus atajos, New Worktree…, repos con su cuadrado de color y la rama con ›, rama actual primero con 🏷 y tracking (`origin/develop`), remotas agrupadas por remote.

@@ -7,6 +7,7 @@ import { summarizeBranches } from '../git/branchSummary';
 import { branchToFolderName, commonAncestor, type LocalBranch } from '../git/branches';
 import { errorText, runInRepos } from '../git/MultiRepoRunner';
 import type { Repo, RepoManager } from '../git/RepoManager';
+import { GitContentProvider } from '../git/GitContentProvider';
 import type { CompareView } from './compareView';
 import { showPullDialog } from './pullDialog';
 
@@ -257,6 +258,52 @@ export class BranchActions {
     }
     if (same.length) lines.push(`## Sin diferencias`, '', same.join(', '), '');
     await this.compareView.show(`compare ${other} vs ${label}`, lines.join('\n'));
+  }
+
+  /** Show Diff with Working Tree: archivos que difieren entre la rama y el working tree de cada repo. */
+  async diffWithWorkingTree(scope: Scope, ref: BranchRef): Promise<void> {
+    const name = refName(ref);
+    const groups = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Window, title: `MultiGit: comparando '${name}' con el working tree…` },
+      () =>
+        Promise.all(
+          scope.repos.map(async (repo) => ({ repo, files: await repo.git.diffWithWorkingTree(name).catch(() => []) })),
+        ),
+    );
+    type Item = vscode.QuickPickItem & { repo?: Repo; file?: { status: string; path: string; oldPath?: string } };
+    const items: Item[] = [];
+    for (const { repo, files } of groups) {
+      if (!files.length) continue;
+      items.push({ label: `${repo.name} (${files.length})`, kind: vscode.QuickPickItemKind.Separator });
+      for (const file of files) {
+        const dir = path.posix.dirname(file.path);
+        items.push({
+          label: `${file.status}  ${path.posix.basename(file.path)}`,
+          description: dir === '.' ? '' : dir,
+          repo,
+          file,
+        });
+      }
+    }
+    if (items.length === 0) {
+      void vscode.window.showInformationMessage(`MultiGit: '${name}' no tiene diferencias con el working tree.`);
+      return;
+    }
+    const picked = await vscode.window.showQuickPick(items, {
+      title: `Diff de '${name}' con el working tree — ${scope.label}`,
+      placeHolder: 'Elige un archivo para ver el diff',
+      matchOnDescription: true,
+    });
+    if (!picked?.repo || !picked.file) return;
+    const { repo, file } = picked;
+    const left = GitContentProvider.uri(repo.root, file.status === 'A' ? '' : name, file.oldPath ?? file.path);
+    const right =
+      file.status === 'D'
+        ? GitContentProvider.uri(repo.root, '', file.path)
+        : vscode.Uri.file(path.join(repo.root, file.path));
+    await vscode.commands.executeCommand('vscode.diff', left, right, `${path.posix.basename(file.path)} (${name} ↔ local)`, {
+      preview: true,
+    });
   }
 
   /** New Worktree from '<rama>'…: un worktree por repo bajo una carpeta común. */
