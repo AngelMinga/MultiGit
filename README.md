@@ -17,6 +17,8 @@ con varios repos independientes (por ejemplo, micro-frontends) que suelen estar 
   - *Common Local / Remote Branches*: ramas que existen en todos los repos, favoritas arriba con ★.
   - Por rama: Checkout, New Branch from…, Checkout and Rebase, Compare, Rebase, Merge,
     New Worktree, Update, Push…, Rename… (F2) y Delete.
+- Vista **Ramas**: árbol Local / Remote (como el panel de ramas del Git Log de IntelliJ), agrupado
+  por repositorio o por rama (`n/9` repos donde existe). Clic en una rama → sus acciones; F2 renombra.
 - Toda operación multi-repo hace un *preflight* (si un repo lo impide no se toca ninguno), muestra
   el progreso repo por repo y, si algo falla, se detiene con un resumen ✅ / ❌ / ⏭.
 - Detecta los repos con la API de la extensión integrada `vscode.git` y, además, escaneando las

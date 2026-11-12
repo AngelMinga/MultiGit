@@ -3,6 +3,7 @@ import { AutoFetcher } from './git/AutoFetcher';
 import { RepoManager } from './git/RepoManager';
 import { BranchActions } from './views/branchActions';
 import { BranchPopup } from './views/branchPopup';
+import { BranchesTree, type BranchNode } from './views/BranchesTree';
 import { CompareView } from './views/compareView';
 import { RepoDecorations } from './views/RepoDecorations';
 import { RepositoriesView } from './views/RepositoriesView';
@@ -15,11 +16,27 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const repositoriesView = new RepositoriesView(manager);
   const decorations = new RepoDecorations(manager);
   const compareView = new CompareView();
-  const popup = new BranchPopup(manager, new BranchActions(manager, compareView));
+  const actions = new BranchActions(manager, compareView);
+  const popup = new BranchPopup(manager, actions);
   const treeView = vscode.window.createTreeView('multigit.repositories', {
     treeDataProvider: repositoriesView,
     showCollapseAll: false,
   });
+  const branchesTree = new BranchesTree(manager);
+  const branchesView = vscode.window.createTreeView('multigit.branches', {
+    treeDataProvider: branchesTree,
+    showCollapseAll: true,
+  });
+  // Releer ramas solo si la vista está visible; si no, al volver a mostrarla.
+  let branchesStale = false;
+  const refreshBranches = () => {
+    if (branchesView.visible) branchesTree.refresh();
+    else branchesStale = true;
+  };
+  const branchActionsFor = (node?: BranchNode) => {
+    const target = node ?? branchesView.selection[0];
+    return target ? branchesTree.scopeOf(target) : undefined;
+  };
 
   context.subscriptions.push(
     log,
@@ -30,6 +47,27 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.window.registerFileDecorationProvider(decorations),
     compareView,
     vscode.workspace.registerTextDocumentContentProvider(CompareView.scheme, compareView),
+    branchesTree,
+    branchesView,
+    manager.onDidChange(refreshBranches),
+    branchesView.onDidChangeVisibility((e) => {
+      if (e.visible && branchesStale) {
+        branchesStale = false;
+        branchesTree.refresh();
+      }
+    }),
+    vscode.commands.registerCommand('multigit.branchesTree.actions', (node?: BranchNode) => {
+      const target = branchActionsFor(node);
+      if (target) void popup.safely(() => popup.showBranchActions(target.scope, target.ref));
+    }),
+    vscode.commands.registerCommand('multigit.branchesTree.rename', (node?: BranchNode) => {
+      const target = branchActionsFor(node);
+      const ref = target?.ref;
+      if (target && ref?.type === 'local') void popup.safely(() => actions.rename(target.scope, ref));
+    }),
+    vscode.commands.registerCommand('multigit.branchesTree.groupByBranch', () => branchesTree.setGroupBy('branch')),
+    vscode.commands.registerCommand('multigit.branchesTree.groupByRepo', () => branchesTree.setGroupBy('repo')),
+    vscode.commands.registerCommand('multigit.branchesTree.refresh', () => branchesTree.refresh()),
     new StatusBar(manager),
     new AutoFetcher(manager, log),
     vscode.commands.registerCommand('multigit.refresh', () =>

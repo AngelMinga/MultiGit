@@ -159,7 +159,8 @@ export class BranchPopup {
     return items;
   }
 
-  private async showBranchActions(scope: Scope, ref: BranchRef): Promise<void> {
+  /** Segundo QuickPick: acciones disponibles para `ref` en `scope`. */
+  async showBranchActions(scope: Scope, ref: BranchRef): Promise<void> {
     const name = refName(ref);
     const cur = currentLabel(scope);
     const currentIn = scope.repos.filter((r) => r.status?.branch === name).length;
@@ -200,7 +201,7 @@ export class BranchPopup {
   }
 
   /** Ejecuta una acción mostrando cualquier error inesperado. */
-  private async safely(fn: () => Promise<unknown>): Promise<void> {
+  async safely(fn: () => Promise<unknown>): Promise<void> {
     try {
       await fn();
     } catch (error) {

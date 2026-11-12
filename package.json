@@ -46,6 +46,11 @@
           "id": "multigit.repositories",
           "name": "Repositorios",
           "icon": "media/multigit.svg"
+        },
+        {
+          "id": "multigit.branches",
+          "name": "Ramas",
+          "icon": "$(git-branch)"
         }
       ]
     },
@@ -90,6 +95,36 @@
         "command": "multigit.branchPopup.rename",
         "title": "Renombrar rama",
         "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branchesTree.actions",
+        "title": "Acciones de la rama…",
+        "category": "MultiGit",
+        "icon": "$(ellipsis)"
+      },
+      {
+        "command": "multigit.branchesTree.rename",
+        "title": "Renombrar rama…",
+        "category": "MultiGit",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "multigit.branchesTree.groupByBranch",
+        "title": "Agrupar por rama",
+        "category": "MultiGit",
+        "icon": "$(list-flat)"
+      },
+      {
+        "command": "multigit.branchesTree.groupByRepo",
+        "title": "Agrupar por repositorio",
+        "category": "MultiGit",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "multigit.branchesTree.refresh",
+        "title": "Refrescar ramas",
+        "category": "MultiGit",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
@@ -113,6 +148,21 @@
           "command": "multigit.showLog",
           "when": "view == multigit.repositories",
           "group": "z_log"
+        },
+        {
+          "command": "multigit.branchesTree.groupByBranch",
+          "when": "view == multigit.branches && multigit.branchesGroupBy == repo",
+          "group": "navigation@1"
+        },
+        {
+          "command": "multigit.branchesTree.groupByRepo",
+          "when": "view == multigit.branches && multigit.branchesGroupBy == branch",
+          "group": "navigation@1"
+        },
+        {
+          "command": "multigit.branchesTree.refresh",
+          "when": "view == multigit.branches",
+          "group": "navigation@9"
         }
       ],
       "view/item/context": [
@@ -125,6 +175,16 @@
           "command": "multigit.repoBranches",
           "when": "view == multigit.repositories && viewItem == multigit.repo",
           "group": "navigation"
+        },
+        {
+          "command": "multigit.branchesTree.actions",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\./",
+          "group": "inline"
+        },
+        {
+          "command": "multigit.branchesTree.rename",
+          "when": "view == multigit.branches && viewItem == multigit.branch.local",
+          "group": "navigation"
         }
       ],
       "commandPalette": [
@@ -134,6 +194,22 @@
         },
         {
           "command": "multigit.branchPopup.rename",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branchesTree.actions",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branchesTree.rename",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branchesTree.groupByBranch",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branchesTree.groupByRepo",
           "when": "false"
         }
       ]
@@ -295,6 +371,11 @@
         "command": "multigit.branchPopup.rename",
         "key": "f2",
         "when": "inQuickOpen && multigit.branchPopupOpen"
+      },
+      {
+        "command": "multigit.branchesTree.rename",
+        "key": "f2",
+        "when": "focusedView == multigit.branches"
       }
     ]
   },
