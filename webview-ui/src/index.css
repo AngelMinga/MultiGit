@@ -647,17 +647,39 @@ button.icon-btn.on {
   flex: none;
   color: var(--vscode-descriptionForeground);
 }
-.log-refs {
-  flex: none;
-  max-width: 40%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.log-subject {
+  min-width: 120px;
 }
-.log-refs .ref {
+/* Etiquetas como IntelliJ: texto pequeño y gris a la derecha del mensaje, sin bordes. */
+.log-refs {
+  flex: 0 1 auto;
   max-width: 220px;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground);
+  overflow: hidden;
+}
+.ref-inline {
   overflow: hidden;
   text-overflow: ellipsis;
-  vertical-align: middle;
+  white-space: nowrap;
+}
+.ref-inline.ref-head {
+  color: var(--vscode-charts-green);
+}
+.ref-inline.ref-tag {
+  color: var(--vscode-charts-yellow);
+}
+.ref-more {
+  flex: none;
+  opacity: 0.8;
+}
+.log-row.selected .log-refs,
+.log-row.selected .ref-inline {
+  color: inherit;
 }
 .log-row.dim .log-subject,
 .log-row.dim .log-author,
@@ -773,6 +795,11 @@ button.icon-btn.on {
 .graph path {
   fill: none;
   stroke-width: 1.6;
+}
+.graph path.arrow {
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .graph path.stub {
   stroke-dasharray: 2 2;

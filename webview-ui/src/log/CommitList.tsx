@@ -53,6 +53,8 @@ export function CommitList(props: {
     () =>
       computeGraph(
         props.rows.map((r) => ({ id: key(r), parents: r.parents.map((p) => `${r.repoId}@${p}`), group: r.repoId })),
+        // Como IntelliJ: las aristas muy largas se cortan con flechas para no ocupar un carril.
+        { maxGroupDistance: 30, maxRowDistance: 120 },
       ),
     [props.rows],
   );
@@ -116,13 +118,11 @@ const Row = memo(function Row({ index, style, data }: ListChildComponentProps<Ro
       {data.graph[index] && <GraphCell row={data.graph[index]} width={data.graphWidth} height={ROW_HEIGHT} />}
       <span className="log-subject">{row.subject}</span>
       {row.refs.length > 0 && (
-        <span className="log-refs">
-          {row.refs.map((ref) => (
-            <span key={`${ref.kind}:${ref.name}`} className={`ref ref-${ref.kind}`} title={ref.name}>
-              {ref.kind === 'tag' ? '🏷 ' : '⑂ '}
-              {ref.name}
-            </span>
-          ))}
+        <span className="log-refs" title={row.refs.map((r) => r.name).join(', ')}>
+          <span className={`ref-inline ref-${row.refs[0]!.kind}`}>
+            {row.refs[0]!.kind === 'tag' ? '🏷' : '⑂'} {row.refs[0]!.name}
+          </span>
+          {row.refs.length > 1 && <span className="ref-more">+{row.refs.length - 1}</span>}
         </span>
       )}
       <span className="log-author">{row.author}</span>

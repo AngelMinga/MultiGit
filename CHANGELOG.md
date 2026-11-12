@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.14
+
+- Grafo: las aristas largas se cortan con flechas ↓/↑ como en IntelliJ (más de 30 commits del repo o 120 filas), máximo 16 carriles.
+- Etiquetas de ramas compactas a la derecha del mensaje (primera + "+N"); el mensaje siempre visible.
+
 ## 0.0.13
 
 - Fase 7: grafo de commits en el Git Log (algoritmo propio de carriles, merges, ramas paralelas y octopus; colores por rama; un SVG por fila compatible con la virtualización).

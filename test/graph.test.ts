@@ -10,10 +10,12 @@ function history(...specs: string[]): GraphInput[] {
   });
 }
 
+const STUB: Record<string, string> = { missing: '*', down: '↓', up: '↑' };
+
 /** Representación legible de una fila: nodo y tramos `x1from>x2to`. */
 function shape(row: GraphRow): string {
   const lines = row.lines
-    .map((l) => `${l.x1}${l.from === 'top' ? 't' : 'm'}>${l.x2}${l.to === 'mid' ? 'm' : 'b'}${l.stub ? '*' : ''}`)
+    .map((l) => `${l.x1}${l.from === 'top' ? 't' : 'm'}>${l.x2}${l.to === 'mid' ? 'm' : 'b'}${STUB[l.stub ?? ''] ?? ''}`)
     .sort()
     .join(' ');
   return `n${row.node}${row.merge ? 'M' : ''} ${lines}`.trim();
@@ -82,6 +84,30 @@ describe('computeGraph', () => {
     // Log filtrado: commits sueltos, cada uno con su tramo.
     const filtered = computeGraph(history('X:W', 'Y:V'));
     expect(filtered.rows.map(shape)).toEqual(['n0 0m>0b*', 'n0 0m>0b*']);
+  });
+
+  it('aristas largas: flecha ↓ en el hijo, ↑ en el padre y sin carril reservado', () => {
+    // M une X, cuyo padre P está muy abajo; en medio, una historia lineal larga.
+    const middle = Array.from({ length: 10 }, (_, i) => `m${i}:${i === 9 ? 'P' : `m${i + 1}`}`);
+    const g = computeGraph(history('M:m0,X', 'X:P', ...middle, 'P'), { maxGroupDistance: 5 });
+    // X (fila 1) → P (fila 12): se corta.
+    expect(shape(g.rows[1]!)).toBe('n1 0t>0b 1m>1b↓ 1t>1m');
+    // Mientras tanto solo hay un carril.
+    expect(g.rows.slice(2, 11).every((r) => r.width === 1)).toBe(true);
+    // P recibe la línea de m9 y la flecha de X.
+    expect(shape(g.rows[12]!)).toBe('n0 0t>0m 0t>0m↑');
+    expect(g.rows[12]!.lines.find((l) => l.stub === 'up')!.color).toBe(g.rows[1]!.color);
+    expect(g.maxLanes).toBe(2);
+  });
+
+  it('distancia por repo: en el log combinado las aristas del mismo repo cuentan solo sus commits', () => {
+    // r1 tiene dos commits seguidos separados por 8 commits de r2: no se corta con maxGroupDistance 3.
+    const r2 = Array.from({ length: 8 }, (_, i) => `r2/c${i}:${i < 7 ? `r2/c${i + 1}` : ''}`);
+    const g = computeGraph(history('r1/b:r1/a', ...r2, 'r1/a'), { maxGroupDistance: 3 });
+    expect(g.rows[0]!.lines.some((l) => l.stub)).toBe(false);
+    // Con maxRowDistance 5 sí se corta.
+    const cut = computeGraph(history('r1/b:r1/a', ...r2, 'r1/a'), { maxGroupDistance: 3, maxRowDistance: 5 });
+    expect(cut.rows[0]!.lines.some((l) => l.stub === 'down')).toBe(true);
   });
 
   it('5 000 commits con ramas y merges en poco tiempo', () => {

@@ -8,7 +8,9 @@
 //   3. Cada padre extra (merge, octopus) se une a un carril que ya lo espera o abre uno nuevo.
 //   4. Los huecos se compactan hacia la izquierda; las líneas que se mueven se dibujan en diagonal.
 // Un padre que no está entre los commits cargados (página siguiente o filtrado) no reserva carril:
-// se dibuja un tramo corto hacia abajo ("stub") para que no queden líneas colgando.
+// se dibuja un tramo corto hacia abajo para que no queden líneas colgando.
+// Aristas largas (como IntelliJ): si el padre está muy lejos, la línea se corta con una flecha ↓ en
+// el hijo y reaparece con una flecha ↑ en el padre; así no ocupa un carril durante cientos de filas.
 // Pensado para que cada fila tenga su propio dibujo y se pueda virtualizar.
 
 export interface GraphInput {
@@ -29,8 +31,13 @@ export interface GraphLine {
   from: 'top' | 'mid';
   to: 'mid' | 'bottom';
   color: number;
-  /** Tramo hacia un padre no cargado. */
-  stub?: boolean;
+  /**
+   * Tramo corto en vez de línea completa:
+   * - `missing`: el padre no está cargado (página siguiente o log filtrado).
+   * - `down`: arista larga cortada; flecha hacia abajo en el hijo.
+   * - `up`: arista larga cortada; flecha que llega al padre desde arriba.
+   */
+  stub?: 'missing' | 'down' | 'up';
 }
 
 export interface GraphRow {
@@ -47,14 +54,41 @@ export interface GraphRow {
 /** Cantidad de colores de rama (ver `--graph-N` en el CSS del webview). */
 export const GRAPH_COLORS = 8;
 
+export interface GraphOptions {
+  /** Cortar la arista si el padre está a más de N commits del mismo grupo (repo). */
+  maxGroupDistance?: number;
+  /** …o a más de N filas del log combinado. */
+  maxRowDistance?: number;
+}
+
 interface Lane {
   /** Commit que espera este carril. */
   id: string;
   color: number;
 }
 
-export function computeGraph(rows: readonly GraphInput[]): { rows: GraphRow[]; maxLanes: number } {
-  const known = new Set(rows.map((r) => r.id));
+export function computeGraph(
+  rows: readonly GraphInput[],
+  options: GraphOptions = {},
+): { rows: GraphRow[]; maxLanes: number } {
+  const maxGroup = options.maxGroupDistance ?? Infinity;
+  const maxRows = options.maxRowDistance ?? Infinity;
+  // Posición de cada commit en el log y dentro de su grupo, para medir la longitud de las aristas.
+  const rowIndex = new Map<string, number>();
+  const groupIndex = new Map<string, number>();
+  const groupCount = new Map<string, number>();
+  rows.forEach((r, i) => {
+    rowIndex.set(r.id, i);
+    const n = groupCount.get(r.group) ?? 0;
+    groupIndex.set(r.id, n);
+    groupCount.set(r.group, n + 1);
+  });
+  const known = rowIndex;
+  /** Aristas cortadas que llegan a cada padre: color de la primera. */
+  const elidedInto = new Map<string, number>();
+  const isLong = (child: string, parent: string) =>
+    rowIndex.get(parent)! - rowIndex.get(child)! > maxRows ||
+    groupIndex.get(parent)! - groupIndex.get(child)! > maxGroup;
   const colorCounter = new Map<string, number>();
   const nextColor = (group: string) => {
     const n = colorCounter.get(group) ?? groupOffset(group);
@@ -76,15 +110,23 @@ export function computeGraph(rows: readonly GraphInput[]): { rows: GraphRow[]; m
     // 1. Nodo
     const next: Array<Lane | null> = [...top];
     const node = incoming.length ? incoming[0]! : firstFree(next, 0);
-    const color = incoming.length ? top[node]!.color : nextColor(row.group);
+    const elidedColor = elidedInto.get(row.id);
+    const color = incoming.length ? top[node]!.color : elidedColor ?? nextColor(row.group);
     for (const k of incoming) next[k] = null;
     while (next.length <= node) next.push(null);
 
     // 2 y 3. Padres
-    const targets: Array<{ slot: number; color: number } | { stub: true; color: number }> = [];
+    const targets: Array<{ slot: number; color: number } | { stub: 'missing' | 'down'; color: number }> = [];
     row.parents.forEach((parent, i) => {
       if (!known.has(parent)) {
-        targets.push({ stub: true, color: i === 0 ? color : nextColor(row.group) });
+        targets.push({ stub: 'missing', color: i === 0 ? color : nextColor(row.group) });
+        return;
+      }
+      // Arista larga: se corta aquí y reaparece en el padre (si ningún carril ya lo espera).
+      if (isLong(row.id, parent) && !next.some((l) => l?.id === parent)) {
+        const c = i === 0 ? color : nextColor(row.group);
+        if (!elidedInto.has(parent)) elidedInto.set(parent, c);
+        targets.push({ stub: 'down', color: c });
         return;
       }
       if (i === 0) {
@@ -117,13 +159,14 @@ export function computeGraph(rows: readonly GraphInput[]): { rows: GraphRow[]; m
     });
 
     const lines: GraphLine[] = [];
+    if (elidedColor !== undefined) lines.push({ x1: node, x2: node, from: 'top', to: 'mid', color: elidedColor, stub: 'up' });
     top.forEach((lane, k) => {
       if (!lane) return;
       if (incoming.includes(k)) lines.push({ x1: k, x2: node, from: 'top', to: 'mid', color: lane.color });
       else lines.push({ x1: k, x2: map.get(k)!, from: 'top', to: 'bottom', color: lane.color });
     });
     for (const t of targets) {
-      if ('stub' in t) lines.push({ x1: node, x2: node, from: 'mid', to: 'bottom', color: t.color, stub: true });
+      if ('stub' in t) lines.push({ x1: node, x2: node, from: 'mid', to: 'bottom', color: t.color, stub: t.stub });
       else lines.push({ x1: node, x2: map.get(t.slot)!, from: 'mid', to: 'bottom', color: t.color });
     }
 
