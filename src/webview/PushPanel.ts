@@ -3,7 +3,7 @@
 //  derecha: commits por subir del repo elegido y archivos del commit elegido
 //  abajo: Push tags, Edit all targets, Push / Force push (with lease)
 import * as vscode from 'vscode';
-import { openCommitFileDiff } from '../git/GitContentProvider';
+import { GitContentProvider, openCommitFileDiff } from '../git/GitContentProvider';
 import { errorText, runInRepos } from '../git/MultiRepoRunner';
 import { formatSummary, isRejection } from '../git/preflight';
 import type { Repo, RepoManager } from '../git/RepoManager';
@@ -116,9 +116,27 @@ export class PushPanel implements vscode.Disposable {
           });
           break;
         }
-        case 'push/openDiff':
-          await openCommitFileDiff(message.payload.repoId, message.payload.hash, message.payload.file);
+        case 'push/selectRepo': {
+          // Archivos de todos los commits por subir del repo (base del más viejo → rama).
+          const repo = this.repoById(message.payload.repoId);
+          const view = this.views.get(message.payload.repoId);
+          if (!repo || !view?.branch) return;
+          const base = await rangeBase(repo, view);
+          const files = base ? await repo.git.diffRefs(base, view.branch) : [];
+          void postToWebview(this.panel.webview, { type: 'push/files', payload: { repoId: repo.root, hash: `range:${base ?? ''}`, files } });
           break;
+        }
+        case 'push/openDiff': {
+          const { repoId, hash, file, base } = message.payload;
+          if (!base) {
+            await openCommitFileDiff(repoId, hash, file);
+            break;
+          }
+          const left = GitContentProvider.uri(repoId, file.status === 'A' ? '' : base, file.oldPath ?? file.path);
+          const right = GitContentProvider.uri(repoId, file.status === 'D' ? '' : hash, file.path);
+          await vscode.commands.executeCommand('vscode.diff', left, right, `${file.path.split('/').pop()} (${t('changes to push')})`, { preview: true });
+          break;
+        }
         case 'push/run':
           await this.push(message.payload.repoIds, message.payload.tags, message.payload.force);
           break;
@@ -326,6 +344,16 @@ async function buildView(repo: Repo, branchOverride?: string, target: { remote?:
     view.skipReason = errorText(error);
   }
   return view;
+}
+
+/** Árbol vacío de git: base del rango cuando el commit más viejo no tiene padre. */
+const EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+
+/** Base para ver todos los cambios por subir: el padre del commit más viejo de la lista. */
+async function rangeBase(repo: Repo, view: PushRepoView): Promise<string | undefined> {
+  const oldest = view.commits[view.commits.length - 1];
+  if (!oldest) return undefined;
+  return (await repo.git.revisionExists(`${oldest.hash}^`)) ? `${oldest.hash}^` : EMPTY_TREE;
 }
 
 async function hasUpstream(repo: Repo, branch: string): Promise<boolean> {

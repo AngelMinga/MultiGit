@@ -1171,3 +1171,73 @@ button.claude-btn.running {
 .rbz-problem {
   color: var(--vscode-errorForeground);
 }
+
+/* ------------------------------------------------------------ Push: árbol repo → commits */
+
+.push-header-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: normal;
+}
+.push-tree .row {
+  gap: 6px;
+  align-items: center;
+}
+.push-repo {
+  padding-left: 4px;
+}
+.push-repo input {
+  margin: 0;
+  flex: none;
+}
+.push-repo .twisty {
+  width: 12px;
+  flex: none;
+  text-align: center;
+  cursor: pointer;
+}
+.push-repo-name {
+  font-weight: 600;
+  flex: none;
+}
+.push-target {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.push-target .link {
+  padding: 0;
+}
+.push-count {
+  flex: none;
+  margin-left: auto;
+}
+.push-repo.dim .push-repo-name,
+.push-repo.dim .push-target,
+.push-commit.dim {
+  opacity: 0.55;
+}
+.push-commit {
+  padding-left: 48px;
+}
+.push-commit .subject {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.push-commit .date {
+  flex: none;
+}
+.push-msg {
+  padding-left: 48px;
+}
+.push-files-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

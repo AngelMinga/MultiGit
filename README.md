@@ -89,8 +89,9 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
 
 ### Push y Pull
 
-- **Push Commits**: repos con checkbox y destino `rama → origin : rama` (**New** si la rama no
-  existe en el remote, con `push -u`), commits por subir y sus archivos, *Edit all targets*,
+- **Push Commits**: como IntelliJ, cada repo con su checkbox, destino `rama → origin : rama` (**New**
+  si la rama no existe en el remote, con `push -u`) y sus commits por subir debajo; clic en un repo o
+  en un commit → sus archivos (doble clic → diff). *Solo con commits*, *Edit all targets*,
   *Push tags*, **Force push (with lease)** con confirmación y **Pull y reintentar** si el remote
   rechaza el push.
 - **Pull…**: Repositorio (o Todos) → Remote → Rama (por defecto el upstream) → Merge / Rebase /

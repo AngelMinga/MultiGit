@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.1
+
+- **Push Commits como IntelliJ**: cada repo con sus commits debajo, en el mismo árbol (desplegados
+  si tiene alguno), `↑N` o *sin commits* en cada fila, y los repos sin nada que subir atenuados. Clic
+  en un repo → todos los archivos de sus commits; clic en un commit → los suyos; doble clic → diff.
+  Botón **Solo con commits** para marcar solo los repos que tienen algo que subir.
+
 ## 0.9.0
 
 - **Smart Checkout** (como IntelliJ): si el checkout sobrescribiría cambios locales, se detecta en

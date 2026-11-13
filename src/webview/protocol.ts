@@ -246,7 +246,8 @@ export type WebviewMessage =
   | { type: 'push/toggle'; payload: { repoIds: string[]; checked: boolean } }
   | { type: 'push/setTarget'; payload: { repoIds: string[]; remote?: string; branch?: string } }
   | { type: 'push/selectCommit'; payload: { repoId: string; hash: string } }
-  | { type: 'push/openDiff'; payload: { repoId: string; hash: string; file: PushFile } }
+  | { type: 'push/selectRepo'; payload: { repoId: string } }
+  | { type: 'push/openDiff'; payload: { repoId: string; hash: string; file: PushFile; /** Diff del rango base..hash (archivos del repo entero). */ base?: string } }
   | { type: 'push/run'; payload: { repoIds: string[]; tags: PushTagsMode; force: boolean } }
   | { type: 'push/pullAndRetry'; payload: { tags: PushTagsMode } }
   | { type: 'push/close'; payload: Record<string, never> }
