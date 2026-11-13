@@ -157,5 +157,14 @@
   "command.commit.history": "Commit Message History…",
   "setting.commit.ticketPattern": "Regular expression that finds the ticket in the branch name (case-sensitive; with a group, the ticket is group 1). E.g. `feature/ABC-123-login` → `ABC-123`. Empty: no ticket.",
   "setting.commit.ticketTemplate": "How the ticket goes in the commit message: `{ticket}`, `{branch}` and `{message}`. The empty commit box is filled with the part before `{message}`, and the messages written by Claude get the whole template if they don't include the ticket. E.g. `{ticket} {message}`, `{ticket}: {message}`, `{message} [{ticket}]`. Empty: disabled.",
-  "command.changes.selectHunks": "Select Changes to Commit…"
+  "command.changes.selectHunks": "Select Changes to Commit…",
+  "setting.commitChecks.enabled": "Check the files before each commit (like IntelliJ's Commit Checks). If something is found, you can review it or commit anyway.",
+  "setting.commitChecks.diagnostics": "Problems reported by VS Code (language servers, linters) in the files being committed.",
+  "setting.commitChecks.diagnostics.off": "Do not check problems.",
+  "setting.commitChecks.diagnostics.errors": "Warn about errors.",
+  "setting.commitChecks.diagnostics.warnings": "Warn about errors and warnings.",
+  "setting.commitChecks.todo": "Warn about new `TODO`, `FIXME` or `XXX` in the added lines.",
+  "setting.commitChecks.conflictMarkers": "Warn about conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`) in the added lines.",
+  "setting.commitChecks.secrets": "Warn about possible secrets in the added lines (private keys, tokens, API keys, passwords).",
+  "setting.commitChecks.largeFileMB": "Warn about files larger than this size (MB). `0`: do not check."
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0
+
+- **Comprobaciones antes del commit**: problemas de VS Code, `TODO`/`FIXME` nuevos, marcas de
+  conflicto, posibles secretos y archivos grandes en lo que va al commit (en los parciales, solo las
+  líneas elegidas). Si hay algo: **Revisar** o **Commit igualmente** (`multigit.commitChecks.*`).
+
 ## 0.7.0
 
 - **Commit parcial por hunks o líneas**: *Select Changes to Commit…* en un archivo modificado abre su

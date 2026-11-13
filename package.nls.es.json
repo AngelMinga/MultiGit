@@ -157,5 +157,14 @@
   "command.commit.history": "Historial de mensajes de commit…",
   "setting.commit.ticketPattern": "Expresión regular que busca el ticket en el nombre de la rama (distingue mayúsculas; con un grupo, el ticket es el grupo 1). Ej.: `feature/ABC-123-login` → `ABC-123`. Vacío: sin ticket.",
   "setting.commit.ticketTemplate": "Cómo va el ticket en el mensaje de commit: `{ticket}`, `{branch}` y `{message}`. La caja de commit vacía se rellena con lo que va antes de `{message}`, y a los mensajes que escribe Claude se les aplica la plantilla entera si no llevan el ticket. Ej.: `{ticket} {message}`, `{ticket}: {message}`, `{message} [{ticket}]`. Vacío: desactivado.",
-  "command.changes.selectHunks": "Elegir líneas para el commit…"
+  "command.changes.selectHunks": "Elegir líneas para el commit…",
+  "setting.commitChecks.enabled": "Revisar los archivos antes de cada commit (como las Commit Checks de IntelliJ). Si se encuentra algo, puedes revisarlo o hacer commit igualmente.",
+  "setting.commitChecks.diagnostics": "Problemas que informa VS Code (servidores de lenguaje, linters) en los archivos del commit.",
+  "setting.commitChecks.diagnostics.off": "No revisar problemas.",
+  "setting.commitChecks.diagnostics.errors": "Avisar de errores.",
+  "setting.commitChecks.diagnostics.warnings": "Avisar de errores y advertencias.",
+  "setting.commitChecks.todo": "Avisar de `TODO`, `FIXME` o `XXX` nuevos en las líneas añadidas.",
+  "setting.commitChecks.conflictMarkers": "Avisar de marcas de conflicto (`<<<<<<<`, `=======`, `>>>>>>>`) en las líneas añadidas.",
+  "setting.commitChecks.secrets": "Avisar de posibles secretos en las líneas añadidas (claves privadas, tokens, API keys, contraseñas).",
+  "setting.commitChecks.largeFileMB": "Avisar de archivos de más de este tamaño (MB). `0`: no revisar."
 }

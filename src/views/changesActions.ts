@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import { planCommit, planRollback, statusLabel, type StatusFile } from '../git/changes';
 import { SHELF_PREFIX } from '../git/stashes';
 import { buildPartial, diffFingerprint, parseHunks } from '../git/hunks';
+import { confirmFindings, runCommitChecks } from './commitChecks';
 import { GitContentProvider } from '../git/GitContentProvider';
 import { errorText, runInRepos } from '../git/MultiRepoRunner';
 import type { StepResult } from '../git/preflight';
@@ -53,6 +54,12 @@ export class ChangesActions {
         const selection = this.tree.partialOf({ repo, file });
         return selection ? [{ file, selection }] : [];
       });
+
+    // Commit Checks (TODO, conflictos, secretos, problemas, archivos grandes): pregunta si hay algo.
+    const findings = await runCommitChecks(
+      groups.map(({ repo, files }) => ({ repo, files: files.map((file) => ({ file, partial: this.tree.partialOf({ repo, file }) })) })),
+    );
+    if (!(await confirmFindings(findings, new Map(groups.map((g) => [g.repo.name, g.repo.root]))))) return undefined;
 
     const results = await runInRepos(this.manager, {
       title: t('{0} of {1} file(s)', amend ? 'Amend commit' : 'Commit', total),

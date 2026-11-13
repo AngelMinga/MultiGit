@@ -29,6 +29,11 @@ Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
 - **Commit**: mensaje, *Amend last commit*, contador de archivos marcados, **Commit** y
   **Commit and Push…**. Hace commit solo de los archivos marcados, en cada repo que tenga
   alguno, con el mismo mensaje.
+- **Comprobaciones antes del commit** (como las *Commit Checks* de IntelliJ): problemas que informa
+  VS Code (errores; también avisos si quieres), `TODO`/`FIXME` nuevos, marcas de conflicto, posibles
+  secretos (claves privadas, tokens, API keys, contraseñas) y archivos grandes. Si encuentra algo,
+  pregunta **Revisar** (lista para ir a cada línea) o **Commit igualmente**. Se configuran en
+  `multigit.commitChecks.*`.
 - **Commit parcial** (ícono ☑ en un archivo modificado, o *Select Changes to Commit…* en su menú):
   el diff del archivo con una casilla por cambio (hunk) y otra por línea. Solo las líneas marcadas
   entran en el commit; el resto queda como cambio sin commit y el archivo en disco no se toca. En
@@ -147,6 +152,7 @@ Para usarlos en todas partes, cámbialos en *Preferences → Keyboard Shortcuts*
 | `multigit.confirmCheckoutWithChanges` | `true` | Avisar antes de un checkout en repos con cambios. |
 | `multigit.warnBranchMismatch` | `true` | Avisar cuando algún repo queda en otra rama que la mayoría. |
 | `multigit.commit.ticketPattern` | `[A-Z][A-Z0-9]+-\d+` | Regex que saca el ticket del nombre de la rama (`feature/ABC-123-login` → `ABC-123`). Vacío: sin ticket. |
+| `multigit.commitChecks.*` | activadas | Comprobaciones antes del commit: `enabled`, `diagnostics` (`off`/`errors`/`warnings`), `todo`, `conflictMarkers`, `secrets`, `largeFileMB` (`5`; `0` = no). |
 | `multigit.commit.ticketTemplate` | `{ticket} {message}` | Dónde va el ticket en el mensaje (`{ticket}`, `{branch}`, `{message}`). Vacío: desactivado. |
 | `multigit.claude.*` | — | Modelo, esfuerzo, idioma, modo rápido, estilo del repo, scope, instrucciones, timeout y ruta de `claude` para *Generar con Claude*. |
 

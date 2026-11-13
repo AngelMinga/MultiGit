@@ -1724,6 +1724,53 @@
           "default": "{ticket} {message}",
           "order": 22,
           "markdownDescription": "%setting.commit.ticketTemplate%"
+        },
+        "multigit.commitChecks.enabled": {
+          "type": "boolean",
+          "default": true,
+          "order": 23,
+          "markdownDescription": "%setting.commitChecks.enabled%"
+        },
+        "multigit.commitChecks.diagnostics": {
+          "type": "string",
+          "enum": [
+            "off",
+            "errors",
+            "warnings"
+          ],
+          "enumDescriptions": [
+            "%setting.commitChecks.diagnostics.off%",
+            "%setting.commitChecks.diagnostics.errors%",
+            "%setting.commitChecks.diagnostics.warnings%"
+          ],
+          "default": "errors",
+          "order": 24,
+          "markdownDescription": "%setting.commitChecks.diagnostics%"
+        },
+        "multigit.commitChecks.todo": {
+          "type": "boolean",
+          "default": true,
+          "order": 25,
+          "markdownDescription": "%setting.commitChecks.todo%"
+        },
+        "multigit.commitChecks.conflictMarkers": {
+          "type": "boolean",
+          "default": true,
+          "order": 26,
+          "markdownDescription": "%setting.commitChecks.conflictMarkers%"
+        },
+        "multigit.commitChecks.secrets": {
+          "type": "boolean",
+          "default": true,
+          "order": 27,
+          "markdownDescription": "%setting.commitChecks.secrets%"
+        },
+        "multigit.commitChecks.largeFileMB": {
+          "type": "number",
+          "default": 5,
+          "minimum": 0,
+          "order": 28,
+          "markdownDescription": "%setting.commitChecks.largeFileMB%"
         }
       }
     },

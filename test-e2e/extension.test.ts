@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import * as path from 'node:path';
 import type { MultiGitTestApi } from '../src/extension';
 import { allLineIds, diffFingerprint, parseHunks } from '../src/git/hunks';
+import { runCommitChecks } from '../src/views/commitChecks';
 
 /** Recorre un TreeDataProvider completo y devuelve cada elemento con su TreeItem. */
 async function walk<T>(provider: vscode.TreeDataProvider<T>, parent?: T, depth = 0): Promise<Array<{ node: T; item: vscode.TreeItem }>> {
@@ -182,6 +183,20 @@ describe('Commit parcial', () => {
     assert.equal(readFileSync(file, 'utf8'), 'a\nB\nc\nd\ne\nf\ng\nH\n');
     assert.equal(git('status', '--porcelain', '--', 'src/app.js'), ' M src/app.js\n');
     assert.equal(api.changes.partialOf(ref), undefined);
+  });
+});
+
+describe('Comprobaciones antes del commit', () => {
+  it('encuentra TODO, marcas de conflicto y secretos en un archivo nuevo', async () => {
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    const repo = api.manager.all.find((r) => r.name === 'shell')!;
+    writeFileSync(path.join(repo.root, 'checks.js'), '// TODO: revisar\n<<<<<<< HEAD\nconst k = "AKIAABCDEFGHIJKLMNOP";\n');
+    const file = { path: 'checks.js', index: '?', worktree: '?', kind: 'untracked', status: '?' } as const;
+    const findings = await runCommitChecks([{ repo, files: [{ file: file as never }] }]);
+    assert.deepEqual(
+      findings.map((f) => `${f.kind}:${f.line}`),
+      ['conflict:2', 'secret:3', 'todo:1'],
+    );
   });
 });
 
