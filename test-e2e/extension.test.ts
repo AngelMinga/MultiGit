@@ -24,6 +24,23 @@ async function walk<T>(provider: vscode.TreeDataProvider<T>, parent?: T, depth =
   return out;
 }
 
+/**
+ * Cierra la pestaña de un webview cuyo título cumple `re`. La busca otra vez justo antes de cerrarla y
+ * reintenta: los diálogos se mueven a una ventana flotante y la pestaña encontrada antes deja de valer.
+ */
+async function closeWebviewTab(re: RegExp): Promise<void> {
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => setTimeout(r, 100));
+    const tab = vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((x) => x.input instanceof vscode.TabInputWebview && re.test(x.label));
+    if (!tab) return;
+    try {
+      await vscode.window.tabGroups.close(tab);
+    } catch {
+      // se movió a otra ventana mientras tanto: se vuelve a buscar
+    }
+  }
+}
+
 const label = (item: vscode.TreeItem) => (typeof item.label === 'string' ? item.label : item.label?.label ?? '');
 
 // En GitHub Actions, cada test fallido se publica como anotación (se lee sin entrar a los logs).
@@ -168,7 +185,7 @@ describe('Commit parcial', () => {
       tab = tabs.find((x) => x.input instanceof vscode.TabInputWebview && /app\.js/.test(x.label));
     }
     assert.ok(tab, `pestañas: ${tabs.map((x) => x.label).join(', ')}`);
-    await vscode.window.tabGroups.close(tab);
+    await closeWebviewTab(/app\.js/);
 
     const diff = await repo.git.diffForPartial('src/app.js');
     const hunks = parseHunks(diff)!;
@@ -261,7 +278,7 @@ describe('Rebase interactivo', () => {
       tab = vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((x) => x.input instanceof vscode.TabInputWebview && /shell/.test(x.label));
     }
     assert.ok(tab, 'pestaña del rebase');
-    await vscode.window.tabGroups.close(tab);
+    await closeWebviewTab(/shell/);
     const { commits, base } = await repo.git.rebaseCommits(first);
     assert.equal(base, null);
     assert.deepEqual(commits.map((c) => c.subject), ['feat: shell inicial', 'feat: cmp']);
@@ -282,7 +299,7 @@ describe('Pull', () => {
     const pullTab = () => vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((x) => x.input instanceof vscode.TabInputWebview && /^Pull/.test(x.label));
     for (let i = 0; i < 40 && groupsBefore.has(pullTab()!.group); i++) await new Promise((r) => setTimeout(r, 50));
     assert.ok(!groupsBefore.has(pullTab()!.group), 'el diálogo se movió a una ventana propia');
-    await vscode.window.tabGroups.close(pullTab()!);
+    await closeWebviewTab(/^Pull/);
   });
 });
 
@@ -323,12 +340,12 @@ describe('Conflictos', () => {
       mergeTab = vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((x) => x.input instanceof vscode.TabInputWebview && /conf\.js/.test(x.label));
     }
     assert.ok(mergeTab, 'pestaña de la ventana de merge');
-    await vscode.window.tabGroups.close(mergeTab);
+    await closeWebviewTab(/conf\.js/);
     // Lo mismo que hace "Accept" en Theirs:
     await repo.git.acceptConflictSide(['conf.js'], 'theirs');
     assert.equal(readFileSync(path.join(repo.root, 'conf.js'), 'utf8'), 'a\n');
     assert.deepEqual(await repo.git.getConflictedFiles(), []);
-    await vscode.window.tabGroups.close(tab);
+    await closeWebviewTab(/Conflict/);
     git('commit', '-q', '--no-edit');
     git('stash', 'pop', '-q');
     await api.manager.refresh();
