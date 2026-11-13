@@ -78,15 +78,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
       return undefined;
     }
   };
-  const repositories = area('Repositorios', () => registerRepositories(core, compareView));
+  const repositories = area(t('Repositories'), () => registerRepositories(core, compareView));
   const logView = area('Git Log', () => registerLog(core));
-  const branches = logView && area('Ramas', () => registerBranches(core, logView));
+  const branches = logView && area(t('Branches'), () => registerBranches(core, logView));
   const changes = logView && area('Changes', () => registerChanges(core, logView));
   const stashes = area('Stashes', () => registerStashes(core));
-  const compareFiles = area('Comparar', () => registerCompare(core));
-  if (logView && changes) area('Acciones de archivo', () => registerFileActions(core, logView, changes));
-  if (repositories) area('Operaciones', () => registerOperations(core, repositories.treeView));
-  area('Proyecto', () => registerToolbar(core));
+  const compareFiles = area(t('Compare'), () => registerCompare(core));
+  if (logView && changes) area(t('File actions'), () => registerFileActions(core, logView, changes));
+  if (repositories) area(t('Operations'), () => registerOperations(core, repositories.treeView));
+  area(t('Project'), () => registerToolbar(core));
   if (failed.length) {
     const RELOAD = t('Reload Window');
     void vscode.window
