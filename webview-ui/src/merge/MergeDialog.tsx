@@ -2,7 +2,8 @@
 // cambios se pasa al resultado con » / « o se descarta con ✕; el resultado se puede editar. Las tres
 // columnas van por filas (una por bloque), así siempre quedan alineadas; los tramos largos sin cambios
 // se pliegan.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, memo, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { highlight, languageOf } from './highlight';
 import type { MergeBlockView, MergeState } from '../../../src/webview/protocol';
 import { onHostMessage, post } from '../vscode';
 import { t } from '../i18n';
@@ -17,6 +18,11 @@ interface Resolution {
 }
 
 type Change = Extract<MergeBlockView, { type: 'change' }>;
+
+/** Lenguaje para los colores de sintaxis (undefined = texto plano). */
+const Lang = createContext<string | undefined>(undefined);
+/** Por encima de este tamaño no se colorea (archivos enormes como un package-lock). */
+const HIGHLIGHT_LIMIT = 400_000;
 
 const COLLAPSE_OVER = 16;
 const CONTEXT = 3;
@@ -59,6 +65,12 @@ export function MergeDialog() {
   const pendingChanges = changes.filter(([b, i]) => b.kind !== 'conflict' && res[i] && !isResolved(b, res[i]!)).length;
   const pendingConflicts = changes.filter(([b, i]) => b.kind === 'conflict' && res[i] && !isResolved(b, res[i]!)).length;
   const unresolved = changes.filter(([b, i]) => res[i] && !isResolved(b, res[i]!)).map(([, i]) => i);
+
+ const language = useMemo(() => {
+    if (!state) return undefined;
+    const size = state.blocks.reduce((n, b) => n + (b.type === 'stable' ? b.lines.join('').length : b.ours.join('').length + b.theirs.join('').length), 0);
+    return size > HIGHLIGHT_LIMIT ? undefined : languageOf(state.path);
+  }, [state]);
 
   if (!state) return <p className="muted pad">{t('Loading…')}</p>;
 
@@ -108,6 +120,7 @@ export function MergeDialog() {
   let nR = 1;
 
   return (
+    <Lang.Provider value={language}>
     <div
       className="merge"
       tabIndex={0}
@@ -193,7 +206,7 @@ export function MergeDialog() {
             <div key={i} id={`blk-${i}`} className={`mg-row mg-${b.kind}${done ? ' mg-done' : ''}${current === i ? ' mg-current' : ''}`}>
               <div className={`mg-cell mg-side${r.ours ? ' mg-handled' : ''}`}>
                 <Nums from={nums[0]} count={b.ours.length} />
-                <pre className="mg-text">{b.ours.join('') || ' '}</pre>
+                <Code text={b.ours.join('')} />
                 {oursHas && !r.ours && (
                   <span className="mg-arrows">
                     <button title={t('Accept this change')} onClick={() => apply(i, 'ours')}>
@@ -207,15 +220,19 @@ export function MergeDialog() {
               </div>
               <div className="mg-cell mg-center">
                 <Nums from={nums[1]} count={countLines(r.text)} />
-                <textarea
-                  className="mg-text mg-edit"
-                  value={r.text}
-                  wrap="off"
-                  spellCheck={false}
-                  rows={Math.max(1, countLines(r.text))}
-                  onChange={(e) => update(i, (prev) => ({ ...prev, text: e.target.value, edited: true }))}
-                  aria-label={t('Result')}
-                />
+                {/* Código coloreado debajo y el textarea transparente encima: se edita con colores. */}
+                <div className="mg-editwrap">
+                  <Code text={r.text} />
+                  <textarea
+                    className="mg-text mg-edit"
+                    value={r.text}
+                    wrap="off"
+                    spellCheck={false}
+                    rows={Math.max(1, countLines(r.text))}
+                    onChange={(e) => update(i, (prev) => ({ ...prev, text: e.target.value, edited: true }))}
+                    aria-label={t('Result')}
+                  />
+                </div>
               </div>
               <div className={`mg-cell mg-side mg-right${r.theirs ? ' mg-handled' : ''}`}>
                 {theirsHas && !r.theirs && (
@@ -229,7 +246,7 @@ export function MergeDialog() {
                   </span>
                 )}
                 <Nums from={nums[2]} count={b.theirs.length} />
-                <pre className="mg-text">{b.theirs.join('') || ' '}</pre>
+                <Code text={b.theirs.join('')} />
               </div>
             </div>
           );
@@ -269,23 +286,31 @@ export function MergeDialog() {
         </div>
       )}
     </div>
+    </Lang.Provider>
   );
 }
+
+/** Código coloreado (memorizado: no se vuelve a colorear si no cambia el texto). */
+const Code = memo(function Code(props: { text: string }) {
+  const language = useContext(Lang);
+  // Un espacio si está vacío, para que la fila conserve su alto.
+  return <pre className="mg-text" dangerouslySetInnerHTML={{ __html: props.text ? highlight(props.text, language) : ' ' }} />;
+});
 
 function Row(props: { cls: string; left: string[]; center: string[]; right: string[]; nums: [number, number, number] }) {
   return (
     <div className={`mg-row ${props.cls}`}>
       <div className="mg-cell mg-side">
         <Nums from={props.nums[0]} count={props.left.length} />
-        <pre className="mg-text">{props.left.join('')}</pre>
+        <Code text={props.left.join('')} />
       </div>
       <div className="mg-cell mg-center">
         <Nums from={props.nums[1]} count={props.center.length} />
-        <pre className="mg-text">{props.center.join('')}</pre>
+        <Code text={props.center.join('')} />
       </div>
       <div className="mg-cell mg-side mg-right">
         <Nums from={props.nums[2]} count={props.right.length} />
-        <pre className="mg-text">{props.right.join('')}</pre>
+        <Code text={props.right.join('')} />
       </div>
     </div>
   );

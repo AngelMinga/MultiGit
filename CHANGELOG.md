@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.13.0
+
+- **Ventana de merge con colores de sintaxis**, como el editor: palabras clave, cadenas, números,
+  comentarios, tipos y funciones con la paleta de VS Code (Dark+ en temas oscuros, Light+ en claros).
+  La columna Resultado se sigue editando con los colores. TypeScript/JavaScript, JSON, CSS/SCSS,
+  HTML/XML, Java, Kotlin, Python, YAML, Markdown, SQL, Bash, Dart, Go, C#, PHP y Swift. Los archivos
+  muy grandes (más de ~400 KB) se muestran sin colores para que no vaya lento.
+
 ## 0.12.2
 
 - **Push Commits como IntelliJ**: a la derecha, los archivos como **árbol** (repo → carpetas con su
