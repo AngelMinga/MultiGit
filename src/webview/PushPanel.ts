@@ -10,6 +10,7 @@ import type { Repo, RepoManager } from '../git/RepoManager';
 import type { PushRepoView, PushState, PushTagsMode, WebviewMessage } from './protocol';
 import { floatDialog } from './floating';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from './webviewHtml';
+import type { PullMode } from '../git/pull';
 import { t } from '../i18n';
 
 const MAX_COMMITS = 500;
@@ -255,11 +256,29 @@ export class PushPanel implements vscode.Disposable {
       return;
     }
     const failed = results.find((r) => r.state === 'failed');
+    // Rechazado porque el remoto tiene commits nuevos: como "Push Rejected" de IntelliJ, ofrecer
+    // traerlos (merge o rebase) y volver a hacer push sin cerrar el aviso a mano.
+    const rejected = this.repos.filter((r) => this.views.get(r.root)?.rejected);
+    if (rejected.length && !force) {
+      const MERGE = t('Merge');
+      const REBASE = t('Rebase');
+      const choice = await vscode.window.showWarningMessage(
+        t('Push rejected in {0}', rejected.map((r) => r.name).join(', ')),
+        {
+          modal: true,
+          detail: `${summary}\n\n${t('The remote has commits you do not have. Bring them in and push again: with Merge (merge commit) or Rebase (your commits on top).')}`,
+        },
+        MERGE,
+        REBASE,
+      );
+      if (choice === MERGE || choice === REBASE) await this.pullAndRetry(tags, choice === REBASE ? 'rebase' : 'merge');
+      return;
+    }
     void vscode.window.showErrorMessage(t('MultiGit: push failed in {0}', failed?.repo ?? '?'), { modal: true, detail: summary });
   }
 
-  /** Pull (merge) en los repos rechazados y vuelve a hacer push de los fallidos y no ejecutados. */
-  private async pullAndRetry(tags: PushTagsMode): Promise<void> {
+  /** Pull (merge o rebase) en los repos rechazados y vuelve a hacer push de los fallidos y no ejecutados. */
+  private async pullAndRetry(tags: PushTagsMode, mode: PullMode = 'merge'): Promise<void> {
     const rejected = this.repos.filter((r) => this.views.get(r.root)?.rejected);
     const retry = this.repos.filter((r) => {
       const s = this.views.get(r.root)?.state;
@@ -270,6 +289,7 @@ export class PushPanel implements vscode.Disposable {
     const pulled = await runInRepos(this.manager, {
       title: t('Pull before retrying the push'),
       repos: rejected,
+      continueAfterConflict: true,
       check: (repo, status) => {
         const v = this.views.get(repo.root)!;
         if (status.branch !== v.branch) return { block: t('\'{0}\' is not the current branch; pull it manually', v.branch) };
@@ -278,7 +298,7 @@ export class PushPanel implements vscode.Disposable {
       },
       run: async (repo) => {
         await repo.git.fetchAll();
-        await repo.git.pull();
+        await repo.git.pullWith(mode);
       },
     });
     if (!pulled || pulled.some((r) => r.state !== 'ok')) return;

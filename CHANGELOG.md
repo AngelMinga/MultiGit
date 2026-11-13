@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.1
+
+- **Push rechazado como IntelliJ**: si el remoto tiene commits que no tienes, el aviso ofrece **Merge**
+  o **Rebase**: trae esos commits y vuelve a hacer push en el momento (antes había que cerrar el aviso y
+  pulsar *Pull and Retry*). Si al traerlos hay conflictos, se resuelven en la ventana Conflictos.
+
 ## 0.16.0
 
 - **Administrar remotos** (como *Manage Remotes* de IntelliJ; menú ⋯ de Repositorios, clic derecho en un
