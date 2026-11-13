@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.7
+
+- Git Log: los menús contextuales (de commit y de rama) y el menú ⋮ se cierran al pulsar fuera, también
+  fuera del panel, con Escape, al desplazar o al cambiar el tamaño. Antes se quedaban abiertos.
+
 ## 0.9.6
 
 - Git Log: clic derecho en **HEAD (rama actual)** abre su menú, como IntelliJ: New Branch from

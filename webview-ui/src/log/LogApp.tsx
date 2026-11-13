@@ -92,6 +92,33 @@ export function LogApp() {
     });
   const [menu, setMenu] = useState<{ row: LogRow; x: number; y: number } | null>(null);
   const [branchMenu, setBranchMenu] = useState<{ target: BranchTarget; x: number; y: number } | null>(null);
+  // Los menús contextuales se cierran al pulsar fuera (también fuera del panel: el webview pierde el
+  // foco), con Escape, al desplazar o al cambiar el tamaño.
+  useEffect(() => {
+    if (!menu && !branchMenu) return;
+    const close = () => {
+      setMenu(null);
+      setBranchMenu(null);
+    };
+    const onMouseDown = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.menu.context')) close();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+    window.addEventListener('blur', close);
+    window.addEventListener('resize', close);
+    window.addEventListener('mousedown', onMouseDown, true);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('wheel', close, { passive: true });
+    return () => {
+      window.removeEventListener('blur', close);
+      window.removeEventListener('resize', close);
+      window.removeEventListener('mousedown', onMouseDown, true);
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('wheel', close);
+    };
+  }, [menu, branchMenu]);
   const [showBranches, setShowBranches] = useState(true);
   /** Navigate Log to Branch Head: commit a mostrar cuando aparezca en la lista. */
   const [pendingReveal, setPendingReveal] = useState<{ key: string; pages: number } | null>(null);

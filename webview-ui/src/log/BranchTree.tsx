@@ -71,7 +71,11 @@ export function BranchTree(props: {
     if (!menuOpen) return;
     const close = () => setMenuOpen(false);
     window.addEventListener('click', close);
-    return () => window.removeEventListener('click', close);
+    window.addEventListener('blur', close);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('blur', close);
+    };
   }, [menuOpen]);
   const update = (patch: Partial<TreeOptions>) => setOptions((o) => ({ ...o, ...patch }));
 
