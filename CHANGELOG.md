@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.2
+
+- **Push Commits como IntelliJ**: a la derecha, los archivos como **árbol** (repo → carpetas con su
+  número de archivos) y, al elegir un commit, debajo su **mensaje completo** (asunto en negrita) con hash,
+  autor, email y fecha. En el Git Log, el asunto del mensaje también va en negrita y el cuerpo normal.
+
 ## 0.12.1
 
 - Barra de estado como IntelliJ: junto a "MERGE en curso…" aparecen **»** (verde: abre la ventana

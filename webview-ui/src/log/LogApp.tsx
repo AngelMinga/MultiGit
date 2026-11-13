@@ -5,6 +5,7 @@ import { fullDate, isoDaysAgo } from '../format';
 import { onHostMessage, post } from '../vscode';
 import { BranchTree, type BranchTarget } from './BranchTree';
 import { FileTree } from './FileTree';
+import { MessageBody } from '../MessageBody';
 import { CommitList, key } from './CommitList';
 import { t } from '../i18n';
 
@@ -445,7 +446,7 @@ export function LogApp() {
                     })}
                 </ul>
                 <div className="detail-info">
-                  <div className="detail-message">{detailsMatch ? details!.body : selected.subject}</div>
+                  <MessageBody text={detailsMatch ? details!.body : selected.subject} />
                   <div className="detail-meta small">
                     <div>
                       <span className="dot" style={{ background: `var(--vscode-multigit-repo${repoMap.get(selected.repoId)?.colorIndex ?? 0})` }} /> {selected.shortHash}{' '}

@@ -111,10 +111,10 @@ export class PushPanel implements vscode.Disposable {
         case 'push/selectCommit': {
           const repo = this.repoById(message.payload.repoId);
           if (!repo) return;
-          const files = await repo.git.commitFiles(message.payload.hash);
+          const [files, details] = await Promise.all([repo.git.commitFiles(message.payload.hash), repo.git.commitInfo(message.payload.hash).catch(() => undefined)]);
           void postToWebview(this.panel.webview, {
             type: 'push/files',
-            payload: { repoId: repo.root, hash: message.payload.hash, files },
+            payload: { repoId: repo.root, hash: message.payload.hash, files, details },
           });
           break;
         }

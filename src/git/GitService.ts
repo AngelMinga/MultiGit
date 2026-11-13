@@ -671,6 +671,12 @@ export class GitService {
     return out.split('\x1e').map((m) => m.trim()).filter(Boolean);
   }
 
+  /** Mensaje completo, autor, email y fecha (ISO) de un commit. */
+  async commitInfo(hash: string): Promise<{ body: string; author: string; email: string; date: string }> {
+    const [body = '', author = '', email = '', date = ''] = (await this.exec(['show', '-s', '--format=%B%x00%an%x00%ae%x00%aI', hash, '--'])).split('\0');
+    return { body: body.trim(), author: author.trim(), email: email.trim(), date: date.trim() };
+  }
+
   /** Mensaje completo del último commit (para Amend). */
   async lastCommitMessage(): Promise<string> {
     return (await this.exec(['log', '-1', '--format=%B'])).trim();

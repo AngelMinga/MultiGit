@@ -181,6 +181,8 @@ input[type='checkbox'] {
 }
 .pane-header .muted {
   font-weight: normal;
+  flex: none;
+  white-space: nowrap;
 }
 
 .list {
@@ -244,8 +246,12 @@ input[type='checkbox'] {
 }
 
 .pane.detail {
-  display: grid;
-  grid-template-rows: auto minmax(0, 3fr) minmax(0, 2fr);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.pane.detail > * {
+  min-width: 0;
 }
 .commits .commit-row {
   font-family: var(--vscode-editor-font-family);
@@ -749,7 +755,9 @@ button.icon-btn.on {
   padding: 4px 10px;
   white-space: pre-wrap;
   font-family: var(--vscode-editor-font-family);
-  font-weight: 600;
+}
+.detail-message strong {
+  font-weight: 700;
 }
 .detail-files {
   flex: 1;
@@ -1621,4 +1629,19 @@ button.claude-btn.running {
 }
 .mg-fold:hover {
   color: var(--vscode-foreground);
+}
+
+/* Push: detalle del commit elegido, debajo de los archivos (como IntelliJ) */
+.push-files {
+  flex: 1;
+}
+.push-commit-details {
+  flex: none;
+  max-height: 45%;
+  overflow: auto;
+  border-top: 1px solid var(--vscode-panel-border);
+  padding: 6px 0 8px;
+}
+.push-commit-meta {
+  padding: 2px 10px 0;
 }

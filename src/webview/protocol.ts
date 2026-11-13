@@ -311,7 +311,16 @@ export type HostMessage =
   | { type: 'init'; payload: { kind: WebviewKind } }
   | { type: 'error'; payload: { message: string } }
   | { type: 'push/state'; payload: PushState }
-  | { type: 'push/files'; payload: { repoId: string; hash: string; files: PushFile[] } }
+  | {
+      type: 'push/files';
+      payload: {
+        repoId: string;
+        hash: string;
+        files: PushFile[];
+        /** Detalle del commit elegido (mensaje completo, autor con email y fecha), como IntelliJ. */
+        details?: { body: string; author: string; email: string; date: string };
+      };
+    }
   | { type: 'rollback/state'; payload: RollbackState }
   | { type: 'hunks/state'; payload: HunksState }
   | { type: 'rebase/state'; payload: RebaseState }

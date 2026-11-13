@@ -4,6 +4,8 @@ import type { PushFile, PushRepoView, PushState, PushTagsMode } from '../../../s
 import { relativeDate } from '../format';
 import { onHostMessage, post } from '../vscode';
 import { t } from '../i18n';
+import { FileTree } from '../log/FileTree';
+import { MessageBody } from '../MessageBody';
 
 const STATE_ICON: Record<string, string> = {
   running: '⏳',
@@ -24,7 +26,7 @@ export function PushDialog() {
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   /** Commit elegido dentro del repo; null = el repo entero (todos sus archivos). */
   const [selectedCommit, setSelectedCommit] = useState<string | null>(null);
-  const [files, setFiles] = useState<{ key: string; files: PushFile[] } | null>(null);
+  const [files, setFiles] = useState<{ key: string; files: PushFile[]; details?: { body: string; author: string; email: string; date: string } } | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [tagsEnabled, setTagsEnabled] = useState(false);
   const [tagsMode, setTagsMode] = useState<Exclude<PushTagsMode, 'none'>>('follow');
@@ -35,7 +37,7 @@ export function PushDialog() {
     () =>
       onHostMessage((m) => {
         if (m.type === 'push/state') setState(m.payload);
-        if (m.type === 'push/files') setFiles({ key: `${m.payload.repoId}@${m.payload.hash}`, files: m.payload.files });
+        if (m.type === 'push/files') setFiles({ key: `${m.payload.repoId}@${m.payload.hash}`, files: m.payload.files, details: m.payload.details });
       }),
     [],
   );
@@ -93,6 +95,7 @@ export function PushDialog() {
   const rangeFiles = files && repo && files.key.startsWith(`${repo.id}@range:`) ? files : null;
   const shownFiles = repo ? (selectedCommit ? (files?.key === `${repo.id}@${selectedCommit}` ? files.files : null) : rangeFiles?.files ?? (repo.commits.length ? null : [])) : [];
   const commit = repo && selectedCommit ? repo.commits.find((c) => c.hash === selectedCommit) : undefined;
+  const detailsFor = commit && files?.key === `${repo!.id}@${commit.hash}` ? files.details : undefined;
   const openDiff = (f: PushFile) => {
     if (!repo?.branch) return;
     if (selectedCommit) post({ type: 'push/openDiff', payload: { repoId: repo.id, hash: selectedCommit, file: f } });
@@ -232,22 +235,34 @@ export function PushDialog() {
             </span>
             {shownFiles && shownFiles.length > 0 && <span className="muted small">{t('{0} file(s)', shownFiles.length)}</span>}
           </header>
-          <ul className="list">
+          <ul className="list push-files">
             {repo && !shownFiles && <li className="muted pad">{t('Loading…')}</li>}
             {repo && shownFiles?.length === 0 && (
               <li className="muted pad">
                 {repo.skipReason ?? (repo.isNew ? t('No new commits: only the branch will be created on the remote.') : t('Nothing to push.'))}
               </li>
             )}
-            {shownFiles?.map((f) => (
-              <li key={`${f.status}:${f.oldPath ?? ''}:${f.path}`} className="row file-row" onDoubleClick={() => openDiff(f)} title={f.oldPath ? `${f.oldPath} → ${f.path}` : f.path}>
-                <span className={`status status-${f.status}`}>{f.status}</span>
-                <span className="file-name">{baseName(f.path)}</span>
-                <span className="muted small">{dirName(f.path)}</span>
-              </li>
-            ))}
+            {repo && shownFiles && shownFiles.length > 0 && (
+              <>
+                {/* Como IntelliJ: el repo y debajo el árbol de carpetas con sus contadores. */}
+                <li className="row file-row ft-group">
+                  <span className="swatch" style={{ background: `var(--vscode-multigit-repo${repo.colorIndex})` }} />
+                  <span className="file-name">{repo.name}</span>
+                  <span className="muted small">{t('{0} file(s)', shownFiles.length)}</span>
+                </li>
+                <FileTree key={`${repo.id}@${selectedCommit ?? 'range'}`} files={shownFiles} depth={1} onOpen={openDiff} />
+              </>
+            )}
           </ul>
-          {shownFiles && shownFiles.length > 0 && <div className="muted small pad">{t('Double-click a file to see the diff.')}</div>}
+          {commit && detailsFor && (
+            <div className="push-commit-details">
+              <MessageBody text={detailsFor.body} />
+              <div className="small muted push-commit-meta">
+                {commit.shortHash} {detailsFor.author} &lt;{detailsFor.email}&gt; · {relativeDate(detailsFor.date)}
+              </div>
+            </div>
+          )}
+          {shownFiles && shownFiles.length > 0 && !commit && <div className="muted small pad">{t('Double-click a file to see the diff.')}</div>}
         </section>
       </div>
 
@@ -368,13 +383,4 @@ function EditTargets(props: {
 
 function firstLine(text: string): string {
   return text.split('\n').map((l) => l.trim()).find(Boolean) ?? text;
-}
-
-function baseName(p: string): string {
-  return p.slice(p.lastIndexOf('/') + 1);
-}
-
-function dirName(p: string): string {
-  const i = p.lastIndexOf('/');
-  return i < 0 ? '' : p.slice(0, i);
 }
