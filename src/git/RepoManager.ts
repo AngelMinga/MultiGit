@@ -6,6 +6,7 @@ import { describeHead, type RepoStatus } from './parsers';
 import type { OperationInProgress } from './preflight';
 import { assignRepoColors, repoColorId } from './repoColor';
 import { canonicalPath, isIgnoredRepo, scanForRepos } from './repoScanner';
+import { filterByGroup, isGroupEffective, normalizeGroups, type RepoGroups } from './repoGroups';
 import * as path from 'node:path';
 import type { GitAPI, GitExtension, GitRepository } from './vscodeGit';
 
@@ -28,6 +29,7 @@ export interface FetchResult {
   error?: string;
 }
 
+const ACTIVE_GROUP_KEY = 'multigit.activeRepoGroup';
 const API_INIT_TIMEOUT_MS = 10_000;
 /** Espera tras un cambio antes de releer el estado (agrupa ráfagas de eventos). */
 const STATUS_DEBOUNCE_MS = 400;
@@ -50,13 +52,38 @@ export class RepoManager implements vscode.Disposable {
   /** Se dispara después de cada refresco (repos añadidos/quitados o estado actualizado). */
   readonly onDidChange = this.changeEmitter.event;
 
-  constructor(private readonly log: vscode.LogOutputChannel) {
+  constructor(
+    private readonly log: vscode.LogOutputChannel,
+    private readonly workspaceState?: vscode.Memento,
+  ) {
     this.disposables.push(this.changeEmitter);
   }
 
-  /** Repos ordenados por nombre. */
+  /** Repos con los que se trabaja (los del grupo activo, o todos), ordenados por nombre. */
   get all(): readonly Repo[] {
+    return filterByGroup(this.allRepos, this.groups, this.activeGroup);
+  }
+
+  /** Todos los repos del workspace, sin filtrar por grupo. */
+  get allRepos(): readonly Repo[] {
     return [...this.repos.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /** Grupos configurados (`multigit.repoGroups`). */
+  get groups(): RepoGroups {
+    return normalizeGroups(vscode.workspace.getConfiguration('multigit').get('repoGroups'));
+  }
+
+  /** Grupo activo (si existe y tiene algún repo de este workspace). */
+  get activeGroup(): string | undefined {
+    const name = this.workspaceState?.get<string>(ACTIVE_GROUP_KEY);
+    return name && isGroupEffective(this.allRepos, this.groups, name) ? name : undefined;
+  }
+
+  async setActiveGroup(name: string | undefined): Promise<void> {
+    await this.workspaceState?.update(ACTIVE_GROUP_KEY, name);
+    void vscode.commands.executeCommand('setContext', 'multigit.repoGroupActive', this.activeGroup !== undefined);
+    this.changeEmitter.fire();
   }
 
   /** Id del color de tema del repo, para `new vscode.ThemeColor(...)`. */
@@ -79,6 +106,7 @@ export class RepoManager implements vscode.Disposable {
         if (e.affectsConfiguration('multigit.scanDepth') || e.affectsConfiguration('multigit.ignoredRepos')) {
           void this.refresh();
         }
+        if (e.affectsConfiguration('multigit.repoGroups')) void this.setActiveGroup(this.workspaceState?.get<string>(ACTIVE_GROUP_KEY));
       }),
       // Al volver a la ventana releemos todo: pudo haber cambios desde una terminal externa.
       vscode.window.onDidChangeWindowState((e) => {
@@ -216,10 +244,12 @@ export class RepoManager implements vscode.Disposable {
       this.watchers.set(key, await this.watchRepo(key, repo));
     }
 
-    const colors = assignRepoColors(this.all.map((r) => r.name));
+    // Colores sobre todos los repos: no cambian al elegir un grupo.
+    const colors = assignRepoColors(this.allRepos.map((r) => r.name));
     for (const repo of this.repos.values()) repo.colorIndex = colors.get(repo.name) ?? 0;
 
     await this.readStatuses([...this.repos.values()]);
+    void vscode.commands.executeCommand('setContext', 'multigit.repoGroupActive', this.activeGroup !== undefined);
 
     this.logRepos();
     this.changeEmitter.fire();
@@ -322,7 +352,7 @@ export class RepoManager implements vscode.Disposable {
   }
 
   private logRepos(): void {
-    const repos = this.all;
+    const repos = this.allRepos;
     this.log.info(`${repos.length} repositorio(s) detectado(s):`);
     const width = Math.max(0, ...repos.map((r) => r.name.length));
     for (const repo of repos) {

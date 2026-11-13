@@ -2,6 +2,8 @@
 
 ## 0.8.0
 
+- **Grupos de repos**: con un grupo activo (botón de filtro en Repositorios), todas las vistas y
+  operaciones trabajan solo con sus repos. Se definen en `multigit.repoGroups` o con *Nuevo grupo…*.
 - **Comprobaciones antes del commit**: problemas de VS Code, `TODO`/`FIXME` nuevos, marcas de
   conflicto, posibles secretos y archivos grandes en lo que va al commit (en los parciales, solo las
   líneas elegidas). Si hay algo: **Revisar** o **Commit igualmente** (`multigit.commitChecks.*`).

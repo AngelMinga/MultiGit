@@ -166,5 +166,8 @@
   "setting.commitChecks.todo": "Warn about new `TODO`, `FIXME` or `XXX` in the added lines.",
   "setting.commitChecks.conflictMarkers": "Warn about conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`) in the added lines.",
   "setting.commitChecks.secrets": "Warn about possible secrets in the added lines (private keys, tokens, API keys, passwords).",
-  "setting.commitChecks.largeFileMB": "Warn about files larger than this size (MB). `0`: do not check."
+  "setting.commitChecks.largeFileMB": "Warn about files larger than this size (MB). `0`: do not check.",
+  "command.selectRepoGroup": "Select Repository Group…",
+  "command.newRepoGroup": "New Repository Group…",
+  "setting.repoGroups": "Repository groups: group name → repository names (`*` allowed), e.g. `{ \"front\": [\"mftheme\", \"mf*\"] }`. With an active group (filter button in Repositories), MultiGit works only with its repositories."
 }

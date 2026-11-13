@@ -166,5 +166,8 @@
   "setting.commitChecks.todo": "Avisar de `TODO`, `FIXME` o `XXX` nuevos en las líneas añadidas.",
   "setting.commitChecks.conflictMarkers": "Avisar de marcas de conflicto (`<<<<<<<`, `=======`, `>>>>>>>`) en las líneas añadidas.",
   "setting.commitChecks.secrets": "Avisar de posibles secretos en las líneas añadidas (claves privadas, tokens, API keys, contraseñas).",
-  "setting.commitChecks.largeFileMB": "Avisar de archivos de más de este tamaño (MB). `0`: no revisar."
+  "setting.commitChecks.largeFileMB": "Avisar de archivos de más de este tamaño (MB). `0`: no revisar.",
+  "command.selectRepoGroup": "Elegir grupo de repositorios…",
+  "command.newRepoGroup": "Nuevo grupo de repositorios…",
+  "setting.repoGroups": "Grupos de repositorios: nombre del grupo → nombres de repos (admite `*`), p. ej. `{ \"front\": [\"mftheme\", \"mf*\"] }`. Con un grupo activo (botón de filtro en Repositorios), MultiGit trabaja solo con sus repositorios."
 }

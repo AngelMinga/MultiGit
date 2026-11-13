@@ -200,6 +200,24 @@ describe('Comprobaciones antes del commit', () => {
   });
 });
 
+describe('Grupos de repos', () => {
+  it('con un grupo activo, MultiGit trabaja solo con sus repos', async () => {
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    await vscode.workspace.getConfiguration('multigit').update('repoGroups', { front: ['mf*'] }, vscode.ConfigurationTarget.Workspace);
+    try {
+      await api.manager.setActiveGroup('front');
+      assert.deepEqual(api.manager.all.map((r) => r.name), ['mflogin', 'mftheme']);
+      assert.equal(api.manager.allRepos.length, 3);
+      const repos = await walk(api.repositories);
+      assert.deepEqual(repos.map((i) => label(i.item)).filter((l) => ['mflogin', 'mftheme', 'shell'].includes(l)), ['mflogin', 'mftheme']);
+    } finally {
+      await api.manager.setActiveGroup(undefined);
+      await vscode.workspace.getConfiguration('multigit').update('repoGroups', undefined, vscode.ConfigurationTarget.Workspace);
+    }
+    assert.equal(api.manager.all.length, 3);
+  });
+});
+
 describe('package.json', () => {
   it('ningún submenú aparece dos veces en el mismo menú (VS Code descarta el segundo)', () => {
     const menus = vscode.extensions.getExtension('angelminga.multigit')!.packageJSON.contributes.menus as Record<

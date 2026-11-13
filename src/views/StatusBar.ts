@@ -34,7 +34,8 @@ export class StatusBar implements vscode.Disposable {
       return;
     }
     const projectName = vscode.workspace.name?.replace(/ \(Workspace\)$/, '') ?? 'MultiGit';
-    this.project.text = `$(root-folder) ${projectName}`;
+    const group = this.manager.activeGroup;
+    this.project.text = `$(root-folder) ${projectName}${group ? ` $(filter) ${group}` : ''}`;
     this.project.tooltip = t('{0} — {1} repositories\nClick: open a recent project', projectName, repos.length);
     this.project.show();
 

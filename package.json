@@ -647,6 +647,24 @@
         "title": "%command.changes.selectHunks%",
         "category": "MultiGit",
         "icon": "$(checklist)"
+      },
+      {
+        "command": "multigit.selectRepoGroup",
+        "title": "%command.selectRepoGroup%",
+        "category": "MultiGit",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "multigit.selectRepoGroupActive",
+        "title": "%command.selectRepoGroup%",
+        "category": "MultiGit",
+        "icon": "$(filter-filled)"
+      },
+      {
+        "command": "multigit.newRepoGroup",
+        "title": "%command.newRepoGroup%",
+        "category": "MultiGit",
+        "icon": "$(add)"
       }
     ],
     "menus": {
@@ -800,6 +818,16 @@
           "command": "multigit.commit.history",
           "when": "view == multigit.commit",
           "group": "navigation@1"
+        },
+        {
+          "command": "multigit.selectRepoGroup",
+          "when": "view == multigit.repositories && !multigit.repoGroupActive",
+          "group": "navigation@5"
+        },
+        {
+          "command": "multigit.selectRepoGroupActive",
+          "when": "view == multigit.repositories && multigit.repoGroupActive",
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [
@@ -1327,6 +1355,10 @@
         {
           "command": "multigit.changes.selectHunks",
           "when": "false"
+        },
+        {
+          "command": "multigit.selectRepoGroupActive",
+          "when": "false"
         }
       ],
       "multigit.changes.groupBy": [
@@ -1771,6 +1803,18 @@
           "minimum": 0,
           "order": 28,
           "markdownDescription": "%setting.commitChecks.largeFileMB%"
+        },
+        "multigit.repoGroups": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "order": 29,
+          "markdownDescription": "%setting.repoGroups%"
         }
       }
     },

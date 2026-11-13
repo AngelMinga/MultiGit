@@ -54,6 +54,10 @@ Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
   **Shelve / Unshelve** con nombre.
 - **Repositorios**: cada repo con su color, rama actual, `↑` commits por subir / `↓` por bajar
   y un badge con los cambios sin commit.
+- **Grupos de repos** (botón de filtro en Repositorios): por ejemplo *front* = `mftheme`, `mf*`. Con un
+  grupo activo, MultiGit trabaja solo con sus repos: vistas, popup de ramas, checkout, commit, push,
+  pull, fetch, Git Log… El grupo se ve en la barra de estado y en el título de Repositorios. Se crean
+  con *Nuevo grupo…* (o en `multigit.repoGroups`) y se borran con el ícono de papelera.
 - **Ramas**: árbol Local / Remote agrupado por repositorio o por rama (`3/9` repos donde existe).
 - **Stashes**: los stashes de todos los repos. Un stash creado a la vez en varios repos (mismo
   mensaje) aparece una sola vez, con un hijo por repo. **Stash Changes…** (`+`, también en el menú ⋯
@@ -152,6 +156,7 @@ Para usarlos en todas partes, cámbialos en *Preferences → Keyboard Shortcuts*
 | `multigit.confirmCheckoutWithChanges` | `true` | Avisar antes de un checkout en repos con cambios. |
 | `multigit.warnBranchMismatch` | `true` | Avisar cuando algún repo queda en otra rama que la mayoría. |
 | `multigit.commit.ticketPattern` | `[A-Z][A-Z0-9]+-\d+` | Regex que saca el ticket del nombre de la rama (`feature/ABC-123-login` → `ABC-123`). Vacío: sin ticket. |
+| `multigit.repoGroups` | `{}` | Grupos de repos: nombre → repos (admite `*`). |
 | `multigit.commitChecks.*` | activadas | Comprobaciones antes del commit: `enabled`, `diagnostics` (`off`/`errors`/`warnings`), `todo`, `conflictMarkers`, `secrets`, `largeFileMB` (`5`; `0` = no). |
 | `multigit.commit.ticketTemplate` | `{ticket} {message}` | Dónde va el ticket en el mensaje (`{ticket}`, `{branch}`, `{message}`). Vacío: desactivado. |
 | `multigit.claude.*` | — | Modelo, esfuerzo, idioma, modo rápido, estilo del repo, scope, instrucciones, timeout y ruta de `claude` para *Generar con Claude*. |

@@ -38,7 +38,7 @@ export class FileActions {
     uri ??= vscode.window.activeTextEditor?.document.uri;
     if (!uri || uri.scheme !== 'file') return undefined;
     // El repo más interno que contiene el archivo (por si hay repos anidados).
-    const repo = this.manager.all
+    const repo = this.manager.allRepos
       .filter((r) => !path.relative(r.root, uri!.fsPath).startsWith('..') && !path.isAbsolute(path.relative(r.root, uri!.fsPath)))
       .sort((a, b) => b.root.length - a.root.length)[0];
     if (!repo) {

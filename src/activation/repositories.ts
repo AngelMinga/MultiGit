@@ -10,6 +10,7 @@ import { RepoDecorations } from '../views/RepoDecorations';
 import { RepositoriesView } from '../views/RepositoriesView';
 import { StatusBar } from '../views/StatusBar';
 import type { Core } from './core';
+import { newRepoGroup, selectRepoGroup } from '../views/repoGroups';
 import { t } from '../i18n';
 
 export function registerRepositories(core: Core, compareView: CompareView): { treeView: vscode.TreeView<Repo>; view: RepositoriesView } {
@@ -18,7 +19,16 @@ export function registerRepositories(core: Core, compareView: CompareView): { tr
   const decorations = new RepoDecorations(manager);
   const treeView = vscode.window.createTreeView('multigit.repositories', { treeDataProvider: view, showCollapseAll: false });
 
+  const describeGroup = () => {
+    treeView.description = manager.activeGroup ? `$(filter) ${manager.activeGroup}` : undefined;
+  };
+  describeGroup();
+
   core.track(
+    manager.onDidChange(describeGroup),
+    vscode.commands.registerCommand('multigit.selectRepoGroup', () => popup.safely(() => selectRepoGroup(manager))),
+    vscode.commands.registerCommand('multigit.selectRepoGroupActive', () => popup.safely(() => selectRepoGroup(manager))),
+    vscode.commands.registerCommand('multigit.newRepoGroup', () => popup.safely(() => newRepoGroup(manager))),
     view,
     decorations,
     treeView,

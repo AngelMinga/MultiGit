@@ -26,7 +26,7 @@ export class GitContentProvider implements vscode.TextDocumentContentProvider {
   async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
     const { root, ref, path: filePath } = JSON.parse(uri.query) as Query;
     if (!ref) return '';
-    const git = this.manager.all.find((r) => r.root === root)?.git ?? new GitService(root);
+    const git = this.manager.allRepos.find((r) => r.root === root)?.git ?? new GitService(root);
     try {
       return await git.showFile(ref, filePath);
     } catch {

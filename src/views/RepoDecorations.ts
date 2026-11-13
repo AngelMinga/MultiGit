@@ -23,7 +23,7 @@ export class RepoDecorations implements vscode.FileDecorationProvider, vscode.Di
 
   provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
     if (uri.scheme !== SCHEME) return undefined;
-    const repo = this.manager.all.find((r) => vscode.Uri.file(r.root).path === uri.path);
+    const repo = this.manager.allRepos.find((r) => vscode.Uri.file(r.root).path === uri.path);
     const changes = repo?.status?.changes;
     if (!changes || changes.total === 0) return undefined;
 

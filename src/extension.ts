@@ -41,7 +41,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
   // Askpass antes de cualquier fetch/pull/push (también el auto-fetch).
   context.subscriptions.push(await startCredentials(context, log));
 
-  const manager = new RepoManager(log);
+  const manager = new RepoManager(log, context.workspaceState);
   const compareView = new CompareView();
   const openPush = (repos?: readonly Repo[], branch?: string) => PushPanel.open(context.extensionUri, manager, { repos, branch });
   const actions = new BranchActions(manager, compareView, (scope, branch) => openPush(scope.repos, branch));
