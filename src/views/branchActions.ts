@@ -758,10 +758,10 @@ let lastMergeOptions: string[] = [];
 async function askMergeOptions(source: string, current: string): Promise<{ options: string[]; message?: string } | undefined> {
   const MESSAGE = '-m';
   const items = [
-    { label: '--no-ff', description: t('always create a merge commit'), value: '--no-ff' },
-    { label: '--ff-only', description: t('only if it can be fast-forwarded'), value: '--ff-only' },
-    { label: '--squash', description: t('bring the changes as one set, without a merge commit (you commit them)'), value: '--squash' },
-    { label: '--no-commit', description: t('merge but stop before the commit, to review'), value: '--no-commit' },
+    { label: '--no-ff', description: t('always create the merge commit'), value: '--no-ff' },
+    { label: '--ff-only', description: t('only if it can move forward without a merge commit'), value: '--ff-only' },
+    { label: '--squash', description: t('bring the changes in a single block, without commit; then you commit them'), value: '--squash' },
+    { label: '--no-commit', description: t('do the merge but stop before the commit to review'), value: '--no-commit' },
     { label: `-m  ${t('Custom message…')}`, description: t('merge commit message'), value: MESSAGE },
   ];
   for (;;) {

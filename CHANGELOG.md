@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.1
+
+- Selector de opciones de merge: descripciones más claras junto a cada opción (`--no-ff`: crear siempre
+  el commit de merge; `--ff-only`: solo si se puede avanzar sin commit de merge; `--squash`: traer los
+  cambios en un solo bloque, sin commit; `--no-commit`: hacer el merge pero parar antes del commit).
+
 ## 0.15.0
 
 - **Ventana de merge más completa, como IntelliJ**:
