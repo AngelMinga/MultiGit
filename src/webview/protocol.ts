@@ -6,7 +6,7 @@ import type { LogFilters, RefLabel } from '../git/log';
 export type { LogFilters, RefLabel };
 
 /** Paneles webview que existen (el log llega en la Fase 6). */
-export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks' | 'rebase' | 'pull' | 'conflicts';
+export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks' | 'rebase' | 'pull' | 'conflicts' | 'merge';
 
 // ------------------------------------------------------------------ Push
 
@@ -112,6 +112,23 @@ export interface ConflictRepoView {
 
 export interface ConflictsState {
   repos: ConflictRepoView[];
+  busy: boolean;
+}
+
+// ------------------------------------------------------------------ Ventana de merge propia
+
+export type MergeBlockView =
+  | { type: 'stable'; lines: string[] }
+  | { type: 'change'; kind: 'ours' | 'theirs' | 'same' | 'conflict'; base: string[]; ours: string[]; theirs: string[] };
+
+export interface MergeState {
+  repo: string;
+  colorIndex: number;
+  path: string;
+  /** Nombres de las columnas: tu rama y la que entra. */
+  yours: string;
+  theirs: string;
+  blocks: MergeBlockView[];
   busy: boolean;
 }
 
@@ -300,6 +317,7 @@ export type HostMessage =
   | { type: 'rebase/state'; payload: RebaseState }
   | { type: 'pull/state'; payload: PullState }
   | { type: 'conflicts/state'; payload: ConflictsState }
+  | { type: 'merge/state'; payload: MergeState }
   | { type: 'commit/state'; payload: CommitState }
   | { type: 'commit/setMessage'; payload: { message: string } }
   | { type: 'commit/done'; payload: Record<string, never> }
@@ -343,6 +361,9 @@ export type WebviewMessage =
   | { type: 'conflicts/open'; payload: { repoId: string; path: string } }
   | { type: 'conflicts/finish'; payload: Record<string, never> }
   | { type: 'conflicts/close'; payload: Record<string, never> }
+  | { type: 'merge/save'; payload: { content: string; /** Marcar el archivo como resuelto (git add). */ resolve: boolean } }
+  | { type: 'merge/acceptSide'; payload: { side: 'ours' | 'theirs' } }
+  | { type: 'merge/close'; payload: Record<string, never> }
   | { type: 'commit/run'; payload: { message: string; amend: boolean; push: boolean } }
   | { type: 'commit/requestLastMessage'; payload: Record<string, never> }
   | { type: 'commit/generate'; payload: { current: string } }

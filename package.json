@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.10.3",
+  "version": "0.11.0",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -2234,6 +2234,20 @@
           "default": "columns",
           "order": 33,
           "markdownDescription": "%setting.mergeEditorLayout%"
+        },
+        "multigit.mergeTool": {
+          "type": "string",
+          "enum": [
+            "multigit",
+            "vscode"
+          ],
+          "enumDescriptions": [
+            "%setting.mergeTool.multigit%",
+            "%setting.mergeTool.vscode%"
+          ],
+          "default": "multigit",
+          "order": 34,
+          "markdownDescription": "%setting.mergeTool%"
         }
       }
     },

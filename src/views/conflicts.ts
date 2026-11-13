@@ -25,8 +25,19 @@ export async function resolveConflicts(repo: Repo, files: readonly string[]): Pr
   await openMergeEditor(vscode.Uri.file(path.join(repo.root, file)));
 }
 
-/** Merge editor de la extensión git integrada; si no está disponible, abre el archivo y Source Control. */
+/** Ventana de merge propia (src/webview/MergePanel.ts): devuelve false si no puede abrir ese archivo. */
+let mergeOpener: ((uri: vscode.Uri) => Promise<boolean>) | undefined;
+export function setMergeOpener(fn: (uri: vscode.Uri) => Promise<boolean>): void {
+  mergeOpener = fn;
+}
+
+/**
+ * Abre un archivo en conflicto: en la ventana de merge de MultiGit (como IntelliJ) o, si se configura
+ * `multigit.mergeTool: vscode` o el archivo no se puede (binario, borrado en un lado), en el de VS Code.
+ */
 export async function openMergeEditor(uri: vscode.Uri): Promise<void> {
+  const tool = vscode.workspace.getConfiguration('multigit').get<string>('mergeTool', 'multigit');
+  if (tool !== 'vscode' && mergeOpener && (await mergeOpener(uri).catch(() => false))) return;
   try {
     await vscode.commands.executeCommand('git.openMergeEditor', uri);
     // Como IntelliJ: las tres columnas seguidas, con el resultado en el centro (Incoming | Result | Current).

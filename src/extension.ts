@@ -25,7 +25,9 @@ import type { RepositoriesView } from './views/RepositoriesView';
 import type { StashesTree } from './views/StashesTree';
 import { PushPanel } from './webview/PushPanel';
 import { ConflictsPanel, setConflictsHost } from './webview/ConflictsPanel';
-import { setConflictsOpener } from './views/conflicts';
+import { setConflictsOpener, setMergeOpener } from './views/conflicts';
+import { MergePanel } from './webview/MergePanel';
+import * as path from 'node:path';
 import { t } from './i18n';
 
 /** Lo que devuelve `activate`: solo para los tests de la extensión (no es una API pública). */
@@ -77,6 +79,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
   // Resolver conflictos (tras pull, merge, rebase, Smart Checkout…) abre el diálogo Conflicts.
   setConflictsHost(context.extensionUri, manager);
   setConflictsOpener((repo) => ConflictsPanel.open(repo));
+  setMergeOpener(async (uri) => {
+    // El repo más profundo que contiene el archivo.
+    const repo = [...manager.allRepos]
+      .filter((r) => !path.relative(r.root, uri.fsPath).startsWith('..') && !path.isAbsolute(path.relative(r.root, uri.fsPath)))
+      .sort((a, b) => b.root.length - a.root.length)[0];
+    if (!repo) return false;
+    return MergePanel.open(context.extensionUri, manager, repo, path.relative(repo.root, uri.fsPath).split(path.sep).join('/'));
+  });
   core.track(vscode.commands.registerCommand('multigit.resolveConflicts', () => ConflictsPanel.open()));
 
   // Botones del merge editor como la ventana de IntelliJ (↑↓ conflictos, Accept Left/Right, varita,

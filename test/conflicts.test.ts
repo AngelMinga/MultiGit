@@ -74,6 +74,14 @@ describe('git real', () => {
     expect(countConflictBlocks(read('api.ts'))).toBe(1);
   });
 
+  it('conflictVersions: base, tuyos y otros del archivo en conflicto (no si un lado lo borró)', async () => {
+    tryRun('merge', 'des_otp');
+    const v = await git.conflictVersions('api.ts');
+    expect(v && [v.base, v.ours, v.theirs]).toEqual(['base\n', 'yours\n', 'theirs\n']);
+    expect(v!.oursDiff).toContain('+yours');
+    expect(await git.conflictVersions('borrar.ts')).toBeUndefined();
+  });
+
   it('Accept Yours / Theirs, también cuando un lado borró el archivo', async () => {
     tryRun('merge', 'des_otp');
     await git.acceptConflictSide(['api.ts'], 'theirs');

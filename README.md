@@ -123,6 +123,10 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
 
 ## Credenciales, conflictos y ramas desalineadas
 
+- **Ventana de merge** (como *Merge Revisions* de IntelliJ): Tuyos | Resultado | Otros, con » « ✕ en
+  cada cambio, aplicar los cambios sin conflicto de un lado o de los dos, F7 / Shift+F7 entre
+  conflictos, Aceptar izquierda / derecha y Aplicar cambios. `multigit.mergeTool: vscode` usa el merge
+  editor de VS Code.
 - **Conflictos** (como IntelliJ): la ventana *Conflicts* lista los archivos en conflicto de todos los
   repos con las columnas *Tuyos* / *Otros* (con el nombre de cada rama). **Aceptar** un lado (también
   varios archivos a la vez), **Resolver a mano** en el merge editor y **Terminar** para continuar el
@@ -184,6 +188,7 @@ Para usarlos en todas partes, cámbialos en *Preferences → Keyboard Shortcuts*
 | `multigit.warnBranchMismatch` | `true` | Avisar cuando algún repo queda en otra rama que la mayoría. |
 | `multigit.commit.ticketPattern` | `[A-Z][A-Z0-9]+-\d+` | Regex que saca el ticket del nombre de la rama (`feature/ABC-123-login` → `ABC-123`). Vacío: sin ticket. |
 | `multigit.pullRequests.*` | — | `useGitHubApi` (`true`), `draft` (`false`) y `providers` (servicio de tus servidores Git propios por host, p. ej. `{ "git.empresa.com": "gitlab" }`). |
+| `multigit.mergeTool` | `multigit` | Dónde se resuelven los conflictos: la ventana de MultiGit (como IntelliJ) o el merge editor de VS Code. |
 | `multigit.mergeEditorLayout` | `columns` | Merge editor en tres columnas con el resultado en el centro, como IntelliJ (`mixed` = el de VS Code, `keep` = no tocarlo). |
 | `multigit.repoGroups` | `{}` | Grupos de repos: nombre → repos (admite `*`). |
 | `multigit.commitChecks.*` | activadas | Comprobaciones antes del commit: `enabled`, `diagnostics` (`off`/`errors`/`warnings`), `todo`, `conflictMarkers`, `secrets`, `largeFileMB` (`5`; `0` = no). |

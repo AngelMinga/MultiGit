@@ -201,5 +201,8 @@
   "command.merge.acceptRight": "Accept Right: all changes from Current",
   "command.merge.resolveSimple": "Resolve Simple Conflicts (combine both sides where possible)",
   "command.merge.reset": "Reset Result (apply only the non-conflicting changes)",
-  "command.merge.complete": "Apply Changes (Complete Merge)"
+  "command.merge.complete": "Apply Changes (Complete Merge)",
+  "setting.mergeTool": "Where conflicted files are resolved.",
+  "setting.mergeTool.multigit": "MultiGit merge window, like IntelliJ: Yours | Result | Theirs with » « ✕ on each change.",
+  "setting.mergeTool.vscode": "VS Code merge editor (layout in `multigit.mergeEditorLayout`)."
 }

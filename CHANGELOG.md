@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.11.0
+
+- **Ventana de merge propia, como "Merge Revisions" de IntelliJ**: *Cambios de tu rama* | **Resultado**
+  (editable) | *Cambios de la rama que entra*, alineadas por bloques, con **»** / **«** para pasar cada
+  cambio al resultado y **✕** para descartarlo (si se aplican los dos lados de un conflicto, se
+  combinan). Conflictos en rojo y cambios de un lado en azul; los tramos largos sin cambios se pliegan.
+  Barra con conflicto anterior / siguiente (**Shift+F7** / **F7**), *Aplicar cambios sin conflicto:
+  Izquierda / Todos / Derecha* y el contador de cambios y conflictos. Abajo, **Aceptar izquierda /
+  derecha**, **Guardar y cerrar** y **Aplicar cambios** (avisa con *Cambios sin procesar* si queda algo).
+  Se abre desde la ventana Conflicts, Changes y los avisos de conflicto. `multigit.mergeTool: vscode`
+  vuelve al merge editor de VS Code (que se sigue usando para binarios y archivos borrados en un lado).
+
 ## 0.10.3
 
 - Ventana Conflicts como IntelliJ al terminar: los archivos resueltos quedan en una sección

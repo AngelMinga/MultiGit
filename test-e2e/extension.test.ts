@@ -8,6 +8,7 @@ import type { MultiGitTestApi } from '../src/extension';
 import { allLineIds, diffFingerprint, parseHunks } from '../src/git/hunks';
 import { runCommitChecks } from '../src/views/commitChecks';
 import { RebasePanel } from '../src/webview/RebasePanel';
+import { MergePanel } from '../src/webview/MergePanel';
 
 /** Recorre un TreeDataProvider completo y devuelve cada elemento con su TreeItem. */
 async function walk<T>(provider: vscode.TreeDataProvider<T>, parent?: T, depth = 0): Promise<Array<{ node: T; item: vscode.TreeItem }>> {
@@ -308,6 +309,16 @@ describe('Conflictos', () => {
       tab = vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((x) => x.input instanceof vscode.TabInputWebview && /Conflict/.test(x.label));
     }
     assert.ok(tab, 'pestaña Conflicts');
+    // La ventana de merge propia se abre para ese archivo.
+    const ext = vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!;
+    assert.equal(await MergePanel.open(ext.extensionUri, api.manager, repo, 'conf.js'), true);
+    let mergeTab: vscode.Tab | undefined;
+    for (let i = 0; i < 40 && !mergeTab; i++) {
+      await new Promise((r) => setTimeout(r, 50));
+      mergeTab = vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((x) => x.input instanceof vscode.TabInputWebview && /conf\.js/.test(x.label));
+    }
+    assert.ok(mergeTab, 'pestaña de la ventana de merge');
+    await vscode.window.tabGroups.close(mergeTab);
     // Lo mismo que hace "Accept" en Theirs:
     await repo.git.acceptConflictSide(['conf.js'], 'theirs');
     assert.equal(readFileSync(path.join(repo.root, 'conf.js'), 'utf8'), 'a\n');

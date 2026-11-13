@@ -201,5 +201,8 @@
   "command.merge.acceptRight": "Aceptar derecha: todos los cambios de Current",
   "command.merge.resolveSimple": "Resolver conflictos simples (combinar los dos lados donde se pueda)",
   "command.merge.reset": "Restablecer el resultado (solo los cambios sin conflicto)",
-  "command.merge.complete": "Aplicar cambios (Complete Merge)"
+  "command.merge.complete": "Aplicar cambios (Complete Merge)",
+  "setting.mergeTool": "Dónde se resuelven los archivos en conflicto.",
+  "setting.mergeTool.multigit": "Ventana de merge de MultiGit, como IntelliJ: Tuyos | Resultado | Otros con » « ✕ en cada cambio.",
+  "setting.mergeTool.vscode": "Merge editor de VS Code (disposición en `multigit.mergeEditorLayout`)."
 }

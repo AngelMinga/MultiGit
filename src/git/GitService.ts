@@ -701,6 +701,36 @@ export class GitService {
     }
   }
 
+  /**
+   * Las tres versiones de un archivo en conflicto (etapas 1 base, 2 tuyos, 3 otros) y los cambios de
+   * cada lado respecto a la base (`git diff -U0` entre blobs). `undefined` si falta un lado (borrado)
+   * o es binario.
+   */
+  async conflictVersions(filePath: string): Promise<{ base: string; ours: string; theirs: string; oursDiff: string; theirsDiff: string } | undefined> {
+    const out = await this.exec(['ls-files', '-u', '-z', '--', filePath]);
+    const stages = new Map<string, string>();
+    for (const entry of out.split('\0').filter(Boolean)) {
+      const [meta = ''] = entry.split('\t');
+      const [, sha = '', stage = ''] = meta.split(' ');
+      stages.set(stage, sha);
+    }
+    const oursSha = stages.get('2');
+    const theirsSha = stages.get('3');
+    if (!oursSha || !theirsSha) return undefined;
+    // Sin base (añadido en los dos lados): se compara contra un blob vacío.
+    const baseSha = stages.get('1') ?? (await this.exec(['hash-object', '-w', '--stdin'], { input: '' })).trim();
+    const diff = (a: string, b: string) => this.exec(['diff', '-U0', '--no-color', '--no-ext-diff', '--no-textconv', a, b]);
+    const [base, ours, theirs, oursDiff, theirsDiff] = await Promise.all([
+      this.exec(['cat-file', 'blob', baseSha]),
+      this.exec(['cat-file', 'blob', oursSha]),
+      this.exec(['cat-file', 'blob', theirsSha]),
+      diff(baseSha, oursSha),
+      diff(baseSha, theirsSha),
+    ]);
+    if (/^Binary files /m.test(oursDiff) || /^Binary files /m.test(theirsDiff)) return undefined;
+    return { base, ours, theirs, oursDiff, theirsDiff };
+  }
+
   /** Qué se está integrando y sobre qué, para las columnas del diálogo de conflictos. */
   async conflictLabels(): Promise<ConflictLabels> {
     const op = await this.getOperationInProgress();
