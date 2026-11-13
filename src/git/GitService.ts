@@ -29,6 +29,8 @@ const NETWORK_TIMEOUT_MS = 180_000;
 /** Los hooks de pre-commit (husky, lint-staged) pueden tardar. */
 const COMMIT_TIMEOUT_MS = 300_000;
 const REBASE_TIMEOUT_MS = 5 * 60_000;
+/** Mensaje del stash temporal de Smart Checkout. */
+export const SMART_CHECKOUT_PREFIX = 'MultiGit smart checkout → ';
 const MAX_BUFFER = 64 * 1024 * 1024;
 
 export interface GitExecOptions {
@@ -280,13 +282,62 @@ export class GitService {
 
   // ---------------------------------------------------------------- escritura
 
-  checkout(branch: string): Promise<string> {
-    return this.exec(['checkout', branch, '--']);
+  /**
+   * Archivos con cambios locales que `git checkout <target>` sobrescribiría (y por eso fallaría):
+   * versionados con cambios que además difieren entre HEAD y `target`, y sin versionar que existen en `target`.
+   */
+  async wouldBeOverwritten(target: string, files: readonly StatusFile[]): Promise<string[]> {
+    const tracked = new Set(files.filter((f) => f.kind === 'tracked').flatMap((f) => (f.origPath ? [f.path, f.origPath] : [f.path])));
+    const untracked = new Set(files.filter((f) => f.kind === 'untracked').map((f) => f.path));
+    if (!tracked.size && !untracked.size) return [];
+    const hasHead = await this.revisionExists('HEAD');
+    const out = new Set<string>();
+    if (tracked.size) {
+      const differ = hasHead
+        ? (await this.exec(['diff', '--name-only', '--no-renames', '-z', 'HEAD', target, '--'])).split('\0')
+        : (await this.exec(['ls-tree', '-r', '-z', '--name-only', target])).split('\0');
+      for (const p of differ) if (tracked.has(p)) out.add(p);
+    }
+    if (untracked.size) {
+      const inTarget = (await this.exec(['ls-tree', '-r', '-z', '--name-only', target])).split('\0');
+      // Carpetas sin versionar ("src/nueva/"): choca cualquier archivo de target dentro de ellas.
+      const dirs = [...untracked].filter((p) => p.endsWith('/'));
+      for (const p of inTarget) if (untracked.has(p) || dirs.some((d) => p.startsWith(d))) out.add(p);
+    }
+    return [...out].sort();
+  }
+
+  /**
+   * Smart Checkout (como IntelliJ): guarda los cambios locales en un stash, hace el checkout y los vuelve
+   * a aplicar. Si al aplicarlos hay conflictos, devuelve los archivos (quedan con marcas para el merge
+   * editor y el stash se conserva como copia). Si el checkout falla, devuelve los cambios a su sitio.
+   */
+  async smartCheckout(target: string, checkout: () => Promise<unknown>): Promise<{ conflicts: string[] }> {
+    await this.exec(['stash', 'push', '--include-untracked', '-m', `${SMART_CHECKOUT_PREFIX}${target}`]);
+    try {
+      await checkout();
+    } catch (error) {
+      await this.exec(['stash', 'pop']).catch(() => undefined);
+      throw error;
+    }
+    try {
+      await this.exec(['stash', 'pop']);
+      return { conflicts: [] };
+    } catch (error) {
+      const conflicts = await this.getConflictedFiles().catch(() => []);
+      if (conflicts.length) return { conflicts };
+      throw new Error(t('{0} (your changes are kept in the stash "{1}")', error instanceof Error ? error.message : String(error), `${SMART_CHECKOUT_PREFIX}${target}`));
+    }
+  }
+
+  /** `git checkout [-f] <rama>`. Con `force` descarta los cambios locales que estorben. */
+  checkout(branch: string, force = false): Promise<string> {
+    return this.exec(['checkout', ...(force ? ['-f'] : []), branch, '--']);
   }
 
   /** Crea la rama local `local` siguiendo a `remoteRef` (`origin/x`) y hace checkout. */
-  checkoutTracking(local: string, remoteRef: string): Promise<string> {
-    return this.exec(['checkout', '-b', local, '--track', remoteRef, '--']);
+  checkoutTracking(local: string, remoteRef: string, force = false): Promise<string> {
+    return this.exec(['checkout', ...(force ? ['-f'] : []), '-b', local, '--track', remoteRef, '--']);
   }
 
   checkoutDetached(ref: string): Promise<string> {

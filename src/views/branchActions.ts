@@ -10,6 +10,7 @@ import type { Repo, RepoManager } from '../git/RepoManager';
 import { GitContentProvider } from '../git/GitContentProvider';
 import type { CompareView } from './compareView';
 import { showPullDialog } from './pullDialog';
+import { resolveConflicts } from './conflicts';
 import { t } from '../i18n';
 
 /** Repos sobre los que actúa una acción: todos, o uno elegido en "Repositorios". */
@@ -180,27 +181,75 @@ export class BranchActions {
   // ------------------------------------------------------------------ acciones sobre una rama
 
   async checkout(scope: Scope, ref: BranchRef): Promise<void> {
-    if (!(await this.confirmDirty(scope, t('Checkout of \'{0}\'', refName(ref))))) return;
+    const title = t('Checkout of \'{0}\'', refName(ref));
+    // Rama a la que se cambia en cada repo: la local, o la remota si todavía no hay local.
+    const targetOf = async (repo: Repo) => {
+      if (ref.type === 'local') return ref.name;
+      const branches = await repo.git.getBranches();
+      return branches.local.some((b) => b.name === ref.name) ? ref.name : ref.full;
+    };
 
+    // Antes de tocar nada: ¿qué cambios locales sobrescribiría el checkout? (git fallaría en ese repo)
+    const collisions = await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: t('MultiGit: checking local changes…') }, async () => {
+      const found = new Map<Repo, string[]>();
+      await Promise.all(
+        scope.repos
+          .filter((r) => (r.status?.changes.total ?? 0) > 0 && !(ref.type === 'local' && r.status?.branch === ref.name))
+          .map(async (repo) => {
+            const target = await targetOf(repo);
+            if (!(await repo.git.revisionExists(target))) return;
+            const files = await repo.git.wouldBeOverwritten(target, await repo.git.getChanges()).catch(() => []);
+            if (files.length) found.set(repo, files);
+          }),
+      );
+      return found;
+    });
+
+    let mode: 'normal' | 'smart' | 'force' = 'normal';
+    if (collisions.size) {
+      const chosen = await askCheckoutProblem(refName(ref), collisions);
+      if (!chosen) return;
+      mode = chosen;
+    } else if (!(await this.confirmDirty(scope, title))) {
+      return;
+    }
+
+    const conflicts = new Map<Repo, string[]>();
     await runInRepos(this.manager, {
-      title: t('Checkout of \'{0}\'', refName(ref)),
+      title,
       repos: scope.repos,
       check: (_repo, status) =>
         ref.type === 'local' && status.branch === ref.name ? { skip: t('already on that branch') } : undefined,
       run: async (repo) => {
-        if (ref.type === 'local') {
-          await repo.git.checkout(ref.name);
-          return;
+        const force = mode === 'force' && collisions.has(repo);
+        const doCheckout = async () => {
+          if (ref.type === 'local') {
+            await repo.git.checkout(ref.name, force);
+            return undefined;
+          }
+          const branches = await repo.git.getBranches();
+          if (branches.local.some((b) => b.name === ref.name)) {
+            await repo.git.checkout(ref.name, force);
+            return t('used the existing local branch \'{0}\'', ref.name);
+          }
+          await repo.git.checkoutTracking(ref.name, ref.full, force);
+          return t('new local branch \'{0}\' → {1}', ref.name, ref.full);
+        };
+        if (mode === 'smart' && collisions.has(repo)) {
+          let note: string | undefined;
+          const result = await repo.git.smartCheckout(refName(ref), async () => {
+            note = await doCheckout();
+          });
+          if (result.conflicts.length) {
+            conflicts.set(repo, result.conflicts);
+            return t('local changes restored with {0} conflict(s)', result.conflicts.length);
+          }
+          return [note, t('local changes kept (Smart Checkout)')].filter(Boolean).join(' · ');
         }
-        const branches = await repo.git.getBranches();
-        if (branches.local.some((b) => b.name === ref.name)) {
-          await repo.git.checkout(ref.name);
-          return t('used the existing local branch \'{0}\'', ref.name);
-        }
-        await repo.git.checkoutTracking(ref.name, ref.full);
-        return t('new local branch \'{0}\' → {1}', ref.name, ref.full);
+        return (await doCheckout()) ?? (force ? t('local changes discarded (Force Checkout)') : undefined);
       },
     });
+    if (conflicts.size) await offerSmartCheckoutConflicts(refName(ref), conflicts);
   }
 
   /** Checkout and Rebase onto '<actual>': `git rebase <actual> <rama>`. */
@@ -578,4 +627,66 @@ async function pathExists(p: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * "Git Checkout Problem" (como IntelliJ): los cambios locales de estos archivos se sobrescribirían.
+ * Smart Checkout los guarda, cambia de rama y los vuelve a aplicar; Force Checkout los descarta.
+ */
+async function askCheckoutProblem(target: string, collisions: ReadonlyMap<Repo, string[]>): Promise<'smart' | 'force' | undefined> {
+  const lines: string[] = [];
+  for (const [repo, files] of collisions) {
+    lines.push(`${repo.name} — ${t('{0} file(s)', files.length)}`);
+    for (const f of files.slice(0, 8)) lines.push(`    ${f}`);
+    if (files.length > 8) lines.push(`    ${t('…and {0} more', files.length - 8)}`);
+  }
+  const SMART = t('Smart Checkout');
+  const FORCE = t('Force Checkout');
+  const choice = await vscode.window.showWarningMessage(
+    t("Your local changes would be overwritten by the checkout of '{0}'", target),
+    {
+      modal: true,
+      detail: [
+        ...lines,
+        '',
+        t('Smart Checkout: MultiGit puts your changes aside, checks out and applies them again (if they conflict, you resolve them in the merge editor).'),
+        t('Force Checkout: discards your local changes in those repositories.'),
+      ].join('\n'),
+    },
+    SMART,
+    FORCE,
+  );
+  if (choice === SMART) return 'smart';
+  if (choice !== FORCE) return undefined;
+  const DISCARD = t('Discard and Checkout');
+  const sure = await vscode.window.showWarningMessage(
+    t('Discard the local changes of {0} repo(s)?', collisions.size),
+    { modal: true, detail: t('git checkout -f discards ALL the uncommitted changes of tracked files in: {0}. This cannot be undone.', [...collisions.keys()].map((r) => r.name).join(', ')) },
+    DISCARD,
+  );
+  return sure === DISCARD ? 'force' : undefined;
+}
+
+/** Tras un Smart Checkout con conflictos: abrir el merge editor (el stash queda como copia). */
+async function offerSmartCheckoutConflicts(target: string, conflicts: ReadonlyMap<Repo, string[]>): Promise<void> {
+  const RESOLVE = t('Resolve Conflicts');
+  const choice = await vscode.window.showWarningMessage(
+    t("Your local changes conflict with '{0}'", target),
+    {
+      modal: true,
+      detail: [
+        ...[...conflicts].map(([repo, files]) => `${repo.name}: ${files.join(', ')}`),
+        '',
+        t('Resolve them in the merge editor (Current = the branch, Incoming = your changes). A copy of your changes stays in the Stashes view; drop it when you are done.'),
+      ].join('\n'),
+    },
+    RESOLVE,
+  );
+  if (choice !== RESOLVE) return;
+  const repos = [...conflicts.keys()];
+  const repo =
+    repos.length === 1
+      ? repos[0]
+      : (await vscode.window.showQuickPick(repos.map((r) => ({ label: `$(repo) ${r.name}`, description: t('{0} file(s)', conflicts.get(r)!.length), r })), { title: RESOLVE }))?.r;
+  if (repo) await resolveConflicts(repo, conflicts.get(repo)!);
 }

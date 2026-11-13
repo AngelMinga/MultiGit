@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0
+
+- **Smart Checkout** (como IntelliJ): si el checkout sobrescribiría cambios locales, se detecta en
+  todos los repos antes de tocar ninguno y se ofrece **Smart Checkout** (stash → checkout → aplicar;
+  los conflictos van al merge editor y el stash queda como copia), **Force Checkout** o cancelar.
+  Antes el checkout fallaba en ese repo y quedaba a medias en los demás.
+
 ## 0.8.1
 
 - Git Log: clic derecho en una rama o tag del árbol de la izquierda abre el mismo menú que la vista

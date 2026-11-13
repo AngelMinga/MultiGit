@@ -140,6 +140,11 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
   commit cuando hacen falta), se muestra cuál y por qué y **no se toca ninguno**.
 - **Repo por repo**, con progreso (`3/9 mftheme…`). Si uno falla, se detiene y muestra el resumen
   ✅ ok / ❌ falló + motivo / ⏭ no ejecutado.
+- **Checkout con cambios locales** (como el *Git Checkout Problem* de IntelliJ): antes de tocar nada
+  se detecta en todos los repos qué archivos sobrescribiría el checkout. Si hay alguno, se listan por
+  repo con **Smart Checkout** (aparta tus cambios en un stash, cambia de rama y los vuelve a aplicar;
+  si chocan, se resuelven en el merge editor y el stash queda como copia), **Force Checkout** (los
+  descarta, con segunda confirmación) o no hacer el checkout. Así el checkout no se queda a medias.
 - **Confirmación obligatoria** en lo destructivo (rollback, delete, reset, force push), listando
   exactamente qué se pierde.
 - Git se ejecuta siempre con `execFile` y argumentos separados (nunca una línea de shell), sin
@@ -168,7 +173,7 @@ Para usarlos en todas partes, cámbialos en *Preferences → Keyboard Shortcuts*
 | `multigit.ignoredRepos` | `[]` | Repos a ocultar, por nombre o ruta; admite `*` y `**`. |
 | `multigit.favoriteBranches` | `["develop", "production-lt"]` | Ramas que van arriba con ★. |
 | `multigit.autoFetchMinutes` | `0` | `git fetch --all --prune` periódico (`0` = desactivado). |
-| `multigit.confirmCheckoutWithChanges` | `true` | Avisar antes de un checkout en repos con cambios. |
+| `multigit.confirmCheckoutWithChanges` | `true` | Avisar antes de un checkout en repos con cambios que no chocan con la otra rama (si chocan, siempre se muestra *Smart Checkout*). |
 | `multigit.warnBranchMismatch` | `true` | Avisar cuando algún repo queda en otra rama que la mayoría. |
 | `multigit.commit.ticketPattern` | `[A-Z][A-Z0-9]+-\d+` | Regex que saca el ticket del nombre de la rama (`feature/ABC-123-login` → `ABC-123`). Vacío: sin ticket. |
 | `multigit.pullRequests.*` | — | `useGitHubApi` (`true`), `draft` (`false`) y `providers` (servicio de tus servidores Git propios por host, p. ej. `{ "git.empresa.com": "gitlab" }`). |
