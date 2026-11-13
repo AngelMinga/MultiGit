@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -799,6 +799,20 @@
         "title": "%command.merge.complete%",
         "category": "MultiGit",
         "icon": "$(check)"
+      },
+      {
+        "command": "multigit.operation.primary",
+        "title": "%command.operation.primary%",
+        "category": "MultiGit",
+        "icon": "$(debug-continue)",
+        "enablement": "multigit.operationInProgress"
+      },
+      {
+        "command": "multigit.operation.abortAll",
+        "title": "%command.operation.abortAll%",
+        "category": "MultiGit",
+        "icon": "$(debug-stop)",
+        "enablement": "multigit.operationInProgress"
       }
     ],
     "menus": {

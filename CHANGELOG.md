@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.1
+
+- Barra de estado como IntelliJ: junto a "MERGE en curso…" aparecen **»** (verde: abre la ventana
+  Conflictos si quedan conflictos, o continúa la operación si no) y **■** (rojo: abortar, con
+  confirmación). También como comandos: *Resolver conflictos / Continuar la operación* y *Abortar la operación*.
+
 ## 0.12.0
 
 - **Diálogos flotantes como IntelliJ**: Conflictos, Merge, Push, Pull, Rebase interactivo, Rollback y

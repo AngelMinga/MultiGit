@@ -9,6 +9,9 @@ import { t } from '../i18n';
 
 export class OperationsBar implements vscode.Disposable {
   private readonly item: vscode.StatusBarItem;
+  /** Botones al lado, como IntelliJ: » resolver/continuar y ■ abortar. */
+  private readonly primaryItem: vscode.StatusBarItem;
+  private readonly abortItem: vscode.StatusBarItem;
   private readonly subscription: vscode.Disposable;
 
   constructor(private readonly manager: RepoManager) {
@@ -16,6 +19,16 @@ export class OperationsBar implements vscode.Disposable {
     this.item.name = t('MultiGit: operation in progress');
     this.item.command = 'multigit.operation.menu';
     this.item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+    this.primaryItem = vscode.window.createStatusBarItem('multigit.operation.primary', vscode.StatusBarAlignment.Left, 998.9);
+    this.primaryItem.name = t('MultiGit: resolve conflicts or continue');
+    this.primaryItem.command = 'multigit.operation.primary';
+    this.primaryItem.text = '$(debug-continue)';
+    this.primaryItem.color = new vscode.ThemeColor('testing.iconPassed');
+    this.abortItem = vscode.window.createStatusBarItem('multigit.operation.abortAll', vscode.StatusBarAlignment.Left, 998.8);
+    this.abortItem.name = t('MultiGit: abort the operation');
+    this.abortItem.command = 'multigit.operation.abortAll';
+    this.abortItem.text = '$(debug-stop)';
+    this.abortItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
     this.subscription = manager.onDidChange(() => this.update());
     this.update();
   }
@@ -30,6 +43,8 @@ export class OperationsBar implements vscode.Disposable {
     void vscode.commands.executeCommand('setContext', 'multigit.operationInProgress', repos.length > 0);
     if (!repos.length) {
       this.item.hide();
+      this.primaryItem.hide();
+      this.abortItem.hide();
       return;
     }
     const conflicts = repos.reduce((n, r) => n + (r.status?.changes.conflicted ?? 0), 0);
@@ -41,6 +56,29 @@ export class OperationsBar implements vscode.Disposable {
     const lines = repos.map((r) => `${r.name}: ${OPERATION_LABEL[r.operation]}`).join('\n');
     this.item.tooltip = t('{0}\nClick: resolve, continue or abort', lines);
     this.item.show();
+    const op = repos.length === 1 ? OPERATION_LABEL[first.operation] : t('operations');
+    this.primaryItem.tooltip = conflicts ? t('Resolve Conflicts…') : t('Continue {0}', op);
+    this.abortItem.tooltip = t('Abort {0}', op);
+    this.primaryItem.show();
+    this.abortItem.show();
+  }
+
+  /** Botón »: con conflictos abre la ventana Conflicts; sin conflictos continúa la operación en todos. */
+  async primary(): Promise<void> {
+    const repos = this.inProgress;
+    if (!repos.length) return;
+    if (repos.some((r) => (r.status?.changes.conflicted ?? 0) > 0)) {
+      await vscode.commands.executeCommand('multigit.resolveConflicts');
+      return;
+    }
+    await this.forAll('continue');
+  }
+
+  /** Botón ■: aborta la operación (pide confirmación). */
+  async abortAll(): Promise<void> {
+    const repos = this.inProgress;
+    if (repos.length === 1) await this.abort(repos[0]!);
+    else if (repos.length > 1) await this.forAll('abort');
   }
 
   /** Menú con las acciones de cada repo y para todos. */
@@ -183,6 +221,8 @@ export class OperationsBar implements vscode.Disposable {
   dispose(): void {
     this.subscription.dispose();
     this.item.dispose();
+    this.primaryItem.dispose();
+    this.abortItem.dispose();
   }
 }
 

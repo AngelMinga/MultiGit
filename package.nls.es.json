@@ -208,5 +208,7 @@
   "setting.dialogs": "Cómo se abren los diálogos de MultiGit (Conflictos, Merge, Push, Pull, Rebase, Rollback, Elegir líneas).",
   "setting.dialogs.floating": "En su propia ventana flotante, como IntelliJ.",
   "setting.dialogs.tab": "Como pestaña del editor.",
-  "setting.dialogsAlwaysOnTop": "Mantener los diálogos flotantes siempre delante de las demás ventanas."
+  "setting.dialogsAlwaysOnTop": "Mantener los diálogos flotantes siempre delante de las demás ventanas.",
+  "command.operation.primary": "Resolver conflictos / Continuar la operación",
+  "command.operation.abortAll": "Abortar la operación (merge, rebase…)"
 }

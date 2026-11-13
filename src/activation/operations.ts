@@ -13,6 +13,8 @@ export function registerOperations(core: Core, repositories: vscode.TreeView<Rep
   core.track(
     bar,
     vscode.commands.registerCommand('multigit.operation.menu', () => bar.showMenu()),
+    vscode.commands.registerCommand('multigit.operation.primary', () => bar.primary()),
+    vscode.commands.registerCommand('multigit.operation.abortAll', () => bar.abortAll()),
     vscode.commands.registerCommand('multigit.operation.resolve', (repo?: Repo) => {
       const r = repoArg(repo);
       return r && bar.resolve(r);
