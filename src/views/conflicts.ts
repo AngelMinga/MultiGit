@@ -4,8 +4,15 @@ import * as vscode from 'vscode';
 import type { Repo } from '../git/RepoManager';
 import { t } from '../i18n';
 
+/** Diálogo de conflictos (src/webview/ConflictsPanel.ts), registrado al activar la extensión. */
+let opener: ((repo: Repo) => Promise<void>) | undefined;
+export function setConflictsOpener(fn: (repo: Repo) => Promise<void>): void {
+  opener = fn;
+}
+
 export async function resolveConflicts(repo: Repo, files: readonly string[]): Promise<void> {
   if (files.length === 0) return;
+  if (opener) return opener(repo);
   let file = files[0]!;
   if (files.length > 1) {
     const picked = await vscode.window.showQuickPick(

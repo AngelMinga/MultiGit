@@ -24,6 +24,8 @@ import { RepoIcons } from './views/repoIcons';
 import type { RepositoriesView } from './views/RepositoriesView';
 import type { StashesTree } from './views/StashesTree';
 import { PushPanel } from './webview/PushPanel';
+import { ConflictsPanel, setConflictsHost } from './webview/ConflictsPanel';
+import { setConflictsOpener } from './views/conflicts';
 import { t } from './i18n';
 
 /** Lo que devuelve `activate`: solo para los tests de la extensión (no es una API pública). */
@@ -71,6 +73,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
   registerFileActions(core, logView, changes);
   registerOperations(core, repositories.treeView);
   registerToolbar(core);
+
+  // Resolver conflictos (tras pull, merge, rebase, Smart Checkout…) abre el diálogo Conflicts.
+  setConflictsHost(context.extensionUri, manager);
+  setConflictsOpener((repo) => ConflictsPanel.open(repo));
+  core.track(vscode.commands.registerCommand('multigit.resolveConflicts', () => ConflictsPanel.open()));
 
   // Opciones de los menús ⋯ con estado: cada una tiene una versión "✓ …" (que se muestra cuando está
   // activa) que ejecuta la misma. Así el estado se ve también en los menús nativos de macOS, que no

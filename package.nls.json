@@ -189,5 +189,6 @@
   "command.branches.toggleByRepo.on": "✓ Group by Repository",
   "command.branches.toggleTags.on": "✓ Show Tags",
   "command.changes.toggleGroupByModule.on": "✓ Module",
-  "command.changes.toggleShowIgnored.on": "✓ Show Ignored Files"
+  "command.changes.toggleShowIgnored.on": "✓ Show Ignored Files",
+  "command.resolveConflicts": "Resolve Conflicts…"
 }

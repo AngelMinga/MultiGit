@@ -9,6 +9,7 @@ import { LOG_PAGE_FORMAT, parseLogPage, type LogCommit } from './log';
 import { parseStatusFiles, type StatusFile } from './changes';
 import { parseStashList, SHELF_PREFIX, STASH_FORMAT, type StashEntry } from './stashes';
 import { buildTodo, parseRebaseLog, REBASE_LOG_FORMAT, type RebaseCommit, type RebaseEntry } from './rebase';
+import { branchFromMergeMessage, type ConflictLabels } from './conflicts';
 import {
   LOG_FORMAT,
   parseLeftRightCount,
@@ -686,6 +687,51 @@ export class GitService {
   }
 
   /** Ruta absoluta de un archivo dentro de `.git` (p. ej. `info/exclude`), válida también en worktrees. */
+  /**
+   * Resuelve un conflicto quedándose con un lado: `checkout --ours|--theirs` + `add`, o `rm` si ese
+   * lado borró el archivo.
+   */
+  async acceptConflictSide(paths: readonly string[], side: 'ours' | 'theirs', deleted: readonly string[] = []): Promise<void> {
+    const gone = paths.filter((p) => deleted.includes(p));
+    const keep = paths.filter((p) => !deleted.includes(p));
+    if (gone.length) await this.exec(['rm', '-q', '--', ...gone]);
+    if (keep.length) {
+      await this.exec(['checkout', `--${side}`, '--', ...keep]);
+      await this.exec(['add', '--', ...keep]);
+    }
+  }
+
+  /** Qué se está integrando y sobre qué, para las columnas del diálogo de conflictos. */
+  async conflictLabels(): Promise<ConflictLabels> {
+    const op = await this.getOperationInProgress();
+    const read = async (name: string) => fs.readFile(await this.resolveGitPath(name), 'utf8').then((s) => s.trim(), () => '');
+    const nameOf = async (rev: string) => {
+      const named = (await this.exec(['name-rev', '--name-only', '--no-undefined', '--exclude=refs/tags/*', rev]).catch(() => '')).trim();
+      return named && !/[~^]/.test(named) ? named.replace(/^remotes\//, '') : (await this.exec(['rev-parse', '--short', rev]).catch(() => rev)).trim();
+    };
+    const subject = async (rev: string) => `${(await this.exec(['rev-parse', '--short', rev]).catch(() => rev)).trim()} ${(await this.exec(['log', '-1', '--format=%s', rev]).catch(() => '')).trim()}`.trim();
+    const branch = (await this.getStatus().catch(() => undefined))?.branch ?? 'HEAD';
+    switch (op) {
+      case 'merge':
+        return { operation: op, current: branch, incoming: branchFromMergeMessage(await read('MERGE_MSG')) ?? (await nameOf('MERGE_HEAD')) };
+      case 'rebase': {
+        const head = (await read('rebase-merge/head-name')) || (await read('rebase-apply/head-name'));
+        const onto = (await read('rebase-merge/onto')) || (await read('rebase-apply/onto'));
+        return {
+          operation: op,
+          current: onto ? await nameOf(onto) : 'onto',
+          incoming: `${head.replace(/^refs\/heads\//, '') || 'HEAD'}: ${await subject('REBASE_HEAD')}`,
+        };
+      }
+      case 'cherry-pick':
+        return { operation: op, current: branch, incoming: await subject('CHERRY_PICK_HEAD') };
+      case 'revert':
+        return { operation: op, current: branch, incoming: `revert ${await subject('REVERT_HEAD')}` };
+      default:
+        return { operation: 'stash', current: branch, incoming: 'stash' };
+    }
+  }
+
   async resolveGitPath(name: string): Promise<string> {
     return path.resolve(this.root, (await this.exec(['rev-parse', '--git-path', name])).trim());
   }

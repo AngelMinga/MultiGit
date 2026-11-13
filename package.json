@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.9.7",
+  "version": "0.10.0",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -751,6 +751,12 @@
         "command": "multigit.changes.toggleShowIgnored.on",
         "title": "%command.changes.toggleShowIgnored.on%",
         "category": "MultiGit"
+      },
+      {
+        "command": "multigit.resolveConflicts",
+        "title": "%command.resolveConflicts%",
+        "category": "MultiGit",
+        "icon": "$(git-merge)"
       }
     ],
     "menus": {

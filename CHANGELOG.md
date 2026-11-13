@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.0
+
+- **Diálogo Conflicts como IntelliJ**: tras un pull, merge, rebase, cherry-pick o Smart Checkout con
+  conflictos, *Resolver conflictos* abre una ventana con los archivos en conflicto de **todos los
+  repos**, cada uno con "Merge de la rama X en la rama Y" y las columnas **Tuyos (rama)** / **Otros
+  (rama)** con el estado de cada lado (Modificado, Añadido, Eliminado) y cuántos bloques en conflicto
+  quedan. Al pasar el ratón, **Aceptar** en cada lado; con varios elegidos (Ctrl/⌘ + clic), *Aceptar los
+  tuyos / los otros* en lote. Doble clic o **Resolver a mano** → merge editor de 3 paneles. **Terminar**
+  continúa el merge/rebase cuando ya no queda ninguno. También con el comando *Resolver conflictos…*.
+
 ## 0.9.7
 
 - Git Log: los menús contextuales (de commit y de rama) y el menú ⋮ se cierran al pulsar fuera, también

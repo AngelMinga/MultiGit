@@ -123,6 +123,11 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
 
 ## Credenciales, conflictos y ramas desalineadas
 
+- **Conflictos** (como IntelliJ): la ventana *Conflicts* lista los archivos en conflicto de todos los
+  repos con las columnas *Tuyos* / *Otros* (con el nombre de cada rama). **Aceptar** un lado (también
+  varios archivos a la vez), **Resolver a mano** en el merge editor y **Terminar** para continuar el
+  merge o rebase.
+
 - **Credenciales**: si git o ssh necesitan usuario, contraseña/token, la passphrase de la clave o
   confirmar la huella de un servidor, MultiGit lo pide en un cuadro de VS Code (como la extensión
   Git integrada). En un fetch/push de varios repos al mismo servidor pregunta una sola vez (la

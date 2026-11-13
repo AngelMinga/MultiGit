@@ -280,6 +280,45 @@ describe('Pull', () => {
   });
 });
 
+describe('Conflictos', () => {
+  it('un merge con conflicto abre el diálogo Conflicts y Accept lo resuelve', async () => {
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    const repo = api.manager.all.find((r) => r.name === 'mftheme')!;
+    const env = { ...process.env, GIT_AUTHOR_NAME: 'E2E', GIT_AUTHOR_EMAIL: 'e2e@example.com', GIT_COMMITTER_NAME: 'E2E', GIT_COMMITTER_EMAIL: 'e2e@example.com' };
+    const git = (...args: string[]) => execFileSync('git', args, { cwd: repo.root, env, encoding: 'utf8' });
+    git('stash', 'push', '-q', '-u');
+    git('checkout', '-q', '-b', 'conf-a');
+    writeFileSync(path.join(repo.root, 'conf.js'), 'a\n');
+    git('add', '.');
+    git('commit', '-q', '-m', 'a');
+    git('checkout', '-q', 'dev-x');
+    writeFileSync(path.join(repo.root, 'conf.js'), 'b\n');
+    git('add', '.');
+    git('commit', '-q', '-m', 'b');
+    try {
+      git('merge', 'conf-a');
+    } catch {
+      // conflicto esperado
+    }
+    await api.manager.refresh();
+    await vscode.commands.executeCommand('multigit.resolveConflicts');
+    let tab: vscode.Tab | undefined;
+    for (let i = 0; i < 40 && !tab; i++) {
+      await new Promise((r) => setTimeout(r, 50));
+      tab = vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((x) => x.input instanceof vscode.TabInputWebview && /Conflict/.test(x.label));
+    }
+    assert.ok(tab, 'pestaña Conflicts');
+    // Lo mismo que hace "Accept" en Theirs:
+    await repo.git.acceptConflictSide(['conf.js'], 'theirs');
+    assert.equal(readFileSync(path.join(repo.root, 'conf.js'), 'utf8'), 'a\n');
+    assert.deepEqual(await repo.git.getConflictedFiles(), []);
+    await vscode.window.tabGroups.close(tab);
+    git('commit', '-q', '--no-edit');
+    git('stash', 'pop', '-q');
+    await api.manager.refresh();
+  });
+});
+
 describe('package.json', () => {
   it('ningún submenú aparece dos veces en el mismo menú (VS Code descarta el segundo)', () => {
     const menus = vscode.extensions.getExtension('angelminga.multigit')!.packageJSON.contributes.menus as Record<

@@ -6,7 +6,7 @@ import type { LogFilters, RefLabel } from '../git/log';
 export type { LogFilters, RefLabel };
 
 /** Paneles webview que existen (el log llega en la Fase 6). */
-export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks' | 'rebase' | 'pull';
+export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks' | 'rebase' | 'pull' | 'conflicts';
 
 // ------------------------------------------------------------------ Push
 
@@ -81,6 +81,36 @@ export interface HunksState {
   selected: string[];
   /** Aviso (p. ej. la selección anterior ya no valía porque el archivo cambió). */
   notice?: string;
+}
+
+// ------------------------------------------------------------------ Conflictos
+
+export type ConflictSide = 'modified' | 'added' | 'deleted';
+
+export interface ConflictFileView {
+  path: string;
+  yours: ConflictSide;
+  theirs: ConflictSide;
+  /** Bloques `<<<<<<<` que quedan en el archivo (0 si es binario o ya no tiene marcas). */
+  blocks: number;
+}
+
+export interface ConflictRepoView {
+  id: string;
+  name: string;
+  colorIndex: number;
+  /** "Merging branch X into branch Y", "Rebasing…"… */
+  title: string;
+  yours: string;
+  theirs: string;
+  /** Hay un merge/rebase/cherry-pick/revert a medias (Finish lo continúa). */
+  operation: string | null;
+  files: ConflictFileView[];
+}
+
+export interface ConflictsState {
+  repos: ConflictRepoView[];
+  busy: boolean;
 }
 
 // ------------------------------------------------------------------ Pull
@@ -267,6 +297,7 @@ export type HostMessage =
   | { type: 'hunks/state'; payload: HunksState }
   | { type: 'rebase/state'; payload: RebaseState }
   | { type: 'pull/state'; payload: PullState }
+  | { type: 'conflicts/state'; payload: ConflictsState }
   | { type: 'commit/state'; payload: CommitState }
   | { type: 'commit/setMessage'; payload: { message: string } }
   | { type: 'commit/done'; payload: Record<string, never> }
@@ -306,6 +337,10 @@ export type WebviewMessage =
   | { type: 'rebase/close'; payload: Record<string, never> }
   | { type: 'pull/run'; payload: { scopeId: string; remote: string; /** null = el upstream de cada repo. */ branch: string | null; mode: PullModeName } }
   | { type: 'pull/close'; payload: Record<string, never> }
+  | { type: 'conflicts/accept'; payload: { repoId: string; paths: string[]; side: 'ours' | 'theirs' } }
+  | { type: 'conflicts/open'; payload: { repoId: string; path: string } }
+  | { type: 'conflicts/finish'; payload: Record<string, never> }
+  | { type: 'conflicts/close'; payload: Record<string, never> }
   | { type: 'commit/run'; payload: { message: string; amend: boolean; push: boolean } }
   | { type: 'commit/requestLastMessage'; payload: Record<string, never> }
   | { type: 'commit/generate'; payload: { current: string } }

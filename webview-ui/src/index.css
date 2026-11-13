@@ -1369,3 +1369,95 @@ button.claude-btn.running {
   align-items: center;
   gap: 8px;
 }
+
+/* ------------------------------------------------------------ Conflicts */
+
+.conflicts {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.cf-toolbar {
+  gap: 8px;
+  border-bottom: 1px solid var(--vscode-panel-border, transparent);
+}
+.cf-body {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 0;
+}
+.cf-repo {
+  margin: 0 12px 16px;
+}
+.cf-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.cf-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+}
+.cf-table th {
+  text-align: left;
+  font-weight: normal;
+  color: var(--vscode-descriptionForeground);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cf-table th:nth-child(n + 2),
+.cf-side {
+  width: 26%;
+  border-left: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+}
+.cf-table td {
+  padding: 3px 8px;
+}
+.cf-group {
+  cursor: pointer;
+  background: var(--vscode-list-inactiveSelectionBackground);
+}
+.cf-row {
+  cursor: default;
+}
+.cf-row:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+.cf-row.selected {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+.cf-file {
+  padding-left: 28px !important;
+  white-space: nowrap;
+}
+.cf-name {
+  margin-right: 8px;
+}
+.cf-blocks {
+  margin-right: 8px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+}
+.cf-side {
+  white-space: nowrap;
+}
+.cf-side > span {
+  margin-right: 8px;
+}
+.cf-accept {
+  visibility: hidden;
+  padding: 0 8px;
+}
+.cf-row:hover .cf-accept,
+.cf-row.selected .cf-accept {
+  visibility: visible;
+}
