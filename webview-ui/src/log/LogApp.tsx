@@ -80,10 +80,10 @@ export function LogApp() {
   const generation = useRef(0);
   const [selected, setSelected] = useState<LogRow | null>(null);
   const [details, setDetails] = useState<LogDetails | null>(null);
-  /** Grupos de archivos plegados en el detalle (`hash:índice`). */
-  const [closedGroups, setClosedGroups] = useState<Set<string>>(new Set());
+  /** Grupos de archivos abiertos en el detalle de un merge (`hash:índice`): empiezan plegados. */
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const toggleGroup = (key: string) =>
-    setClosedGroups((prev) => {
+    setOpenGroups((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -391,7 +391,7 @@ export function LogApp() {
                   {detailsMatch &&
                     details!.groups.map((g, i) => {
                       const key = `${selected.hash}:${i}`;
-                      const open = !closedGroups.has(key);
+                      const open = openGroups.has(key);
                       return [
                         g.title || details!.groups.length > 1 ? (
                           <li key={`g:${key}`} className="row file-row ft-group" onClick={() => toggleGroup(key)} title={g.title}>
@@ -409,6 +409,7 @@ export function LogApp() {
                             key={`t:${key}`}
                             files={g.files}
                             depth={g.title ? 1 : 0}
+                            collapsed={!!g.title}
                             onOpen={(f) => post({ type: 'log/openDiff', payload: { repoId: selected.repoId, hash: selected.hash, file: f, base: g.base } })}
                           />
                         ) : null,

@@ -766,9 +766,19 @@ button.icon-btn.on {
   font-weight: 600;
 }
 .ft-group .file-name {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.ft-group .muted,
+.ft-dir .muted {
+  flex: none;
+  white-space: nowrap;
+}
+.ft-group {
+  cursor: pointer;
 }
 .ft-dir .twisty,
 .ft-group .twisty {

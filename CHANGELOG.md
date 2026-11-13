@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.4
+
+- Git Log: en el detalle de un merge, los grupos de archivos (y sus carpetas) empiezan plegados; se
+  abren con un clic. El contador de archivos ya no se parte en dos líneas.
+
 ## 0.9.3
 
 - **Detalle del commit en el Git Log como IntelliJ**: los archivos como árbol de carpetas (las cadenas

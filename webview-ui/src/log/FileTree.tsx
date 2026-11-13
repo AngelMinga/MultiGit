@@ -41,10 +41,10 @@ function buildTree(files: readonly PushFile[]): Dir {
   return compact(root);
 }
 
-export function FileTree(props: { files: readonly PushFile[]; onOpen: (file: PushFile) => void; depth?: number }) {
+export function FileTree(props: { files: readonly PushFile[]; onOpen: (file: PushFile) => void; depth?: number; /** Carpetas plegadas al empezar. */ collapsed?: boolean }) {
   const tree = useMemo(() => buildTree(props.files), [props.files]);
-  // Con muchos archivos, las carpetas empiezan cerradas (como IntelliJ).
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(props.files.length > 25 ? allDirs(tree) : []));
+  // Plegadas si se pide (grupos de un merge) o si hay muchos archivos (como IntelliJ).
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(props.collapsed || props.files.length > 25 ? allDirs(tree) : []));
   const base = props.depth ?? 0;
   const toggle = (p: string) =>
     setCollapsed((prev) => {
