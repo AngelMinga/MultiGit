@@ -105,6 +105,11 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
 - Detalle del commit con sus archivos (doble clic → diff).
 - Clic derecho: Copy hash, Checkout revision, Cherry-pick, Revert, Reset current branch to here,
   New branch here y New tag.
+- **Interactively rebase from here…** (clic derecho en un commit de la rama actual): los commits desde
+  ese hasta HEAD, del más viejo al más nuevo, con **Pick**, **Reword** (mensaje nuevo ahí mismo),
+  **Squash**, **Fixup** y **Drop**, y ↑/↓ para reordenar (teclas P R S F D y Alt+↑/↓). Pide el working
+  tree limpio; si hay conflictos, el rebase queda a medias y se sigue desde la barra de operaciones.
+  No admite rangos con commits de merge.
 - Lista virtualizada: carga de 300 en 300 y se mantiene fluida con miles de commits.
 
 ## Credenciales, conflictos y ramas desalineadas

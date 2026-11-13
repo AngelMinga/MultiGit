@@ -2,6 +2,8 @@
 
 ## 0.8.0
 
+- **Rebase interactivo** desde el Git Log (*Interactively rebase from here…*): Pick, Reword, Squash,
+  Fixup, Drop y reordenar, sin editor de por medio.
 - **Comparar ramas por archivos**: *Compare Files with Current* abre la vista *Comparar* con los
   archivos distintos entre otra rama y la actual, por repo; clic → diff.
 - **Grupos de repos**: con un grupo activo (botón de filtro en Repositorios), todas las vistas y

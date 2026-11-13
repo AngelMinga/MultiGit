@@ -1097,3 +1097,77 @@ button.claude-btn.running {
   white-space: pre;
   tab-size: 4;
 }
+
+/* ------------------------------------------------------------ Rebase interactivo */
+
+.rebase {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  outline: none;
+}
+.rbz-toolbar {
+  gap: 8px;
+  border-bottom: 1px solid var(--vscode-panel-border, transparent);
+}
+.rbz-list {
+  flex: 1;
+  overflow: auto;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+}
+.rbz-row {
+  padding: 3px 12px;
+  border-left: 3px solid transparent;
+}
+.rbz-row.selected {
+  background: var(--vscode-list-inactiveSelectionBackground);
+  border-left-color: var(--vscode-focusBorder);
+}
+.rbz-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.rbz-main select {
+  width: 90px;
+  flex: none;
+}
+.rbz-hash {
+  flex: none;
+  opacity: 0.8;
+}
+.rbz-subject {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rbz-meta {
+  flex: none;
+  white-space: nowrap;
+}
+.rbz-drop .rbz-subject,
+.rbz-drop .rbz-hash {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+.rbz-squash .rbz-subject,
+.rbz-fixup .rbz-subject {
+  padding-left: 12px;
+}
+.rbz-reword .rbz-subject {
+  font-style: italic;
+}
+.rbz-message {
+  display: block;
+  width: calc(100% - 100px);
+  margin: 4px 0 4px 98px;
+  font-family: var(--vscode-editor-font-family);
+}
+.rbz-problem {
+  color: var(--vscode-errorForeground);
+}

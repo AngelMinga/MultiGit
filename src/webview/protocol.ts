@@ -6,7 +6,7 @@ import type { LogFilters, RefLabel } from '../git/log';
 export type { LogFilters, RefLabel };
 
 /** Paneles webview que existen (el log llega en la Fase 6). */
-export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks';
+export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks' | 'rebase';
 
 // ------------------------------------------------------------------ Push
 
@@ -82,6 +82,19 @@ export interface HunksState {
   /** Aviso (p. ej. la selección anterior ya no valía porque el archivo cambió). */
   notice?: string;
 }
+
+// ------------------------------------------------------------------ Rebase interactivo
+
+export interface RebaseState {
+  repo: string;
+  colorIndex: number;
+  branch: string;
+  /** Del más viejo al más nuevo (el orden del todo de git). */
+  commits: Array<{ hash: string; short: string; subject: string; message: string; author: string; time: number }>;
+  busy: boolean;
+}
+
+export type RebaseActionName = 'pick' | 'reword' | 'squash' | 'fixup' | 'drop';
 
 // ------------------------------------------------------------------ Rollback
 
@@ -161,7 +174,7 @@ export interface LogDetails {
   files: PushFile[];
 }
 
-export type LogAction = 'copyHash' | 'checkout' | 'cherryPick' | 'revert' | 'reset' | 'newBranch' | 'newTag';
+export type LogAction = 'copyHash' | 'checkout' | 'cherryPick' | 'revert' | 'reset' | 'newBranch' | 'newTag' | 'interactiveRebase';
 
 // ------------------------------------------------------------------ Toolbar (Proyecto)
 
@@ -190,6 +203,7 @@ export type HostMessage =
   | { type: 'push/files'; payload: { repoId: string; hash: string; files: PushFile[] } }
   | { type: 'rollback/state'; payload: RollbackState }
   | { type: 'hunks/state'; payload: HunksState }
+  | { type: 'rebase/state'; payload: RebaseState }
   | { type: 'commit/state'; payload: CommitState }
   | { type: 'commit/setMessage'; payload: { message: string } }
   | { type: 'commit/done'; payload: Record<string, never> }
@@ -224,6 +238,8 @@ export type WebviewMessage =
   | { type: 'hunks/save'; payload: { selected: string[] } }
   | { type: 'hunks/openDiff'; payload: Record<string, never> }
   | { type: 'hunks/close'; payload: Record<string, never> }
+  | { type: 'rebase/start'; payload: { entries: Array<{ hash: string; action: RebaseActionName; message?: string }> } }
+  | { type: 'rebase/close'; payload: Record<string, never> }
   | { type: 'commit/run'; payload: { message: string; amend: boolean; push: boolean } }
   | { type: 'commit/requestLastMessage'; payload: Record<string, never> }
   | { type: 'commit/generate'; payload: { current: string } }

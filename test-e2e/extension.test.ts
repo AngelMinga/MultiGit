@@ -7,6 +7,7 @@ import * as path from 'node:path';
 import type { MultiGitTestApi } from '../src/extension';
 import { allLineIds, diffFingerprint, parseHunks } from '../src/git/hunks';
 import { runCommitChecks } from '../src/views/commitChecks';
+import { RebasePanel } from '../src/webview/RebasePanel';
 
 /** Recorre un TreeDataProvider completo y devuelve cada elemento con su TreeItem. */
 async function walk<T>(provider: vscode.TreeDataProvider<T>, parent?: T, depth = 0): Promise<Array<{ node: T; item: vscode.TreeItem }>> {
@@ -243,6 +244,26 @@ describe('Comparar ramas por archivos', () => {
     await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
     await vscode.commands.executeCommand('multigit.compareFiles.close');
     assert.equal((await walk(api.compareFiles)).length, 0);
+  });
+});
+
+describe('Rebase interactivo', () => {
+  it('abre el diálogo desde un commit de la rama actual y rechaza uno que no está en ella', async () => {
+    const ext = vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!;
+    const api = await ext.activate();
+    const repo = api.manager.all.find((r) => r.name === 'shell')!;
+    const first = (await repo.git.exec(['rev-list', '--max-parents=0', 'HEAD'])).trim();
+    await RebasePanel.open(ext.extensionUri, api.manager, repo, first, async () => undefined);
+    let tab: vscode.Tab | undefined;
+    for (let i = 0; i < 40 && !tab; i++) {
+      await new Promise((r) => setTimeout(r, 50));
+      tab = vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((x) => x.input instanceof vscode.TabInputWebview && /shell/.test(x.label));
+    }
+    assert.ok(tab, 'pestaña del rebase');
+    await vscode.window.tabGroups.close(tab);
+    const { commits, base } = await repo.git.rebaseCommits(first);
+    assert.equal(base, null);
+    assert.deepEqual(commits.map((c) => c.subject), ['feat: shell inicial', 'feat: cmp']);
   });
 });
 

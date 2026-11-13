@@ -18,6 +18,7 @@ import type { Repo, RepoManager } from '../git/RepoManager';
 import type { BranchActions } from '../views/branchActions';
 import type { LogAction, LogRepoInfo, LogRow, WebviewMessage } from './protocol';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from './webviewHtml';
+import { RebasePanel } from './RebasePanel';
 import { t } from '../i18n';
 
 const PAGE_SIZE = 300;
@@ -416,6 +417,12 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
       case 'newTag':
         if (!(await this.newTag(repo, hash))) return;
         break;
+      case 'interactiveRebase':
+        await RebasePanel.open(this.extensionUri, this.manager, repo, hash, async () => {
+          await this.manager.refreshStatusesNow([repo]);
+          await this.init();
+        });
+        return;
     }
     await this.manager.refreshStatusesNow([repo]);
     await this.init();

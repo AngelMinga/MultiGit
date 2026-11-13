@@ -29,6 +29,7 @@ const MENU: Array<{ action: LogAction; label: string } | 'sep'> = [
   { action: 'cherryPick', label: 'Cherry-pick' },
   { action: 'revert', label: 'Revert commit' },
   { action: 'reset', label: 'Reset current branch to here…' },
+  { action: 'interactiveRebase', label: 'Interactively rebase from here…' },
   'sep',
   { action: 'newBranch', label: 'New branch here…' },
   { action: 'newTag', label: 'New tag…' },

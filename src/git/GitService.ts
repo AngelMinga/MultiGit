@@ -8,6 +8,7 @@ import { pullArgs, type PullMode } from './pull';
 import { LOG_PAGE_FORMAT, parseLogPage, type LogCommit } from './log';
 import { parseStatusFiles, type StatusFile } from './changes';
 import { parseStashList, SHELF_PREFIX, STASH_FORMAT, type StashEntry } from './stashes';
+import { buildTodo, parseRebaseLog, REBASE_LOG_FORMAT, type RebaseCommit, type RebaseEntry } from './rebase';
 import {
   LOG_FORMAT,
   parseLeftRightCount,
@@ -27,6 +28,7 @@ const DEFAULT_TIMEOUT_MS = 60_000;
 const NETWORK_TIMEOUT_MS = 180_000;
 /** Los hooks de pre-commit (husky, lint-staged) pueden tardar. */
 const COMMIT_TIMEOUT_MS = 300_000;
+const REBASE_TIMEOUT_MS = 5 * 60_000;
 const MAX_BUFFER = 64 * 1024 * 1024;
 
 export interface GitExecOptions {
@@ -485,6 +487,34 @@ export class GitService {
   /** `git add -- <paths>` (para incluir archivos sin versionar en un commit). */
   async addPaths(paths: readonly string[]): Promise<void> {
     if (paths.length) await this.exec(['add', '--', ...paths]);
+  }
+
+  /**
+   * Commits de un rebase interactivo desde `hash` (incluido) hasta HEAD, del más viejo al más nuevo.
+   * `base` es el padre de `hash` (null si `hash` es la raíz: se usa `--root`).
+   */
+  async rebaseCommits(hash: string): Promise<{ base: string | null; commits: RebaseCommit[]; merges: number }> {
+    const base = (await this.revisionExists(`${hash}^`)) ? (await this.exec(['rev-parse', `${hash}^`])).trim() : null;
+    const range = base ? `${base}..HEAD` : 'HEAD';
+    const [log, merges] = await Promise.all([
+      this.exec(['log', '--reverse', `--format=${REBASE_LOG_FORMAT}`, range, '--']),
+      this.exec(['rev-list', '--count', '--merges', range, '--']),
+    ]);
+    return { base, commits: parseRebaseLog(log), merges: Number(merges.trim()) || 0 };
+  }
+
+  /** `git rebase -i` con el todo ya armado (sin editor): `reword` usa archivos con el mensaje nuevo. */
+  async interactiveRebase(base: string | null, entries: readonly RebaseEntry[]): Promise<string> {
+    const dir = path.resolve(this.root, (await this.exec(['rev-parse', '--git-path', 'multigit-rebase'])).trim());
+    await fs.rm(dir, { recursive: true, force: true });
+    await fs.mkdir(dir, { recursive: true });
+    const messageFile = (hash: string) => path.join(dir, `msg-${hash}.txt`);
+    for (const e of entries) if (e.action === 'reword') await fs.writeFile(messageFile(e.hash), `${e.message!.trim()}\n`);
+    const todo = path.join(dir, 'todo.txt');
+    await fs.writeFile(todo, buildTodo(entries, messageFile));
+    // Git llama a `$GIT_SEQUENCE_EDITOR <archivo-todo>`: copiamos el nuestro encima.
+    const editor = `cp "${todo.replace(/\\/g, '/')}"`;
+    return this.exec(['rebase', '-i', base ?? '--root'], { env: { GIT_SEQUENCE_EDITOR: editor }, timeoutMs: REBASE_TIMEOUT_MS });
   }
 
   /** Archivos distintos entre dos revisiones (`git diff --name-status a b`). */
