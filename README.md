@@ -123,9 +123,11 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
 
 ## Credenciales, conflictos y ramas desalineadas
 
-- **Ventana de merge** (como *Merge Revisions* de IntelliJ): Tuyos | Resultado | Otros, con » « ✕ en
-  cada cambio, aplicar los cambios sin conflicto de un lado o de los dos, F7 / Shift+F7 entre
-  conflictos, Aceptar izquierda / derecha y Aplicar cambios. `multigit.mergeTool: vscode` usa el merge
+- **Ventana de merge** (como *Merge Revisions* de IntelliJ): Tuyos | Resultado | Otros con colores de
+  sintaxis y la palabra que cambia resaltada, » « ✕ en cada cambio, aplicar los cambios sin conflicto
+  de un lado o de los dos, **varita** para los conflictos simples, Resultado editable entero, F7 /
+  Shift+F7 entre conflictos, Aceptar izquierda / derecha y Aplicar cambios.
+- **Merge con opciones**: `--no-ff`, `--ff-only`, `--squash`, `--no-commit` y mensaje propio. `multigit.mergeTool: vscode` usa el merge
   editor de VS Code.
 - **Conflictos** (como IntelliJ): la ventana *Conflicts* lista los archivos en conflicto de todos los
   repos con las columnas *Tuyos* / *Otros* (con el nombre de cada rama). **Aceptar** un lado (también

@@ -339,9 +339,12 @@ export class BranchActions {
     });
   }
 
-  /** Merge '<rama>' into '<actual>'. */
+  /** Merge '<rama>' into '<actual>', con opciones como IntelliJ (--no-ff, --squash, mensaje…). */
   async merge(scope: Scope, ref: BranchRef): Promise<void> {
     const source = refName(ref);
+    const chosen = await askMergeOptions(source, currentLabel(scope));
+    if (!chosen) return;
+    const { options, message } = chosen;
     await runInRepos(this.manager, {
       title: t('Merge of \'{0}\' into \'{1}\'', source, currentLabel(scope)),
       repos: scope.repos,
@@ -354,7 +357,10 @@ export class BranchActions {
         return undefined;
       },
       run: async (repo) => {
-        await repo.git.merge(source);
+        await repo.git.merge(source, options, message);
+        if (options.includes('--squash')) return t('changes merged and staged: commit them');
+        if (options.includes('--no-commit')) return t('merged without commit: review and commit');
+        return undefined;
       },
     });
   }
@@ -740,4 +746,62 @@ async function offerSmartCheckoutConflicts(target: string, conflicts: ReadonlyMa
       ? repos[0]
       : (await vscode.window.showQuickPick(repos.map((r) => ({ label: `$(repo) ${r.name}`, description: t('{0} file(s)', conflicts.get(r)!.length), r })), { title: RESOLVE }))?.r;
   if (repo) await resolveConflicts(repo, conflicts.get(repo)!);
+}
+
+/** Opciones de merge elegidas la última vez (durante la sesión). */
+let lastMergeOptions: string[] = [];
+
+/**
+ * Opciones del merge, como el diálogo de IntelliJ: --no-ff, --ff-only, --squash, --no-commit y mensaje
+ * propio. Enter sin marcar nada = merge normal. Devuelve undefined si se cancela.
+ */
+async function askMergeOptions(source: string, current: string): Promise<{ options: string[]; message?: string } | undefined> {
+  const MESSAGE = '-m';
+  const items = [
+    { label: '--no-ff', description: t('always create a merge commit'), value: '--no-ff' },
+    { label: '--ff-only', description: t('only if it can be fast-forwarded'), value: '--ff-only' },
+    { label: '--squash', description: t('bring the changes as one set, without a merge commit (you commit them)'), value: '--squash' },
+    { label: '--no-commit', description: t('merge but stop before the commit, to review'), value: '--no-commit' },
+    { label: `-m  ${t('Custom message…')}`, description: t('merge commit message'), value: MESSAGE },
+  ];
+  for (;;) {
+    const picked = await vscode.window.showQuickPick(
+      items.map((i) => ({ ...i, picked: lastMergeOptions.includes(i.value) })),
+      {
+        title: t("Merge '{0}' into '{1}'", source, current),
+        placeHolder: t('Options (Enter without checking anything = normal merge)'),
+        canPickMany: true,
+        ignoreFocusOut: true,
+      },
+    );
+    if (!picked) return undefined;
+    const values = picked.map((p) => p.value);
+    const has = (v: string) => values.includes(v);
+    const invalid =
+      has('--squash') && (has('--no-ff') || has('--no-commit'))
+        ? t('--squash cannot be combined with --no-ff or --no-commit')
+        : has('--ff-only') && (has('--no-ff') || has('--squash'))
+          ? t('--ff-only cannot be combined with --no-ff or --squash')
+          : has(MESSAGE) && (has('--squash') || has('--ff-only'))
+            ? t('A custom message needs a merge commit (not with --squash or --ff-only)')
+            : undefined;
+    if (invalid) {
+      void vscode.window.showWarningMessage(`MultiGit: ${invalid}`);
+      continue;
+    }
+    lastMergeOptions = values;
+    let message: string | undefined;
+    if (has(MESSAGE)) {
+      message = (
+        await vscode.window.showInputBox({
+          title: t('Merge commit message'),
+          value: `Merge branch '${source}' into ${current}`,
+          ignoreFocusOut: true,
+          validateInput: (v) => (v.trim() ? undefined : t('Type a message')),
+        })
+      )?.trim();
+      if (!message) return undefined;
+    }
+    return { options: values.filter((v) => v !== MESSAGE), message };
+  }
 }

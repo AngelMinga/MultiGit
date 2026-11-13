@@ -4,6 +4,7 @@
 // se pliegan.
 import { createContext, memo, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { highlight, languageOf } from './highlight';
+import { changedSegments, mergeWords } from '../../../src/git/wordMerge';
 import type { MergeBlockView, MergeState } from '../../../src/webview/protocol';
 import { onHostMessage, post } from '../vscode';
 import { t } from '../i18n';
@@ -41,6 +42,8 @@ export function MergeDialog() {
   const [state, setState] = useState<MergeState | null>(null);
   const [res, setRes] = useState<Record<number, Resolution>>({});
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  /** Texto editado a mano en tramos sin cambios (índice del bloque → texto). */
+  const [stableEdits, setStableEdits] = useState<Record<number, string>>({});
   const [confirm, setConfirm] = useState(false);
   const [current, setCurrent] = useState<number | null>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -56,6 +59,7 @@ export function MergeDialog() {
           if (b.type === 'change') initial[i] = { text: b.base.join(''), ours: null, theirs: null, edited: false };
         });
         setRes(initial);
+        setStableEdits({});
         setConfirm(false);
       }),
     [],
@@ -66,7 +70,22 @@ export function MergeDialog() {
   const pendingConflicts = changes.filter(([b, i]) => b.kind === 'conflict' && res[i] && !isResolved(b, res[i]!)).length;
   const unresolved = changes.filter(([b, i]) => res[i] && !isResolved(b, res[i]!)).map(([, i]) => i);
 
- const language = useMemo(() => {
+  /** Conflictos que la varita puede resolver (cada lado cambió palabras distintas): índice → texto. */
+  const simple = useMemo(() => {
+    const out = new Map<number, string>();
+    (state?.blocks ?? []).forEach((b, i) => {
+      if (b.type !== 'change' || b.kind !== 'conflict') return;
+      // Conservador: solo si los dos lados conservan las mismas líneas y cambian palabras dentro de
+      // ellas. Si un lado reescribió el bloque (otro número de líneas), se resuelve a mano.
+      if (b.ours.length !== b.base.length || b.theirs.length !== b.base.length) return;
+      const merged = mergeWords(b.base.join(''), b.ours.join(''), b.theirs.join(''));
+      if (merged !== undefined) out.set(i, merged);
+    });
+    return out;
+  }, [state]);
+  const simplePending = [...simple.keys()].filter((i) => res[i] && !isResolved(state!.blocks[i] as Change, res[i]!));
+
+  const language = useMemo(() => {
     if (!state) return undefined;
     const size = state.blocks.reduce((n, b) => n + (b.type === 'stable' ? b.lines.join('').length : b.ours.join('').length + b.theirs.join('').length), 0);
     return size > HIGHLIGHT_LIMIT ? undefined : languageOf(state.path);
@@ -104,7 +123,15 @@ export function MergeDialog() {
       return next;
     });
 
-  const result = () => state.blocks.map((b, i) => (b.type === 'stable' ? b.lines.join('') : res[i]?.text ?? '')).join('');
+  /** Varita: resuelve los conflictos simples combinando las palabras de los dos lados. */
+  const resolveSimple = () =>
+    setRes((prev) => {
+      const next = { ...prev };
+      for (const i of simplePending) next[i] = { ...next[i]!, text: simple.get(i)!, ours: 'applied', theirs: 'applied' };
+      return next;
+    });
+
+  const result = () => state.blocks.map((b, i) => (b.type === 'stable' ? stableEdits[i] ?? b.lines.join('') : res[i]?.text ?? '')).join('');
   const save = (resolve: boolean) => post({ type: 'merge/save', payload: { content: result(), resolve } });
   const go = (dir: 1 | -1) => {
     if (!unresolved.length) return;
@@ -149,6 +176,16 @@ export function MergeDialog() {
         <button className="link" disabled={!pendingChanges} onClick={() => applyNonConflicting('theirs')}>
           « {t('Right')}
         </button>
+        <span className="mg-sep" />
+        <button
+          className="link"
+          disabled={!simplePending.length}
+          onClick={resolveSimple}
+          title={t('Resolve the conflicts where each side changed different words of the same lines')}
+        >
+          🪄 {t('Resolve simple conflicts')}
+          {simplePending.length ? ` (${simplePending.length})` : ''}
+        </button>
         <span className="spacer" />
         <span className={`small ${pendingConflicts ? 'mg-bad' : 'mg-good'}`}>
           {pendingChanges || pendingConflicts ? t('{0} change(s), {1} conflict(s)', pendingChanges, pendingConflicts) : `✓ ${t('All changes have been processed')}`}
@@ -175,11 +212,29 @@ export function MergeDialog() {
             const startC = nC;
             const startR = nR;
             nL += b.lines.length;
-            nC += b.lines.length;
             nR += b.lines.length;
             if (!collapse) {
-              return <Row key={i} cls="mg-stable" left={b.lines} center={b.lines} right={b.lines} nums={[startL, startC, startR]} />;
+              // Tramo sin cambios: el resultado también se puede editar (como el editor de IntelliJ).
+              const text = stableEdits[i] ?? b.lines.join('');
+              nC += countLines(text);
+              return (
+                <div key={i} className="mg-row mg-stable">
+                  <div className="mg-cell mg-side">
+                    <Nums from={startL} count={b.lines.length} />
+                    <Code text={b.lines.join('')} />
+                  </div>
+                  <div className="mg-cell mg-center">
+                    <Nums from={startC} count={countLines(text)} />
+                    <EditableCode value={text} onChange={(v) => setStableEdits((prev) => ({ ...prev, [i]: v }))} />
+                  </div>
+                  <div className="mg-cell mg-side mg-right">
+                    <Nums from={startR} count={b.lines.length} />
+                    <Code text={b.lines.join('')} />
+                  </div>
+                </div>
+              );
             }
+            nC += b.lines.length;
             const head = b.lines.slice(0, CONTEXT);
             const tail = b.lines.slice(-CONTEXT);
             const hidden = b.lines.length - 2 * CONTEXT;
@@ -206,7 +261,7 @@ export function MergeDialog() {
             <div key={i} id={`blk-${i}`} className={`mg-row mg-${b.kind}${done ? ' mg-done' : ''}${current === i ? ' mg-current' : ''}`}>
               <div className={`mg-cell mg-side${r.ours ? ' mg-handled' : ''}`}>
                 <Nums from={nums[0]} count={b.ours.length} />
-                <Code text={b.ours.join('')} />
+                <MarkedCode text={b.ours.join('')} against={(b.kind === 'conflict' ? b.theirs : b.base).join('')} />
                 {oursHas && !r.ours && (
                   <span className="mg-arrows">
                     <button title={t('Accept this change')} onClick={() => apply(i, 'ours')}>
@@ -220,19 +275,7 @@ export function MergeDialog() {
               </div>
               <div className="mg-cell mg-center">
                 <Nums from={nums[1]} count={countLines(r.text)} />
-                {/* Código coloreado debajo y el textarea transparente encima: se edita con colores. */}
-                <div className="mg-editwrap">
-                  <Code text={r.text} />
-                  <textarea
-                    className="mg-text mg-edit"
-                    value={r.text}
-                    wrap="off"
-                    spellCheck={false}
-                    rows={Math.max(1, countLines(r.text))}
-                    onChange={(e) => update(i, (prev) => ({ ...prev, text: e.target.value, edited: true }))}
-                    aria-label={t('Result')}
-                  />
-                </div>
+                <EditableCode value={r.text} onChange={(v) => update(i, (prev) => ({ ...prev, text: v, edited: true }))} />
               </div>
               <div className={`mg-cell mg-side mg-right${r.theirs ? ' mg-handled' : ''}`}>
                 {theirsHas && !r.theirs && (
@@ -246,7 +289,7 @@ export function MergeDialog() {
                   </span>
                 )}
                 <Nums from={nums[2]} count={b.theirs.length} />
-                <Code text={b.theirs.join('')} />
+                <MarkedCode text={b.theirs.join('')} against={(b.kind === 'conflict' ? b.ours : b.base).join('')} />
               </div>
             </div>
           );
@@ -295,6 +338,38 @@ const Code = memo(function Code(props: { text: string }) {
   const language = useContext(Lang);
   // Un espacio si está vacío, para que la fila conserve su alto.
   return <pre className="mg-text" dangerouslySetInnerHTML={{ __html: props.text ? highlight(props.text, language) : ' ' }} />;
+});
+
+/** Código coloreado con un textarea transparente encima: se edita viendo los colores. */
+function EditableCode(props: { value: string; onChange: (value: string) => void }) {
+  return (
+    <div className="mg-editwrap">
+      <Code text={props.value} />
+      <textarea
+        className="mg-text mg-edit"
+        value={props.value}
+        wrap="off"
+        spellCheck={false}
+        rows={Math.max(1, countLines(props.value))}
+        onChange={(e) => props.onChange(e.target.value)}
+        aria-label={t('Result')}
+      />
+    </div>
+  );
+}
+
+/** Código coloreado y, encima, las palabras que cambian respecto a `against` resaltadas (como IntelliJ). */
+const MarkedCode = memo(function MarkedCode(props: { text: string; against: string }) {
+  const segments = useMemo(() => (props.text && props.against ? changedSegments(props.against, props.text) : undefined), [props.text, props.against]);
+  if (!segments?.some((s) => s.changed)) return <Code text={props.text} />;
+  return (
+    <div className="mg-marked">
+      <Code text={props.text} />
+      <pre className="mg-text mg-marks" aria-hidden="true">
+        {segments.map((s, k) => (s.changed ? <span key={k} className="mg-word">{s.text}</span> : s.text))}
+      </pre>
+    </div>
+  );
 });
 
 function Row(props: { cls: string; left: string[]; center: string[]; right: string[]; nums: [number, number, number] }) {

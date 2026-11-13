@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.15.0
+
+- **Ventana de merge más completa, como IntelliJ**:
+  - **Se resalta la palabra que cambia** dentro de cada línea (respecto al otro lado en los conflictos,
+    o a la base en los cambios de un solo lado).
+  - **El Resultado se edita entero**, también en los tramos sin cambios (los plegados, al desplegarlos).
+  - **Varita "Resolver conflictos simples"**: resuelve sola los conflictos en los que cada lado cambió
+    palabras distintas de las mismas líneas (p. ej. uno renombra una variable y el otro cambia el valor).
+    Los bloques reescritos por un lado se dejan para resolver a mano.
+- **Opciones de merge** al hacer *Merge*: `--no-ff`, `--ff-only`, `--squash`, `--no-commit` y mensaje
+  propio (Enter sin marcar nada = merge normal; se recuerdan durante la sesión).
+
 ## 0.14.0
 
 - **Merge, pull, update y rebase siguen tras un conflicto**: si un repo queda con conflictos, se

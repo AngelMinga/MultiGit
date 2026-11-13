@@ -1746,3 +1746,28 @@ body.vscode-light .merge .hljs-property,
 body.vscode-light .merge .hljs-params {
   color: #001080;
 }
+
+/* Palabras que cambian dentro de la línea (capa transparente encima del código) */
+.mg-marked {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+.mg-marks {
+  position: absolute;
+  inset: 0;
+  color: transparent;
+  background: transparent !important;
+  pointer-events: none;
+}
+.mg-word {
+  background: rgba(120, 170, 255, 0.35);
+  border-radius: 2px;
+}
+.mg-conflict:not(.mg-done) .mg-word {
+  background: rgba(255, 120, 120, 0.4);
+}
+body.vscode-light .mg-word {
+  background: rgba(40, 100, 220, 0.25);
+}

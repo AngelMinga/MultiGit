@@ -394,8 +394,9 @@ export class GitService {
     return this.exec(['push', remote, '--delete', name], { timeoutMs: NETWORK_TIMEOUT_MS });
   }
 
-  merge(ref: string): Promise<string> {
-    return this.exec(['merge', '--no-edit', ref]);
+  /** `git merge --no-edit [opciones] [-m mensaje] <ref>` (opciones: --no-ff, --ff-only, --squash, --no-commit). */
+  merge(ref: string, options: readonly string[] = [], message?: string): Promise<string> {
+    return this.exec(['merge', '--no-edit', ...options, ...(message ? ['-m', message] : []), ref]);
   }
 
   /** `git rebase <onto>` (rama actual) o `git rebase <onto> <branch>` (checkout + rebase). */
