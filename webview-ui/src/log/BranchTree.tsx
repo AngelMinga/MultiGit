@@ -25,6 +25,8 @@ export interface BranchTarget {
   kind: 'local' | 'remote' | 'tag';
   /** Es la rama actual (en su repo o en alguno). */
   current: boolean;
+  /** Menú de "HEAD (rama actual)": `branch` es la rama común, o `HEAD` si los repos están en ramas distintas. */
+  head?: boolean;
 }
 
 export interface BranchSelection {
@@ -131,7 +133,13 @@ export function BranchTree(props: {
     });
 
   return (
-    <div className="branch-tree">
+    <div
+      className="branch-tree"
+      onContextMenu={(e) => {
+        // Sin el menú Cut/Copy/Paste del navegador en el árbol (sí en el buscador).
+        if ((e.target as HTMLElement).tagName !== 'INPUT') e.preventDefault();
+      }}
+    >
       <div className="pane-toolbar">
         <span className="pane-title">{t('Branches')}</span>
         <button className={`icon-btn${menuOpen ? ' on' : ''}`} title={t('Options')} onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}>
@@ -173,6 +181,14 @@ export function BranchTree(props: {
           className={`tree-row${props.selected.branch === 'HEAD' ? ' selected' : ''}`}
           style={{ paddingLeft: 6 }}
           onClick={() => select({ branch: 'HEAD', repoIds: [] })}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            if (!props.onContextMenu) return;
+            e.stopPropagation();
+            const currents = [...new Set(props.repos.map((r) => r.current))];
+            const common = currents.length === 1 && currents[0] ? currents[0] : null;
+            props.onContextMenu({ branch: common ?? 'HEAD', repoIds: [], kind: 'local', current: true, head: true }, e.clientX, e.clientY);
+          }}
         >
           <span className="twisty" />
           <span className="branch-icon current">◆</span>

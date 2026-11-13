@@ -462,6 +462,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
 
   /** Menú contextual de una rama (o tag) del árbol: las mismas acciones que la vista Ramas. */
   private async runBranchAction(action: LogBranchAction, branch: string, repoIds: string[]): Promise<void> {
+    if (branch === 'HEAD') return this.runHeadAction(action);
     const isTag = branch.startsWith('refs/tags/');
     const branchesOf = (r: Repo) => this.branches.get(r);
     const exists = (r: Repo) => {
@@ -512,6 +513,31 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         return undefined;
       case 'navigate':
         return this.navigateTo(branch, repoIds);
+    }
+  }
+
+  /** Menú de "HEAD (rama actual)" con los repos en ramas distintas: cada acción usa la rama actual de cada repo. */
+  private async runHeadAction(action: LogBranchAction): Promise<void> {
+    const repos = this.manager.all;
+    const scope = { repos, label: t('{0} repositories', repos.length) };
+    const head: BranchRef = { type: 'local', name: 'HEAD' };
+    const a = this.branchActions;
+    switch (action) {
+      case 'newBranch':
+        return a.newBranch(scope);
+      case 'diffWorkingTree':
+        return a.diffWithWorkingTree(scope, head);
+      case 'update':
+        return a.updateProject(scope);
+      case 'push':
+        return a.push(scope);
+      case 'pullRequests':
+        await vscode.commands.executeCommand('multigit.createPullRequests.forRepos', repos);
+        return;
+      case 'navigate':
+        return this.navigateTo('HEAD', []);
+      default:
+        return undefined;
     }
   }
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.6
+
+- Git Log: clic derecho en **HEAD (rama actual)** abre su menú, como IntelliJ: New Branch from
+  Current…, Show Diff with Working Tree, Update, Push…, Create Pull Requests…, Rename… y Navigate. Si los
+  repos están en ramas distintas, cada acción usa la rama actual de cada repo. En el árbol de ramas ya
+  no sale el menú Cut/Copy/Paste del navegador (salvo en el buscador).
+
 ## 0.9.5
 
 - Menús ⋯ de Ramas y Changes: las opciones activas se ven con **✓** en el propio texto (On Single

@@ -41,7 +41,8 @@ type BranchMenuItem = { action: LogBranchAction; label: string; when?: (b: Branc
 /** El mismo menú que la vista Ramas (con "rama actual" se ocultan las que no aplican). */
 const BRANCH_MENU: BranchMenuItem[] = [
   { action: 'checkout', label: 'Checkout', when: (b) => !b.current },
-  { action: 'newBranch', label: 'New Branch from Selected…' },
+  { action: 'newBranch', label: 'New Branch from Selected…', when: (b) => !b.head },
+  { action: 'newBranch', label: 'New Branch from Current…', when: (b) => !!b.head },
   { action: 'checkoutAndRebase', label: 'Checkout and Rebase onto Current', when: (b) => b.kind === 'local' && !b.current },
   'sep',
   { action: 'compare', label: 'Compare with Current', when: (b) => !b.current },
@@ -51,13 +52,13 @@ const BRANCH_MENU: BranchMenuItem[] = [
   { action: 'rebaseOnto', label: 'Rebase Current onto Selected', when: (b) => !b.current },
   { action: 'merge', label: 'Merge Selected into Current', when: (b) => !b.current },
   'sep',
-  { action: 'newWorktree', label: 'New Worktree from Selected…', when: (b) => b.kind !== 'tag' },
+  { action: 'newWorktree', label: 'New Worktree from Selected…', when: (b) => b.kind !== 'tag' && !b.current },
   'sep',
   { action: 'update', label: 'Update', when: (b) => b.kind === 'local' },
   { action: 'push', label: 'Push…', when: (b) => b.kind === 'local' },
   { action: 'pullRequests', label: 'Create Pull Requests…', when: (b) => b.kind === 'local' },
   'sep',
-  { action: 'rename', label: 'Rename Branch…', when: (b) => b.kind === 'local' },
+  { action: 'rename', label: 'Rename Branch…', when: (b) => b.kind === 'local' && b.branch !== 'HEAD' },
   { action: 'delete', label: 'Delete', when: (b) => b.kind !== 'tag' && !b.current },
   'sep',
   { action: 'navigate', label: 'Navigate Log to Branch Head' },
@@ -462,13 +463,19 @@ export function LogApp() {
           role="menu"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="menu-title muted small">{branchMenu.target.branch.replace(/^refs\/tags\//, '')}</div>
+          <div className="menu-title muted small">
+            {branchMenu.target.head
+              ? branchMenu.target.branch === 'HEAD'
+                ? t('HEAD (current branch)')
+                : `HEAD → ${branchMenu.target.branch}`
+              : branchMenu.target.branch.replace(/^refs\/tags\//, '')}
+          </div>
           {branchMenuFor(branchMenu.target).map((item, i) =>
             item === 'sep' ? (
               <div key={`sep${i}`} className="menu-sep" />
             ) : (
               <button
-                key={item.action}
+                key={`${item.action}:${item.label}`}
                 role="menuitem"
                 onClick={() => {
                   setBranchMenu(null);
