@@ -59,6 +59,9 @@ Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
   pull, fetch, Git Log… El grupo se ve en la barra de estado y en el título de Repositorios. Se crean
   con *Nuevo grupo…* (o en `multigit.repoGroups`) y se borran con el ícono de papelera.
 - **Ramas**: árbol Local / Remote agrupado por repositorio o por rama (`3/9` repos donde existe).
+- **Comparar** (*Compare Files with Current* en una rama, en la vista Ramas o en el popup): los
+  archivos distintos entre esa rama y la actual, por repo, con su estado; clic → diff. Los repos sin
+  diferencias se listan juntos. Se cierra con ✕.
 - **Stashes**: los stashes de todos los repos. Un stash creado a la vez en varios repos (mismo
   mensaje) aparece una sola vez, con un hijo por repo. **Stash Changes…** (`+`, también en el menú ⋯
   de Changes) guarda los cambios de los repos elegidos con un mismo mensaje, con o sin archivos sin

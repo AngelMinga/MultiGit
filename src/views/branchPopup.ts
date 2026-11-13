@@ -236,6 +236,9 @@ export class BranchPopup {
       add(!isCurrentEverywhere, `$(git-pull-request) Checkout and Rebase onto '${cur}'`, () => a.checkoutAndRebase(scope, ref));
     }
     add(!isCurrentEverywhere, `$(git-compare) Compare with '${cur}'`, () => a.compare(scope, ref));
+    add(!isCurrentEverywhere, `$(files) Compare Files with '${cur}'`, async () =>
+      vscode.commands.executeCommand('multigit.compareFiles.show', scope.repos, ref.type === 'local' ? ref.name : ref.full),
+    );
     add(true, '$(diff) Show Diff with Working Tree', () => a.diffWithWorkingTree(scope, ref));
     add(true, '$(history) Show in Git Log', async () => {
       const ids = scope.repos.length === this.manager.all.length ? [] : scope.repos.map((r) => r.root);

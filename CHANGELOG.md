@@ -2,6 +2,8 @@
 
 ## 0.8.0
 
+- **Comparar ramas por archivos**: *Compare Files with Current* abre la vista *Comparar* con los
+  archivos distintos entre otra rama y la actual, por repo; clic → diff.
 - **Grupos de repos**: con un grupo activo (botón de filtro en Repositorios), todas las vistas y
   operaciones trabajan solo con sus repos. Se definen en `multigit.repoGroups` o con *Nuevo grupo…*.
 - **Comprobaciones antes del commit**: problemas de VS Code, `TODO`/`FIXME` nuevos, marcas de

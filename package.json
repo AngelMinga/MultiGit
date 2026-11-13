@@ -90,6 +90,12 @@
           "name": "%view.stashes%",
           "icon": "$(git-stash)",
           "visibility": "collapsed"
+        },
+        {
+          "id": "multigit.compareFiles",
+          "name": "%view.compareFiles%",
+          "icon": "$(git-compare)",
+          "when": "multigit.compareActive"
         }
       ],
       "multigit-panel": [
@@ -665,6 +671,35 @@
         "title": "%command.newRepoGroup%",
         "category": "MultiGit",
         "icon": "$(add)"
+      },
+      {
+        "command": "multigit.branch.compareFiles",
+        "title": "%command.branch.compareFiles%",
+        "category": "MultiGit",
+        "icon": "$(files)"
+      },
+      {
+        "command": "multigit.compareFiles.show",
+        "title": "%command.compareFiles.show%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.compareFiles.openDiff",
+        "title": "%command.compareFiles.openDiff%",
+        "category": "MultiGit",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "multigit.compareFiles.refresh",
+        "title": "%command.compareFiles.refresh%",
+        "category": "MultiGit",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "multigit.compareFiles.close",
+        "title": "%command.compareFiles.close%",
+        "category": "MultiGit",
+        "icon": "$(close)"
       }
     ],
     "menus": {
@@ -828,6 +863,16 @@
           "command": "multigit.selectRepoGroupActive",
           "when": "view == multigit.repositories && multigit.repoGroupActive",
           "group": "navigation@5"
+        },
+        {
+          "command": "multigit.compareFiles.refresh",
+          "when": "view == multigit.compareFiles",
+          "group": "navigation@1"
+        },
+        {
+          "command": "multigit.compareFiles.close",
+          "when": "view == multigit.compareFiles",
+          "group": "navigation@9"
         }
       ],
       "view/item/context": [
@@ -1085,6 +1130,16 @@
           "command": "multigit.changes.selectHunks",
           "when": "view == multigit.changes && viewItem == multigit.changes.file.tracked",
           "group": "1_commit@3"
+        },
+        {
+          "command": "multigit.branch.compareFiles",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\.(local|remote)$/",
+          "group": "2_compare@2"
+        },
+        {
+          "command": "multigit.compareFiles.openDiff",
+          "when": "view == multigit.compareFiles && viewItem == multigit.compare.file",
+          "group": "inline@1"
         }
       ],
       "commandPalette": [
@@ -1358,6 +1413,26 @@
         },
         {
           "command": "multigit.selectRepoGroupActive",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branch.compareFiles",
+          "when": "false"
+        },
+        {
+          "command": "multigit.compareFiles.show",
+          "when": "false"
+        },
+        {
+          "command": "multigit.compareFiles.openDiff",
+          "when": "false"
+        },
+        {
+          "command": "multigit.compareFiles.refresh",
+          "when": "false"
+        },
+        {
+          "command": "multigit.compareFiles.close",
           "when": "false"
         }
       ],

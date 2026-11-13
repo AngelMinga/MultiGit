@@ -487,6 +487,11 @@ export class GitService {
     if (paths.length) await this.exec(['add', '--', ...paths]);
   }
 
+  /** Archivos distintos entre dos revisiones (`git diff --name-status a b`). */
+  async diffRefs(a: string, b: string): Promise<ChangedFile[]> {
+    return parseNameStatusZ(await this.exec(['diff', '--name-status', '-z', '-M', '--end-of-options', a, b, '--']));
+  }
+
   /** Diff de un archivo contra HEAD sin contexto (para elegir líneas del commit parcial). */
   diffForPartial(filePath: string): Promise<string> {
     return this.exec(['diff', '-U0', '--no-color', '--no-ext-diff', '--no-textconv', 'HEAD', '--', filePath]);

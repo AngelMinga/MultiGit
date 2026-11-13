@@ -1,6 +1,6 @@
 // Vista Ramas: acciones por rama (menú contextual), opciones del menú ⋯ y enlaces con el Git Log.
 import * as vscode from 'vscode';
-import type { BranchRef, Scope } from '../views/branchActions';
+import { refName, type BranchRef, type Scope } from '../views/branchActions';
 import { BranchesTree, type BranchNode } from '../views/BranchesTree';
 import type { LogView } from '../webview/LogView';
 import type { Core } from './core';
@@ -52,6 +52,7 @@ export function registerBranches(core: Core, logView: LogView): { tree: Branches
         ['newBranchFrom', (sc, ref) => actions.newBranch(sc, ref)],
         ['checkoutAndRebase', (sc, ref) => (ref.type === 'local' ? actions.checkoutAndRebase(sc, ref) : undefined)],
         ['compare', (sc, ref) => actions.compare(sc, ref)],
+        ['compareFiles', (sc, ref) => vscode.commands.executeCommand('multigit.compareFiles.show', sc.repos, refName(ref))],
         ['diffWorkingTree', (sc, ref) => actions.diffWithWorkingTree(sc, ref)],
         ['rebaseOnto', (sc, ref) => actions.rebaseOnto(sc, ref)],
         ['merge', (sc, ref) => actions.merge(sc, ref)],

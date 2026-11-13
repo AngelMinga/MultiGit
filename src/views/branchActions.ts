@@ -297,9 +297,9 @@ export class BranchActions {
       }
       lines.push(`## ${s.repo.name}`, '');
       lines.push(t('### In \'{0}\' but not in \'{1}\' ({2})', other, s.cur, s.incoming.length), '');
-      lines.push(...(s.incoming.length ? s.incoming.map((l) => `- ${l}`) : ['_ninguno_']), '');
+      lines.push(...(s.incoming.length ? s.incoming.map((l) => `- ${l}`) : [t('_none_')]), '');
       lines.push(t('### In \'{0}\' but not in \'{1}\' ({2})', s.cur, other, s.outgoing.length), '');
-      lines.push(...(s.outgoing.length ? s.outgoing.map((l) => `- ${l}`) : ['_ninguno_']), '');
+      lines.push(...(s.outgoing.length ? s.outgoing.map((l) => `- ${l}`) : [t('_none_')]), '');
     }
     if (same.length) lines.push(t('## No differences'), '', same.join(', '), '');
     await this.compareView.show(`compare ${other} vs ${label}`, lines.join('\n'));

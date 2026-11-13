@@ -218,6 +218,34 @@ describe('Grupos de repos', () => {
   });
 });
 
+describe('Comparar ramas por archivos', () => {
+  it('lista los archivos distintos por repo y abre su diff', async () => {
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    const repo = api.manager.all.find((r) => r.name === 'shell')!;
+    const env = { ...process.env, GIT_AUTHOR_NAME: 'E2E', GIT_AUTHOR_EMAIL: 'e2e@example.com', GIT_COMMITTER_NAME: 'E2E', GIT_COMMITTER_EMAIL: 'e2e@example.com' };
+    writeFileSync(path.join(repo.root, 'cmp.js'), 'export const cmp = 1;\n');
+    execFileSync('git', ['add', 'cmp.js'], { cwd: repo.root, env });
+    execFileSync('git', ['commit', '-q', '-m', 'feat: cmp'], { cwd: repo.root, env });
+    await api.manager.refresh();
+
+    await vscode.commands.executeCommand('multigit.compareFiles.show', api.manager.all, 'develop');
+    const items = await walk(api.compareFiles);
+    const shell = items.find((i) => label(i.item) === 'shell');
+    assert.ok(shell, items.map((i) => label(i.item)).join(', '));
+    const files = items.filter((i) => i.item.contextValue === 'multigit.compare.file');
+    assert.deepEqual(files.map((f) => `${label(f.item)} ${String(f.item.description)}`), ['cmp.js A']);
+    assert.ok(items.some((i) => /mflogin/.test(label(i.item)) && /mftheme/.test(label(i.item))), 'sin diferencias: mflogin y mftheme');
+
+    await vscode.commands.executeCommand('multigit.compareFiles.openDiff', files[0]!.node);
+    const tab = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+    assert.ok(tab instanceof vscode.TabInputTextDiff);
+    assert.equal((await vscode.workspace.openTextDocument(tab.modified)).getText(), 'export const cmp = 1;\n');
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+    await vscode.commands.executeCommand('multigit.compareFiles.close');
+    assert.equal((await walk(api.compareFiles)).length, 0);
+  });
+});
+
 describe('package.json', () => {
   it('ningún submenú aparece dos veces en el mismo menú (VS Code descarta el segundo)', () => {
     const menus = vscode.extensions.getExtension('angelminga.multigit')!.packageJSON.contributes.menus as Record<

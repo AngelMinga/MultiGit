@@ -8,6 +8,8 @@ import { registerLog } from './activation/log';
 import { registerOperations } from './activation/operations';
 import { registerRepositories } from './activation/repositories';
 import { registerStashes } from './activation/stashes';
+import { registerCompare } from './activation/compare';
+import type { CompareFilesTree } from './views/CompareFilesTree';
 import { registerToolbar, revealNewViewsOnce } from './activation/toolbar';
 import { RepoManager, type Repo } from './git/RepoManager';
 import { BranchActions } from './views/branchActions';
@@ -32,6 +34,7 @@ export interface MultiGitTestApi {
   changes: ChangesTree;
   changesActions: ChangesActions;
   stashes: StashesTree;
+  compareFiles: CompareFilesTree;
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<MultiGitTestApi> {
@@ -64,6 +67,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
   const branches = registerBranches(core, logView);
   const changes = registerChanges(core, logView);
   const stashes = registerStashes(core);
+  const compareFiles = registerCompare(core);
   registerFileActions(core, logView, changes);
   registerOperations(core, repositories.treeView);
   registerToolbar(core);
@@ -76,7 +80,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
     log.error('Error al inicializar MultiGit', error);
     void vscode.window.showErrorMessage(t('MultiGit: the repositories could not be loaded. {0}', String(error)));
   }
-  return { manager, repositories: repositories.view, branches: branches.tree, changes: changes.tree, changesActions: changes.actions, stashes: stashes.tree };
+  return { manager, repositories: repositories.view, branches: branches.tree, changes: changes.tree, changesActions: changes.actions, stashes: stashes.tree, compareFiles };
 }
 
 export function deactivate(): void {
