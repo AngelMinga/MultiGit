@@ -30,6 +30,8 @@ export class ConflictsPanel implements vscode.Disposable {
   private busy = false;
   private state: ConflictsState = { repos: [], busy: false };
   private loading: Promise<void> | undefined;
+  /** Archivos vistos en conflicto (repo → ruta → bloques que tenía), para listarlos como resueltos. */
+  private readonly seen = new Map<string, Map<string, number>>();
 
   /** Abre el diálogo con los conflictos de todos los repos (el repo indicado, primero). */
   static async open(first?: Repo): Promise<void> {
@@ -80,7 +82,10 @@ export class ConflictsPanel implements vscode.Disposable {
     const changes = await repo.git.getChanges().catch(() => []);
     const conflicted = changes.filter((f) => f.kind === 'conflict');
     const op = await repo.git.getOperationInProgress().catch(() => null);
-    if (!conflicted.length && !op) return undefined;
+    if (!conflicted.length && !op) {
+      this.seen.delete(repo.root);
+      return undefined;
+    }
     const labels = await repo.git.conflictLabels();
     const files = await Promise.all(
       conflicted.map(async (f) => {
@@ -98,10 +103,17 @@ export class ConflictsPanel implements vscode.Disposable {
             : labels.operation === 'revert'
               ? t('Reverting {0} on {1}', labels.incoming, labels.current)
               : t('Applying stashed changes on {0}', labels.current);
+    // Los que estaban en conflicto y ya no: "Resolved" (con cuántos bloques tenían).
+    const seen = this.seen.get(repo.root) ?? new Map<string, number>();
+    for (const f of files) seen.set(f.path, Math.max(seen.get(f.path) ?? 0, f.blocks));
+    this.seen.set(repo.root, seen);
+    const open = new Set(files.map((f) => f.path));
+    const resolved = [...seen].filter(([p]) => !open.has(p)).map(([p, blocks]) => ({ path: p, blocks }));
     return {
       id: repo.root,
       name: repo.name,
       colorIndex: repo.colorIndex,
+      resolved: resolved.sort((a, b) => a.path.localeCompare(b.path)),
       title,
       yours: labels.operation === 'stash' ? t('Updated upstream') : labels.current,
       theirs: labels.operation === 'stash' ? t('Stashed changes') : labels.incoming,

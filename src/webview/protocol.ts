@@ -106,6 +106,8 @@ export interface ConflictRepoView {
   /** Hay un merge/rebase/cherry-pick/revert a medias (Finish lo continúa). */
   operation: string | null;
   files: ConflictFileView[];
+  /** Archivos que estaban en conflicto y ya se resolvieron (como "Resolved" de IntelliJ); `blocks` = los que tenía. */
+  resolved: Array<{ path: string; blocks: number }>;
 }
 
 export interface ConflictsState {

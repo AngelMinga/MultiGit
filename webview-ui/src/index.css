@@ -1461,3 +1461,21 @@ button.claude-btn.running {
 .cf-row.selected .cf-accept {
   visibility: visible;
 }
+
+.cf-done {
+  color: var(--vscode-testing-iconPassed, var(--vscode-charts-green));
+}
+.cf-unresolved {
+  color: var(--vscode-errorForeground);
+  font-weight: 700;
+}
+.cf-group-done {
+  cursor: default;
+}
+.cf-row-done .cf-name {
+  opacity: 0.85;
+}
+.cf-blocks-done {
+  background: var(--vscode-testing-iconPassed, var(--vscode-charts-green));
+  color: var(--vscode-editor-background);
+}

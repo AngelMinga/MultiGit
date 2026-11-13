@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.3
+
+- Ventana Conflicts como IntelliJ al terminar: los archivos resueltos quedan en una sección
+  **Resueltos** con ✓ y cuántos bloques tenían (`17/17`), arriba aparece **"Todos los conflictos están
+  resueltos"** y el botón principal pasa a **Aceptar y terminar** (continúa el merge o rebase).
+
 ## 0.10.2
 
 - **Botones del merge editor como IntelliJ** (barra superior, solo en el merge editor): conflicto

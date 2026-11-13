@@ -54,7 +54,11 @@ export function ConflictsDialog() {
     <div className="conflicts">
       <div className="pane-toolbar cf-toolbar">
         <strong>{t('Conflicts')}</strong>
-        <span className="muted small">{unresolved ? t('{0} unresolved file(s)', unresolved) : t('No unresolved files')}</span>
+        {unresolved ? (
+          <span className="muted small">{t('{0} unresolved file(s)', unresolved)}</span>
+        ) : (
+          <span className="cf-done small">✓ {t('All conflicts have been resolved')}</span>
+        )}
         <span className="spacer" />
         <button className="secondary" disabled={busy || !selectedRefs.length} onClick={() => accept('ours')} title={t('Keep your version of the selected files')}>
           {t('Accept Yours')}
@@ -92,11 +96,18 @@ export function ConflictsDialog() {
         <button className="secondary" onClick={() => post({ type: 'conflicts/close', payload: {} })}>
           {t('Close')}
         </button>
-        <button className="secondary" disabled={!canFinish} onClick={() => post({ type: 'conflicts/finish', payload: {} })} title={t('Continue the merge/rebase in the repositories without conflicts')}>
-          {t('Finish')}
-        </button>
-        <button className="primary" disabled={busy || !single} onClick={() => single && open(single.repo.id, single.file.path)}>
-          {t('Resolve Manually')}
+        {unresolved > 0 && (
+          <button className="primary" disabled={busy || !single} onClick={() => single && open(single.repo.id, single.file.path)}>
+            {t('Resolve Manually')}
+          </button>
+        )}
+        <button
+          className={unresolved === 0 ? 'primary' : 'secondary'}
+          disabled={!canFinish}
+          onClick={() => post({ type: 'conflicts/finish', payload: {} })}
+          title={t('Continue the merge/rebase in the repositories without conflicts')}
+        >
+          {t('Accept and Finish')}
         </button>
       </footer>
     </div>
@@ -130,12 +141,14 @@ function RepoTable(props: {
           </tr>
         </thead>
         <tbody>
-          <tr className="cf-group" onClick={props.onToggle}>
-            <td colSpan={3}>
-              <span className="twisty">{props.open ? '▾' : '▸'}</span> <strong>{repo.files.length ? t('Unresolved') : t('All resolved')}</strong>{' '}
-              <span className="muted small">{repo.files.length ? t('{0} file(s)', repo.files.length) : repo.operation ? t('Finish to continue the {0}', repo.operation) : ''}</span>
-            </td>
-          </tr>
+          {repo.files.length > 0 && (
+            <tr className="cf-group" onClick={props.onToggle}>
+              <td colSpan={3}>
+                <span className="twisty">{props.open ? '▾' : '▸'}</span> <span className="cf-unresolved">−</span> <strong>{t('Unresolved')}</strong>{' '}
+                <span className="muted small">{t('{0} file(s)', repo.files.length)}</span>
+              </td>
+            </tr>
+          )}
           {props.open &&
             repo.files.map((f) => {
               const k = key(repo.id, f.path);
@@ -171,6 +184,28 @@ function RepoTable(props: {
                 </tr>
               );
             })}
+          {repo.resolved.length > 0 && (
+            <tr className="cf-group cf-group-done">
+              <td colSpan={3}>
+                <span className="cf-done">✓</span> <strong>{t('Resolved files')}</strong> <span className="muted small">{t('{0} file(s)', repo.resolved.length)}</span>
+                {repo.files.length === 0 && repo.operation && <span className="muted small"> · {t('Accept and Finish to continue the {0}', repo.operation)}</span>}
+              </td>
+            </tr>
+          )}
+          {repo.resolved.map((f) => {
+            const slash = f.path.lastIndexOf('/');
+            return (
+              <tr key={`ok:${f.path}`} className="cf-row cf-row-done" onDoubleClick={() => props.onOpen(repo.id, f.path)} title={f.path}>
+                <td className="cf-file">
+                  <span className="cf-name">{f.path.slice(slash + 1)}</span>
+                  {f.blocks > 0 && <span className="cf-blocks cf-blocks-done small">{`${f.blocks}/${f.blocks}`}</span>}
+                  <span className="muted small">{slash > 0 ? f.path.slice(0, slash) : ''}</span>
+                </td>
+                <td className="cf-side muted">{t('Resolved')}</td>
+                <td className="cf-side muted">{t('Resolved')}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </section>
