@@ -106,7 +106,8 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
 
 - Commits de todos los repos mezclados por fecha, con la franja de color del repo, **grafo de
   ramas** (las aristas largas se cortan con flechas, como IntelliJ), etiquetas, autor y fecha.
-- Ramas a la izquierda (HEAD / Local / Remote, con buscador); clic → filtra el log.
+- Ramas a la izquierda (HEAD / Local / Remote, con buscador); clic → filtra el log; clic derecho → el
+  mismo menú que la vista Ramas.
 - Filtros: texto o hash (regex y mayúsculas), Branch, User (botón **Yo**), Date, Paths y Repo.
 - Detalle del commit con sus archivos (doble clic → diff).
 - Clic derecho: Copy hash, Checkout revision, Cherry-pick, Revert, Reset current branch to here,

@@ -18,6 +18,15 @@ interface TreeOptions {
 
 const DEFAULT_OPTIONS: TreeOptions = { clickMode: 'filter', byRepo: true, byDir: false, showTags: true };
 
+/** Rama (o tag) sobre la que se abrió el menú contextual. */
+export interface BranchTarget {
+  branch: string;
+  repoIds: string[];
+  kind: 'local' | 'remote' | 'tag';
+  /** Es la rama actual (en su repo o en alguno). */
+  current: boolean;
+}
+
 export interface BranchSelection {
   branch: string | null;
   repoIds: string[];
@@ -35,6 +44,7 @@ interface Node {
   favorite?: boolean;
   /** "3/9" en el modo sin repos. */
   count?: string;
+  kind?: 'local' | 'remote' | 'tag';
   /** Commits por subir (↑) / bajar (↓) respecto al upstream. */
   ahead?: number;
   behind?: number;
@@ -45,6 +55,7 @@ export function BranchTree(props: {
   favorites: string[];
   selected: BranchSelection;
   onSelect: (selection: BranchSelection, mode: ClickMode) => void;
+  onContextMenu?: (target: BranchTarget, x: number, y: number) => void;
 }) {
   const [options, setOptions] = useState<TreeOptions>(() => ({ ...DEFAULT_OPTIONS, ...getState('branchTree', {}) }));
   const [menuOpen, setMenuOpen] = useState(false);
@@ -93,6 +104,12 @@ export function BranchTree(props: {
           onClick={() =>
             n.children ? toggle(n.key) : select({ branch: n.branch ?? null, repoIds: n.repoIds ?? [] })
           }
+          onContextMenu={(e) => {
+            e.preventDefault();
+            if (n.branch === undefined || !props.onContextMenu) return;
+            e.stopPropagation();
+            props.onContextMenu({ branch: n.branch, repoIds: n.repoIds ?? [], kind: n.kind ?? 'local', current: !!n.current }, e.clientX, e.clientY);
+          }}
           title={n.branch ?? n.label}
         >
           <span className="twisty">{n.children ? (open ? '▾' : '▸') : ''}</span>
@@ -255,8 +272,10 @@ function leaves(prefix: string, items: LeafInput[], favorites: string[], byDir: 
   // Rama actual primero, luego favoritas en su orden y luego alfabético.
   const rank = (i: LeafInput) => (i.current ? -1 : favIndex(i) >= 0 ? favIndex(i) : 1000);
   const sorted = [...items].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+  const section = prefix.split('/')[0];
   const leaf = (i: LeafInput, label: string): Node => ({
     key: `${prefix}/${i.name}`,
+    kind: section === 'tags' ? 'tag' : section === 'remote' ? 'remote' : 'local',
     label,
     branch: i.name,
     repoIds: i.repoIds,

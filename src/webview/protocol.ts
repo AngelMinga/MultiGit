@@ -174,6 +174,24 @@ export interface LogDetails {
   files: PushFile[];
 }
 
+/** Acciones del menú contextual de una rama en el árbol del Git Log (las mismas que la vista Ramas). */
+export type LogBranchAction =
+  | 'checkout'
+  | 'newBranch'
+  | 'checkoutAndRebase'
+  | 'compare'
+  | 'compareFiles'
+  | 'diffWorkingTree'
+  | 'rebaseOnto'
+  | 'merge'
+  | 'newWorktree'
+  | 'update'
+  | 'push'
+  | 'pullRequests'
+  | 'rename'
+  | 'delete'
+  | 'navigate';
+
 export type LogAction = 'copyHash' | 'checkout' | 'cherryPick' | 'revert' | 'reset' | 'newBranch' | 'newTag' | 'interactiveRebase';
 
 // ------------------------------------------------------------------ Toolbar (Proyecto)
@@ -250,6 +268,7 @@ export type WebviewMessage =
   | { type: 'log/select'; payload: { repoId: string; hash: string } }
   | { type: 'log/openDiff'; payload: { repoId: string; hash: string; file: PushFile } }
   | { type: 'log/action'; payload: { action: LogAction; repoId: string; hash: string } }
+  | { type: 'log/branchAction'; payload: { action: LogBranchAction; branch: string; repoIds: string[] } }
   | { type: 'log/refresh'; payload: Record<string, never> }
   | { type: 'log/resolveRef'; payload: { ref: string; repoIds: string[] } }
   | { type: 'toolbar/action'; payload: { action: ToolbarAction } };

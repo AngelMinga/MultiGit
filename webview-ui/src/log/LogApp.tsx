@@ -1,9 +1,9 @@
 // Panel Git Log: filtros arriba, ramas a la izquierda, commits al centro y detalle a la derecha.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { LogAction, LogDetails, LogFilters, LogRepoInfo, LogRow } from '../../../src/webview/protocol';
+import type { LogBranchAction, LogAction, LogDetails, LogFilters, LogRepoInfo, LogRow } from '../../../src/webview/protocol';
 import { fullDate, isoDaysAgo } from '../format';
 import { onHostMessage, post } from '../vscode';
-import { BranchTree } from './BranchTree';
+import { BranchTree, type BranchTarget } from './BranchTree';
 import { CommitList, key } from './CommitList';
 import { t } from '../i18n';
 
@@ -35,6 +35,39 @@ const MENU: Array<{ action: LogAction; label: string } | 'sep'> = [
   { action: 'newTag', label: 'New tag…' },
 ];
 
+type BranchMenuItem = { action: LogBranchAction; label: string; when?: (b: BranchTarget) => boolean } | 'sep';
+
+/** El mismo menú que la vista Ramas (con "rama actual" se ocultan las que no aplican). */
+const BRANCH_MENU: BranchMenuItem[] = [
+  { action: 'checkout', label: 'Checkout', when: (b) => !b.current },
+  { action: 'newBranch', label: 'New Branch from Selected…' },
+  { action: 'checkoutAndRebase', label: 'Checkout and Rebase onto Current', when: (b) => b.kind === 'local' && !b.current },
+  'sep',
+  { action: 'compare', label: 'Compare with Current', when: (b) => !b.current },
+  { action: 'compareFiles', label: 'Compare Files with Current', when: (b) => !b.current },
+  { action: 'diffWorkingTree', label: 'Show Diff with Working Tree' },
+  'sep',
+  { action: 'rebaseOnto', label: 'Rebase Current onto Selected', when: (b) => !b.current },
+  { action: 'merge', label: 'Merge Selected into Current', when: (b) => !b.current },
+  'sep',
+  { action: 'newWorktree', label: 'New Worktree from Selected…', when: (b) => b.kind !== 'tag' },
+  'sep',
+  { action: 'update', label: 'Update', when: (b) => b.kind === 'local' },
+  { action: 'push', label: 'Push…', when: (b) => b.kind === 'local' },
+  { action: 'pullRequests', label: 'Create Pull Requests…', when: (b) => b.kind === 'local' },
+  'sep',
+  { action: 'rename', label: 'Rename Branch…', when: (b) => b.kind === 'local' },
+  { action: 'delete', label: 'Delete', when: (b) => b.kind !== 'tag' && !b.current },
+  'sep',
+  { action: 'navigate', label: 'Navigate Log to Branch Head' },
+];
+
+/** Ítems visibles, sin separadores repetidos ni en los extremos. */
+function branchMenuFor(target: BranchTarget): BranchMenuItem[] {
+  const items = BRANCH_MENU.filter((i) => i === 'sep' || !i.when || i.when(target));
+  return items.filter((i, k) => i !== 'sep' || (k > 0 && k < items.length - 1 && items[k - 1] !== 'sep'));
+}
+
 export function LogApp() {
   const [repos, setRepos] = useState<LogRepoInfo[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -47,6 +80,7 @@ export function LogApp() {
   const [selected, setSelected] = useState<LogRow | null>(null);
   const [details, setDetails] = useState<LogDetails | null>(null);
   const [menu, setMenu] = useState<{ row: LogRow; x: number; y: number } | null>(null);
+  const [branchMenu, setBranchMenu] = useState<{ target: BranchTarget; x: number; y: number } | null>(null);
   const [showBranches, setShowBranches] = useState(true);
   /** Navigate Log to Branch Head: commit a mostrar cuando aparezca en la lista. */
   const [pendingReveal, setPendingReveal] = useState<{ key: string; pages: number } | null>(null);
@@ -162,7 +196,13 @@ export function LogApp() {
   const detailsMatch = details && selected && details.hash === selected.hash && details.repoId === selected.repoId;
 
   return (
-    <div className="log" onClick={() => setMenu(null)}>
+    <div
+      className="log"
+      onClick={() => {
+        setMenu(null);
+        setBranchMenu(null);
+      }}
+    >
       {/* ---------------------------------------------------- filtros */}
       <div className="log-filters">
         <button className={`icon-btn${showBranches ? ' on' : ''}`} title={t('Show branches')} onClick={() => setShowBranches((v) => !v)}>
@@ -293,6 +333,10 @@ export function LogApp() {
       <div className={`log-body${showBranches ? '' : ' no-branches'}${showDetails ? '' : ' no-details'}`}>
         {showBranches && (
           <BranchTree
+            onContextMenu={(target, x, y) => {
+              setMenu(null);
+              setBranchMenu({ target, x, y });
+            }}
             repos={repos}
             favorites={favorites}
             selected={{ branch: filters.branch, repoIds: filters.repoIds }}
@@ -313,7 +357,10 @@ export function LogApp() {
           selected={selectedKey}
           onSelect={select}
           onLoadMore={() => post({ type: 'log/loadMore', payload: { generation: generation.current } })}
-          onContextMenu={(row, x, y) => setMenu({ row, x, y })}
+          onContextMenu={(row, x, y) => {
+            setBranchMenu(null);
+            setMenu({ row, x, y });
+          }}
           scrollTo={scrollTo}
         />
         {showDetails && (
@@ -371,6 +418,34 @@ export function LogApp() {
           </aside>
         )}
       </div>
+
+      {/* ---------------------------------------------------- menú contextual de una rama */}
+      {branchMenu && (
+        <div
+          className="menu context"
+          style={{ left: Math.min(branchMenu.x, window.innerWidth - 260), top: Math.max(4, Math.min(branchMenu.y, window.innerHeight - 470)) }}
+          role="menu"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="menu-title muted small">{branchMenu.target.branch.replace(/^refs\/tags\//, '')}</div>
+          {branchMenuFor(branchMenu.target).map((item, i) =>
+            item === 'sep' ? (
+              <div key={`sep${i}`} className="menu-sep" />
+            ) : (
+              <button
+                key={item.action}
+                role="menuitem"
+                onClick={() => {
+                  setBranchMenu(null);
+                  post({ type: 'log/branchAction', payload: { action: item.action, branch: branchMenu.target.branch, repoIds: branchMenu.target.repoIds } });
+                }}
+              >
+                {item.label}
+              </button>
+            ),
+          )}
+        </div>
+      )}
 
       {/* ---------------------------------------------------- menú contextual */}
       {menu && (

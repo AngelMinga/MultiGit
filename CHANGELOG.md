@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.1
+
+- Git Log: clic derecho en una rama o tag del árbol de la izquierda abre el mismo menú que la vista
+  Ramas (Checkout, New Branch, Compare, Merge, Rebase, Push, Rename, Delete…), en vez del menú
+  Cut/Copy/Paste del navegador.
+
 ## 0.8.0
 
 - **Pull requests multi-repo** (*Crear pull requests…*): un PR por repo hacia la misma rama destino;

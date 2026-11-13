@@ -15,8 +15,8 @@ import {
 import { errorText, runInRepos } from '../git/MultiRepoRunner';
 import type { RepoBranches } from '../git/branches';
 import type { Repo, RepoManager } from '../git/RepoManager';
-import type { BranchActions } from '../views/branchActions';
-import type { LogAction, LogRepoInfo, LogRow, WebviewMessage } from './protocol';
+import type { BranchActions, BranchRef } from '../views/branchActions';
+import type { LogAction, LogBranchAction, LogRepoInfo, LogRow, WebviewMessage } from './protocol';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from './webviewHtml';
 import { RebasePanel } from './RebasePanel';
 import { t } from '../i18n';
@@ -164,6 +164,9 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
           break;
         case 'log/action':
           await this.runAction(message.payload.action, message.payload.repoId, message.payload.hash);
+          break;
+        case 'log/branchAction':
+          await this.runBranchAction(message.payload.action, message.payload.branch, message.payload.repoIds);
           break;
         default:
           break;
@@ -426,6 +429,61 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
     }
     await this.manager.refreshStatusesNow([repo]);
     await this.init();
+  }
+
+  /** Menú contextual de una rama (o tag) del árbol: las mismas acciones que la vista Ramas. */
+  private async runBranchAction(action: LogBranchAction, branch: string, repoIds: string[]): Promise<void> {
+    const isTag = branch.startsWith('refs/tags/');
+    const branchesOf = (r: Repo) => this.branches.get(r);
+    const exists = (r: Repo) => {
+      const b = branchesOf(r);
+      return !!b && (isTag || b.local.some((l) => l.name === branch) || b.remote.some((x) => x.full === branch));
+    };
+    const repos = repoIds.length ? this.manager.all.filter((r) => repoIds.includes(r.root)) : this.manager.all.filter(exists);
+    if (repos.length === 0) return;
+    const scope = { repos, label: repos.length === 1 ? repos[0]!.name : t('{0} repositories', repos.length) };
+    const remote = repos.map((r) => branchesOf(r)?.remote.find((x) => x.full === branch)).find(Boolean);
+    const isLocal = !isTag && repos.some((r) => branchesOf(r)?.local.some((l) => l.name === branch));
+    // Los tags se usan por su ref completa (`refs/tags/x`), que git acepta donde va una rama.
+    const ref: BranchRef = isLocal || isTag || !remote ? { type: 'local', name: branch } : { type: 'remote', remote: remote.remote, name: remote.name, full: remote.full };
+    const local = isLocal ? { type: 'local' as const, name: branch } : undefined;
+    const a = this.branchActions;
+    switch (action) {
+      case 'checkout':
+        return isTag ? a.checkoutRef(scope, branch) : a.checkout(scope, ref);
+      case 'newBranch':
+        return a.newBranch(scope, ref);
+      case 'checkoutAndRebase':
+        return local ? a.checkoutAndRebase(scope, local) : undefined;
+      case 'compare':
+        return a.compare(scope, ref);
+      case 'compareFiles':
+        await vscode.commands.executeCommand('multigit.compareFiles.show', repos, branch);
+        return;
+      case 'diffWorkingTree':
+        return a.diffWithWorkingTree(scope, ref);
+      case 'rebaseOnto':
+        return a.rebaseOnto(scope, ref);
+      case 'merge':
+        return a.merge(scope, ref);
+      case 'newWorktree':
+        return a.newWorktree(scope, ref);
+      case 'update':
+        return a.update(scope, ref);
+      case 'push':
+        return local ? a.push(scope, branch) : undefined;
+      case 'pullRequests':
+        await vscode.commands.executeCommand('multigit.createPullRequests.forRepos', repos.filter((r) => r.status?.branch === branch));
+        return;
+      case 'rename':
+        return local ? a.rename(scope, local) : undefined;
+      case 'delete':
+        if (local) return a.deleteLocal(scope, local);
+        if (ref.type === 'remote') return a.deleteRemote(scope, ref);
+        return undefined;
+      case 'navigate':
+        return this.navigateTo(branch, repoIds);
+    }
   }
 
   /** Reset current branch to here (soft / mixed / hard) con confirmación de lo que se pierde. */
