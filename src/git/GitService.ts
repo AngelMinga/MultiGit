@@ -517,6 +517,25 @@ export class GitService {
     return this.exec(['rebase', '-i', base ?? '--root'], { env: { GIT_SEQUENCE_EDITOR: editor }, timeoutMs: REBASE_TIMEOUT_MS });
   }
 
+  async remoteUrl(remote: string): Promise<string> {
+    return (await this.exec(['remote', 'get-url', '--', remote])).trim();
+  }
+
+  /** Rama por defecto del remoto (`refs/remotes/origin/HEAD` → `main`), si se conoce. */
+  async remoteDefaultBranch(remote: string): Promise<string | undefined> {
+    try {
+      const ref = (await this.exec(['symbolic-ref', '--short', `refs/remotes/${remote}/HEAD`])).trim();
+      return ref.startsWith(`${remote}/`) ? ref.slice(remote.length + 1) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /** Asuntos de los commits de un rango (`a..b`), del más nuevo al más viejo. */
+  async subjects(range: string, max = 100): Promise<string[]> {
+    return (await this.exec(['log', `--max-count=${max}`, '--format=%s', range, '--'])).split('\n').filter(Boolean);
+  }
+
   /** Archivos distintos entre dos revisiones (`git diff --name-status a b`). */
   async diffRefs(a: string, b: string): Promise<ChangedFile[]> {
     return parseNameStatusZ(await this.exec(['diff', '--name-status', '-z', '-M', '--end-of-options', a, b, '--']));

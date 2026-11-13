@@ -240,6 +240,11 @@ export class BranchPopup {
       vscode.commands.executeCommand('multigit.compareFiles.show', scope.repos, ref.type === 'local' ? ref.name : ref.full),
     );
     add(true, '$(diff) Show Diff with Working Tree', () => a.diffWithWorkingTree(scope, ref));
+    if (ref.type === 'local') {
+      add(true, `$(git-pull-request) Create Pull Requests for '${name}'…`, async () =>
+        vscode.commands.executeCommand('multigit.createPullRequests.forRepos', scope.repos.filter((r) => r.status?.branch === name)),
+      );
+    }
     add(true, '$(history) Show in Git Log', async () => {
       const ids = scope.repos.length === this.manager.all.length ? [] : scope.repos.map((r) => r.root);
       await vscode.commands.executeCommand('multigit.log.showBranch', name, ids);

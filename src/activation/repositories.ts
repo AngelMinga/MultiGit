@@ -11,6 +11,7 @@ import { RepositoriesView } from '../views/RepositoriesView';
 import { StatusBar } from '../views/StatusBar';
 import type { Core } from './core';
 import { newRepoGroup, selectRepoGroup } from '../views/repoGroups';
+import { createPullRequests } from '../views/pullRequests';
 import { t } from '../i18n';
 
 export function registerRepositories(core: Core, compareView: CompareView): { treeView: vscode.TreeView<Repo>; view: RepositoriesView } {
@@ -28,6 +29,12 @@ export function registerRepositories(core: Core, compareView: CompareView): { tr
     manager.onDidChange(describeGroup),
     vscode.commands.registerCommand('multigit.selectRepoGroup', () => popup.safely(() => selectRepoGroup(manager))),
     vscode.commands.registerCommand('multigit.selectRepoGroupActive', () => popup.safely(() => selectRepoGroup(manager))),
+    vscode.commands.registerCommand('multigit.createPullRequests', (repo?: Repo) =>
+      popup.safely(() => createPullRequests(manager, (repos) => core.openPush(repos), repo ? [repo] : undefined)),
+    ),
+    vscode.commands.registerCommand('multigit.createPullRequests.forRepos', (repos: readonly Repo[]) =>
+      popup.safely(() => createPullRequests(manager, (r) => core.openPush(r), repos.length ? repos : undefined)),
+    ),
     vscode.commands.registerCommand('multigit.newRepoGroup', () => popup.safely(() => newRepoGroup(manager))),
     view,
     decorations,

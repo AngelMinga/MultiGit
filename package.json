@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -700,6 +700,17 @@
         "title": "%command.compareFiles.close%",
         "category": "MultiGit",
         "icon": "$(close)"
+      },
+      {
+        "command": "multigit.createPullRequests",
+        "title": "%command.createPullRequests%",
+        "category": "MultiGit",
+        "icon": "$(git-pull-request-create)"
+      },
+      {
+        "command": "multigit.createPullRequests.forRepos",
+        "title": "%command.createPullRequests%",
+        "category": "MultiGit"
       }
     ],
     "menus": {
@@ -873,6 +884,11 @@
           "command": "multigit.compareFiles.close",
           "when": "view == multigit.compareFiles",
           "group": "navigation@9"
+        },
+        {
+          "command": "multigit.createPullRequests",
+          "when": "view == multigit.repositories",
+          "group": "2_remote@9"
         }
       ],
       "view/item/context": [
@@ -1140,6 +1156,11 @@
           "command": "multigit.compareFiles.openDiff",
           "when": "view == multigit.compareFiles && viewItem == multigit.compare.file",
           "group": "inline@1"
+        },
+        {
+          "command": "multigit.createPullRequests",
+          "when": "view == multigit.repositories",
+          "group": "2_remote@9"
         }
       ],
       "commandPalette": [
@@ -1433,6 +1454,10 @@
         },
         {
           "command": "multigit.compareFiles.close",
+          "when": "false"
+        },
+        {
+          "command": "multigit.createPullRequests.forRepos",
           "when": "false"
         }
       ],
@@ -1890,6 +1915,33 @@
           },
           "order": 29,
           "markdownDescription": "%setting.repoGroups%"
+        },
+        "multigit.pullRequests.useGitHubApi": {
+          "type": "boolean",
+          "default": true,
+          "order": 30,
+          "markdownDescription": "%setting.pullRequests.useGitHubApi%"
+        },
+        "multigit.pullRequests.draft": {
+          "type": "boolean",
+          "default": false,
+          "order": 31,
+          "markdownDescription": "%setting.pullRequests.draft%"
+        },
+        "multigit.pullRequests.providers": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "string",
+            "enum": [
+              "github",
+              "gitlab",
+              "bitbucket",
+              "azure"
+            ]
+          },
+          "order": 32,
+          "markdownDescription": "%setting.pullRequests.providers%"
         }
       }
     },

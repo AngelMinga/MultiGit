@@ -175,5 +175,9 @@
   "command.compareFiles.show": "Comparar archivos",
   "command.compareFiles.openDiff": "Show Diff",
   "command.compareFiles.refresh": "Refrescar",
-  "command.compareFiles.close": "Cerrar comparación"
+  "command.compareFiles.close": "Cerrar comparación",
+  "command.createPullRequests": "Crear pull requests…",
+  "setting.pullRequests.useGitHubApi": "Crear los pull requests de GitHub (github.com) directamente por la API, con la cuenta de GitHub de VS Code. Si se desactiva, se abre la página de creación en el navegador, como en los otros servicios.",
+  "setting.pullRequests.draft": "Crear los pull requests de GitHub como borrador.",
+  "setting.pullRequests.providers": "Servicio de tus propios servidores Git, por host: p. ej. `{ \"git.empresa.com\": \"gitlab\" }`. MultiGit lo pregunta la primera vez y guarda la respuesta aquí."
 }

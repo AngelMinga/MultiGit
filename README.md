@@ -95,6 +95,12 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
   rechaza el push.
 - **Pull…**: Repositorio (o Todos) → Remote → Rama (por defecto el upstream) → Merge / Rebase /
   `--ff-only`. Si quedan conflictos, **Resolver conflictos** abre el merge editor.
+- **Crear pull requests…** (menú ⋯ de Repositorios, clic derecho en un repo o el popup de una rama):
+  un PR por repo hacia la misma rama destino (las ramas por defecto de los remotos y las favoritas),
+  solo en los repos con commits para integrar, con el mismo título y descripción. En **GitHub** se
+  crea directamente con tu cuenta de GitHub de VS Code (si ya existía, se muestra ese); en **GitLab**,
+  **Bitbucket** y **Azure DevOps** se abre la página de creación con todo puesto. Si la rama no está
+  subida, ofrece hacer push primero. Al final, una lista con el enlace de cada PR.
 
 ### Git Log (panel inferior)
 
@@ -164,6 +170,7 @@ Para usarlos en todas partes, cámbialos en *Preferences → Keyboard Shortcuts*
 | `multigit.confirmCheckoutWithChanges` | `true` | Avisar antes de un checkout en repos con cambios. |
 | `multigit.warnBranchMismatch` | `true` | Avisar cuando algún repo queda en otra rama que la mayoría. |
 | `multigit.commit.ticketPattern` | `[A-Z][A-Z0-9]+-\d+` | Regex que saca el ticket del nombre de la rama (`feature/ABC-123-login` → `ABC-123`). Vacío: sin ticket. |
+| `multigit.pullRequests.*` | — | `useGitHubApi` (`true`), `draft` (`false`) y `providers` (servicio de tus servidores Git propios por host, p. ej. `{ "git.empresa.com": "gitlab" }`). |
 | `multigit.repoGroups` | `{}` | Grupos de repos: nombre → repos (admite `*`). |
 | `multigit.commitChecks.*` | activadas | Comprobaciones antes del commit: `enabled`, `diagnostics` (`off`/`errors`/`warnings`), `todo`, `conflictMarkers`, `secrets`, `largeFileMB` (`5`; `0` = no). |
 | `multigit.commit.ticketTemplate` | `{ticket} {message}` | Dónde va el ticket en el mensaje (`{ticket}`, `{branch}`, `{message}`). Vacío: desactivado. |

@@ -2,6 +2,9 @@
 
 ## 0.8.0
 
+- **Pull requests multi-repo** (*Crear pull requests…*): un PR por repo hacia la misma rama destino;
+  en GitHub se crea por la API con la cuenta de VS Code, en GitLab, Bitbucket y Azure DevOps se abre
+  la página de creación con todo puesto.
 - **Rebase interactivo** desde el Git Log (*Interactively rebase from here…*): Pick, Reword, Squash,
   Fixup, Drop y reordenar, sin editor de por medio.
 - **Comparar ramas por archivos**: *Compare Files with Current* abre la vista *Comparar* con los
