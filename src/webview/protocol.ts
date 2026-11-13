@@ -195,6 +195,15 @@ export interface LogRow {
   refs: RefLabel[];
 }
 
+/** Archivos del detalle de un commit contra una base (en un merge, uno por padre, como IntelliJ). */
+export interface LogFileGroup {
+  /** Vacío = grupo único (commit normal). */
+  title: string;
+  /** Revisión contra la que se compara (null = commit raíz). */
+  base: string | null;
+  files: PushFile[];
+}
+
 export interface LogDetails {
   repoId: string;
   hash: string;
@@ -202,6 +211,11 @@ export interface LogDetails {
   committer: string;
   commitTime: number;
   files: PushFile[];
+  groups: LogFileGroup[];
+  /** Ramas locales que contienen el commit. */
+  branches: string[];
+  /** El commit es alcanzable desde HEAD. */
+  inHead: boolean;
 }
 
 /** Acciones del menú contextual de una rama en el árbol del Git Log (las mismas que la vista Ramas). */
@@ -300,7 +314,7 @@ export type WebviewMessage =
   | { type: 'log/setFilters'; payload: LogFilters }
   | { type: 'log/loadMore'; payload: { generation: number } }
   | { type: 'log/select'; payload: { repoId: string; hash: string } }
-  | { type: 'log/openDiff'; payload: { repoId: string; hash: string; file: PushFile } }
+  | { type: 'log/openDiff'; payload: { repoId: string; hash: string; file: PushFile; /** Comparar contra esta revisión (otro padre de un merge). */ base?: string | null } }
   | { type: 'log/action'; payload: { action: LogAction; repoId: string; hash: string } }
   | { type: 'log/branchAction'; payload: { action: LogBranchAction; branch: string; repoIds: string[] } }
   | { type: 'log/refresh'; payload: Record<string, never> }

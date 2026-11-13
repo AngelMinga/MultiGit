@@ -4,6 +4,7 @@ import type { LogBranchAction, LogAction, LogDetails, LogFilters, LogRepoInfo, L
 import { fullDate, isoDaysAgo } from '../format';
 import { onHostMessage, post } from '../vscode';
 import { BranchTree, type BranchTarget } from './BranchTree';
+import { FileTree } from './FileTree';
 import { CommitList, key } from './CommitList';
 import { t } from '../i18n';
 
@@ -79,6 +80,15 @@ export function LogApp() {
   const generation = useRef(0);
   const [selected, setSelected] = useState<LogRow | null>(null);
   const [details, setDetails] = useState<LogDetails | null>(null);
+  /** Grupos de archivos plegados en el detalle (`hash:índice`). */
+  const [closedGroups, setClosedGroups] = useState<Set<string>>(new Set());
+  const toggleGroup = (key: string) =>
+    setClosedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   const [menu, setMenu] = useState<{ row: LogRow; x: number; y: number } | null>(null);
   const [branchMenu, setBranchMenu] = useState<{ target: BranchTarget; x: number; y: number } | null>(null);
   const [showBranches, setShowBranches] = useState(true);
@@ -375,44 +385,68 @@ export function LogApp() {
                     {selected.shortHash}
                   </button>
                 </div>
-                <div className="detail-message">{detailsMatch ? details!.body : selected.subject}</div>
-                <div className="detail-meta small">
-                  <div>
-                    {selected.author} &lt;{selected.email}&gt; · {fullDate(selected.date)}
-                  </div>
-                  {detailsMatch && details!.committer && details!.committer !== selected.author && (
-                    <div className="muted">
-                      commit: {details!.committer} · {fullDate(details!.commitTime)}
-                    </div>
-                  )}
-                  {selected.refs.length > 0 && (
-                    <div className="detail-refs">
-                      {selected.refs.map((r) => (
-                        <span key={`${r.kind}:${r.name}`} className={`ref ref-${r.kind}`}>
-                          {r.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="pane-header small">
-                  {detailsMatch ? t('{0} file(s) — double-click to see the diff', details!.files.length) : t('Loading files…')}
-                </div>
-                <ul className="list">
+                {/* Archivos arriba (en un merge, un grupo por padre) e información del commit abajo, como IntelliJ. */}
+                <ul className="list detail-files">
+                  {!detailsMatch && <li className="muted pad">{t('Loading files…')}</li>}
                   {detailsMatch &&
-                    details!.files.map((f) => (
-                      <li
-                        key={`${f.status}:${f.oldPath ?? ''}:${f.path}`}
-                        className="row file-row"
-                        title={f.oldPath ? `${f.oldPath} → ${f.path}` : f.path}
-                        onDoubleClick={() => post({ type: 'log/openDiff', payload: { repoId: selected.repoId, hash: selected.hash, file: f } })}
-                      >
-                        <span className={`status status-${f.status}`}>{f.status}</span>
-                        <span className="file-name">{f.path.slice(f.path.lastIndexOf('/') + 1)}</span>
-                        <span className="muted small">{f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')) : ''}</span>
-                      </li>
-                    ))}
+                    details!.groups.map((g, i) => {
+                      const key = `${selected.hash}:${i}`;
+                      const open = !closedGroups.has(key);
+                      return [
+                        g.title || details!.groups.length > 1 ? (
+                          <li key={`g:${key}`} className="row file-row ft-group" onClick={() => toggleGroup(key)} title={g.title}>
+                            <span className="twisty">{open ? '▾' : '▸'}</span>
+                            <span className="file-name">{g.title}</span>
+                            <span className="muted small">{t('{0} file(s)', g.files.length)}</span>
+                          </li>
+                        ) : (
+                          <li key={`g:${key}`} className="row file-row ft-group muted small">
+                            {t('{0} file(s) — double-click to see the diff', g.files.length)}
+                          </li>
+                        ),
+                        open || !g.title ? (
+                          <FileTree
+                            key={`t:${key}`}
+                            files={g.files}
+                            depth={g.title ? 1 : 0}
+                            onOpen={(f) => post({ type: 'log/openDiff', payload: { repoId: selected.repoId, hash: selected.hash, file: f, base: g.base } })}
+                          />
+                        ) : null,
+                      ];
+                    })}
                 </ul>
+                <div className="detail-info">
+                  <div className="detail-message">{detailsMatch ? details!.body : selected.subject}</div>
+                  <div className="detail-meta small">
+                    <div>
+                      <span className="dot" style={{ background: `var(--vscode-multigit-repo${repoMap.get(selected.repoId)?.colorIndex ?? 0})` }} /> {selected.shortHash}{' '}
+                      {selected.author} &lt;{selected.email}&gt; · {fullDate(selected.date)}
+                    </div>
+                    {detailsMatch && details!.committer && details!.committer !== selected.author && (
+                      <div className="muted">
+                        commit: {details!.committer} · {fullDate(details!.commitTime)}
+                      </div>
+                    )}
+                    {selected.refs.length > 0 && (
+                      <div className="detail-refs">
+                        {selected.refs.map((r) => (
+                          <span key={`${r.kind}:${r.name}`} className={`ref ref-${r.kind}`}>
+                            {r.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {detailsMatch && (details!.inHead || details!.branches.length > 0) && (
+                      <div className="muted">
+                        {(() => {
+                          const names = [...(details!.inHead ? ['HEAD'] : []), ...details!.branches];
+                          const shown = names.slice(0, 6).join(', ');
+                          return t('In {0} branch(es): {1}', names.length, names.length > 6 ? `${shown}, …` : shown);
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </>
             )}
           </aside>

@@ -264,6 +264,33 @@ export class GitService {
     return parseNameStatusZ(out);
   }
 
+  /**
+   * Archivos de un commit agrupados como el detalle de IntelliJ. Commit normal: un grupo contra su padre.
+   * Merge: lo que cambió respecto a TODOS los padres (lo resuelto en el merge) y un grupo por padre.
+   */
+  async commitFileGroups(hash: string): Promise<Array<{ parent: string | null; parentSubject?: string; files: ChangedFile[]; merged?: boolean }>> {
+    const parents = (await this.exec(['rev-list', '--parents', '-n', '1', hash, '--'])).trim().split(/\s+/).slice(1);
+    if (parents.length < 2) return [{ parent: parents[0] ?? null, files: await this.commitFiles(hash) }];
+    const perParent = await Promise.all(
+      parents.map(async (p) => ({
+        parent: p,
+        parentSubject: (await this.exec(['log', '-1', '--format=%s', p, '--'])).trim(),
+        files: parseNameStatusZ(await this.exec(['diff', '--name-status', '-z', '-M', p, hash, '--'])),
+      })),
+    );
+    const inAll = perParent[0]!.files.filter((f) => perParent.every((g) => g.files.some((x) => x.path === f.path)));
+    return [{ parent: parents[0]!, files: inAll, merged: true }, ...perParent];
+  }
+
+  /** Ramas locales que contienen el commit y si HEAD lo contiene. */
+  async branchesContaining(hash: string): Promise<{ branches: string[]; inHead: boolean }> {
+    const [list, inHead] = await Promise.all([
+      this.exec(['branch', '--contains', hash, '--format=%(refname:short)']).catch(() => ''),
+      this.isAncestor(hash, 'HEAD').catch(() => false),
+    ]);
+    return { branches: list.split('\n').map((b) => b.trim()).filter(Boolean), inHead };
+  }
+
   /** Archivos que difieren entre `ref` y el working tree. */
   async diffWithWorkingTree(ref: string): Promise<ChangedFile[]> {
     return parseNameStatusZ(await this.exec(['diff', '--name-status', '-z', '-M', ref, '--']));

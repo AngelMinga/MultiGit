@@ -748,8 +748,37 @@ button.icon-btn.on {
 .detail-message {
   padding: 4px 10px;
   white-space: pre-wrap;
-  max-height: 40%;
+  font-family: var(--vscode-editor-font-family);
+  font-weight: 600;
+}
+.detail-files {
+  flex: 1;
+  min-height: 80px;
+}
+.detail-info {
+  flex: none;
+  max-height: 45%;
   overflow: auto;
+  border-top: 1px solid var(--vscode-panel-border);
+  padding-top: 4px;
+}
+.ft-group {
+  font-weight: 600;
+}
+.ft-group .file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ft-dir .twisty,
+.ft-group .twisty {
+  width: 12px;
+  flex: none;
+  text-align: center;
+}
+.ft-folder {
+  font-size: 0.85em;
+  opacity: 0.8;
 }
 .detail-meta {
   padding: 0 10px 6px;

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.3
+
+- **Detalle del commit en el Git Log como IntelliJ**: los archivos como árbol de carpetas (las cadenas
+  de una sola carpeta se juntan, con el número de archivos) y, en los **merges**, tres grupos:
+  *Cambiado en el merge*, *Cambios respecto a* cada padre (doble clic → diff contra ese padre). Debajo,
+  mensaje, hash, autor con email, fecha, refs y **En N rama(s)**.
+
 ## 0.9.2
 
 - **Pull como IntelliJ**: un solo diálogo `[repositorio ▾] git pull [remote ▾] [rama ▾]` con el modo

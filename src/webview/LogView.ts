@@ -1,7 +1,7 @@
 // Panel "Git Log" (WebviewView en el panel inferior): log combinado de todos los repos,
 // filtros, detalle del commit y menú contextual (checkout, cherry-pick, revert, reset, rama, tag).
 import * as vscode from 'vscode';
-import { openCommitFileDiff } from '../git/GitContentProvider';
+import { GitContentProvider, openCommitFileDiff } from '../git/GitContentProvider';
 import {
   EMPTY_FILTERS,
   logFilterArgs,
@@ -159,9 +159,19 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
           await this.sendDetails(message.payload.repoId, message.payload.hash);
           await this.openHistoryDiff(message.payload.repoId, message.payload.hash);
           break;
-        case 'log/openDiff':
-          await openCommitFileDiff(message.payload.repoId, message.payload.hash, message.payload.file);
+        case 'log/openDiff': {
+          const { repoId, hash, file, base } = message.payload;
+          if (base === undefined) {
+            await openCommitFileDiff(repoId, hash, file);
+            break;
+          }
+          // Contra un padre concreto (merge) o contra nada (commit raíz).
+          const left = GitContentProvider.uri(repoId, file.status === 'A' || !base ? '' : base, file.oldPath ?? file.path);
+          const right = GitContentProvider.uri(repoId, file.status === 'D' ? '' : hash, file.path);
+          const title = `${file.path.split('/').pop()} (${base ? base.slice(0, 7) : '∅'} ↔ ${hash.slice(0, 7)})`;
+          await vscode.commands.executeCommand('vscode.diff', left, right, title, { preview: true });
           break;
+        }
         case 'log/action':
           await this.runAction(message.payload.action, message.payload.repoId, message.payload.hash);
           break;
@@ -318,8 +328,27 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
   private async sendDetails(repoId: string, hash: string): Promise<void> {
     const repo = this.repoById(repoId);
     if (!repo) return;
-    const [details, files] = await Promise.all([repo.git.commitDetails(hash), repo.git.commitFiles(hash)]);
-    this.post({ type: 'log/details', payload: { repoId, hash, ...details, files } });
+    const [details, groups, contains] = await Promise.all([repo.git.commitDetails(hash), repo.git.commitFileGroups(hash), repo.git.branchesContaining(hash)]);
+    const short = (h: string) => h.slice(0, 7);
+    this.post({
+      type: 'log/details',
+      payload: {
+        repoId,
+        hash,
+        ...details,
+        files: groups.find((g) => !g.merged)?.files ?? [],
+        groups:
+          groups.length === 1
+            ? [{ title: '', base: groups[0]!.parent, files: groups[0]!.files }]
+            : groups.map((g) => ({
+                title: g.merged ? t('Changed in the merge') : t('Changes to {0} {1}', short(g.parent!), g.parentSubject ?? ''),
+                base: g.parent,
+                files: g.files,
+              })),
+        branches: contains.branches,
+        inHead: contains.inHead,
+      },
+    });
   }
 
   /** En "Show History", abre el diff del archivo en el commit elegido (como el panel derecho de IntelliJ). */
