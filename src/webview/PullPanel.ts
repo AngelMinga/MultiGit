@@ -8,6 +8,7 @@ import { commonUpstream, remoteBranchChoices, remotesOf, type PullRepoInput } fr
 import type { Repo, RepoManager } from '../git/RepoManager';
 import { runPull } from '../views/pullDialog';
 import type { PullScopeView, PullState, WebviewMessage } from './protocol';
+import { floatDialog } from './floating';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from './webviewHtml';
 import { t } from '../i18n';
 
@@ -51,6 +52,7 @@ export class PullPanel implements vscode.Disposable {
       ...webviewOptions(extensionUri),
       retainContextWhenHidden: true,
     });
+    floatDialog(this.panel);
     this.panel.iconPath = vscode.Uri.joinPath(extensionUri, 'media', 'multigit.svg');
     this.panel.webview.html = renderWebviewHtml(this.panel.webview, extensionUri, 'pull', 'Pull');
     this.disposables.push(

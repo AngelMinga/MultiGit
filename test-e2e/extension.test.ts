@@ -269,7 +269,8 @@ describe('Rebase interactivo', () => {
 });
 
 describe('Pull', () => {
-  it('Pull… abre el diálogo de una línea (repositorio · remote · rama)', async () => {
+  it('Pull… abre el diálogo de una línea (repositorio · remote · rama) en una ventana flotante', async () => {
+    const groupsBefore = new Set(vscode.window.tabGroups.all);
     await vscode.commands.executeCommand('multigit.pull');
     let tab: vscode.Tab | undefined;
     for (let i = 0; i < 40 && !tab; i++) {
@@ -277,7 +278,11 @@ describe('Pull', () => {
       tab = vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((x) => x.input instanceof vscode.TabInputWebview && /^Pull/.test(x.label));
     }
     assert.ok(tab, 'pestaña de Pull');
-    await vscode.window.tabGroups.close(tab);
+    // Ventana propia: la pestaña acaba en un grupo nuevo (el de la ventana flotante).
+    const pullTab = () => vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((x) => x.input instanceof vscode.TabInputWebview && /^Pull/.test(x.label));
+    for (let i = 0; i < 40 && groupsBefore.has(pullTab()!.group); i++) await new Promise((r) => setTimeout(r, 50));
+    assert.ok(!groupsBefore.has(pullTab()!.group), 'el diálogo se movió a una ventana propia');
+    await vscode.window.tabGroups.close(pullTab()!);
   });
 });
 

@@ -204,5 +204,9 @@
   "command.merge.complete": "Apply Changes (Complete Merge)",
   "setting.mergeTool": "Where conflicted files are resolved.",
   "setting.mergeTool.multigit": "MultiGit merge window, like IntelliJ: Yours | Result | Theirs with » « ✕ on each change.",
-  "setting.mergeTool.vscode": "VS Code merge editor (layout in `multigit.mergeEditorLayout`)."
+  "setting.mergeTool.vscode": "VS Code merge editor (layout in `multigit.mergeEditorLayout`).",
+  "setting.dialogs": "How MultiGit dialogs open (Conflicts, Merge, Push, Pull, Rebase, Rollback, Select Changes).",
+  "setting.dialogs.floating": "In their own floating window, like IntelliJ.",
+  "setting.dialogs.tab": "As an editor tab.",
+  "setting.dialogsAlwaysOnTop": "Keep the floating dialogs always on top of other windows."
 }

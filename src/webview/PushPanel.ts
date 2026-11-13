@@ -8,6 +8,7 @@ import { errorText, runInRepos } from '../git/MultiRepoRunner';
 import { formatSummary, isRejection } from '../git/preflight';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import type { PushRepoView, PushState, PushTagsMode, WebviewMessage } from './protocol';
+import { floatDialog } from './floating';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from './webviewHtml';
 import { t } from '../i18n';
 
@@ -51,6 +52,7 @@ export class PushPanel implements vscode.Disposable {
       ...webviewOptions(extensionUri),
       retainContextWhenHidden: true,
     });
+    floatDialog(this.panel);
     this.panel.iconPath = vscode.Uri.joinPath(extensionUri, 'media', 'multigit.svg');
     this.panel.webview.html = renderWebviewHtml(this.panel.webview, extensionUri, 'push', 'Push Commits');
     this.disposables.push(

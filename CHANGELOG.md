@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.0
+
+- **Diálogos flotantes como IntelliJ**: Conflictos, Merge, Push, Pull, Rebase interactivo, Rollback y
+  Elegir líneas se abren en su **propia ventana** (compacta, sin barras) en vez de como pestaña del
+  editor. `multigit.dialogs: tab` vuelve a las pestañas y `multigit.dialogsAlwaysOnTop` los mantiene
+  siempre delante.
+
 ## 0.11.0
 
 - **Ventana de merge propia, como "Merge Revisions" de IntelliJ**: *Cambios de tu rama* | **Resultado**

@@ -6,6 +6,7 @@ import { errorText } from '../git/MultiRepoRunner';
 import type { Repo } from '../git/RepoManager';
 import type { FileRef } from '../views/ChangesTree';
 import type { RollbackState, WebviewMessage } from './protocol';
+import { floatDialog } from './floating';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from './webviewHtml';
 
 export interface RollbackHandlers {
@@ -46,6 +47,7 @@ export class RollbackPanel implements vscode.Disposable {
       ...webviewOptions(extensionUri),
       retainContextWhenHidden: true,
     });
+    floatDialog(this.panel);
     this.panel.iconPath = vscode.Uri.joinPath(extensionUri, 'media', 'multigit.svg');
     this.panel.webview.html = renderWebviewHtml(this.panel.webview, extensionUri, 'rollback', 'Rollback Changes');
     this.disposables.push(

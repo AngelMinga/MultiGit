@@ -9,6 +9,7 @@ import { merge3 } from '../git/merge3';
 import { errorText } from '../git/MultiRepoRunner';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import type { MergeState, WebviewMessage } from './protocol';
+import { floatDialog } from './floating';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from './webviewHtml';
 import { t } from '../i18n';
 
@@ -65,6 +66,7 @@ export class MergePanel implements vscode.Disposable {
       ...webviewOptions(extensionUri),
       retainContextWhenHidden: true,
     });
+    floatDialog(this.panel);
     this.panel.iconPath = vscode.Uri.joinPath(extensionUri, 'media', 'multigit.svg');
     this.panel.webview.html = renderWebviewHtml(this.panel.webview, extensionUri, 'merge', title);
     this.disposables.push(

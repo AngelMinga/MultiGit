@@ -6,6 +6,7 @@ import { errorText, runInRepos } from '../git/MultiRepoRunner';
 import { isNoop, validatePlan, type RebaseEntry } from '../git/rebase';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import type { RebaseState, WebviewMessage } from './protocol';
+import { floatDialog } from './floating';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from './webviewHtml';
 import { t } from '../i18n';
 
@@ -58,6 +59,7 @@ export class RebasePanel implements vscode.Disposable {
       ...webviewOptions(extensionUri),
       retainContextWhenHidden: true,
     });
+    floatDialog(this.panel);
     this.panel.iconPath = vscode.Uri.joinPath(extensionUri, 'media', 'multigit.svg');
     this.panel.webview.html = renderWebviewHtml(this.panel.webview, extensionUri, 'rebase', t('Interactive Rebase'));
     this.disposables.push(
