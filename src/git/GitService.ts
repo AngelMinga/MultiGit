@@ -10,6 +10,7 @@ import { parseStatusFiles, type StatusFile } from './changes';
 import { parseStashList, SHELF_PREFIX, STASH_FORMAT, type StashEntry } from './stashes';
 import { buildTodo, parseRebaseLog, REBASE_LOG_FORMAT, type RebaseCommit, type RebaseEntry } from './rebase';
 import { branchFromMergeMessage, type ConflictLabels } from './conflicts';
+import { parseRemotes, type RemoteEntry } from './remotes';
 import {
   LOG_FORMAT,
   parseLeftRightCount,
@@ -599,6 +600,26 @@ export class GitService {
     // Git llama a `$GIT_SEQUENCE_EDITOR <archivo-todo>`: copiamos el nuestro encima.
     const editor = `cp "${todo.replace(/\\/g, '/')}"`;
     return this.exec(['rebase', '-i', base ?? '--root'], { env: { GIT_SEQUENCE_EDITOR: editor }, timeoutMs: REBASE_TIMEOUT_MS });
+  }
+
+  async listRemotes(): Promise<RemoteEntry[]> {
+    return parseRemotes(await this.exec(['remote', '-v']));
+  }
+
+  addRemote(name: string, url: string): Promise<string> {
+    return this.exec(['remote', 'add', '--', name, url]);
+  }
+
+  removeRemote(name: string): Promise<string> {
+    return this.exec(['remote', 'remove', '--', name]);
+  }
+
+  renameRemote(oldName: string, newName: string): Promise<string> {
+    return this.exec(['remote', 'rename', '--', oldName, newName]);
+  }
+
+  setRemoteUrl(name: string, url: string): Promise<string> {
+    return this.exec(['remote', 'set-url', '--', name, url]);
   }
 
   async remoteUrl(remote: string): Promise<string> {

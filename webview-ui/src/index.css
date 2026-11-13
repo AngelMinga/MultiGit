@@ -1771,3 +1771,51 @@ body.vscode-light .merge .hljs-params {
 body.vscode-light .mg-word {
   background: rgba(40, 100, 220, 0.25);
 }
+
+/* ------------------------------------------------------------ Git Remotes */
+
+.remotes {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.rm-toolbar {
+  gap: 4px;
+  border-bottom: 1px solid var(--vscode-panel-border, transparent);
+}
+.rm-body {
+  flex: 1;
+  overflow: auto;
+}
+.rm-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.rm-table th {
+  text-align: left;
+  font-weight: normal;
+  color: var(--vscode-descriptionForeground);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+.rm-table td {
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.rm-table tr:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+.rm-table tr.selected {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+.rm-name {
+  padding-left: 28px !important;
+  width: 30%;
+}
+.rm-url {
+  font-family: var(--vscode-editor-font-family);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 0;
+}

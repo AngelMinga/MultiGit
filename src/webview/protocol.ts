@@ -6,7 +6,7 @@ import type { LogFilters, RefLabel } from '../git/log';
 export type { LogFilters, RefLabel };
 
 /** Paneles webview que existen (el log llega en la Fase 6). */
-export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks' | 'rebase' | 'pull' | 'conflicts' | 'merge';
+export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks' | 'rebase' | 'pull' | 'conflicts' | 'merge' | 'remotes';
 
 // ------------------------------------------------------------------ Push
 
@@ -129,6 +129,13 @@ export interface MergeState {
   yours: string;
   theirs: string;
   blocks: MergeBlockView[];
+  busy: boolean;
+}
+
+// ------------------------------------------------------------------ Manage Remotes
+
+export interface RemotesState {
+  repos: Array<{ id: string; name: string; colorIndex: number; remotes: Array<{ name: string; url: string; pushUrl?: string }> }>;
   busy: boolean;
 }
 
@@ -327,6 +334,7 @@ export type HostMessage =
   | { type: 'pull/state'; payload: PullState }
   | { type: 'conflicts/state'; payload: ConflictsState }
   | { type: 'merge/state'; payload: MergeState }
+  | { type: 'remotes/state'; payload: RemotesState }
   | { type: 'commit/state'; payload: CommitState }
   | { type: 'commit/setMessage'; payload: { message: string } }
   | { type: 'commit/done'; payload: Record<string, never> }
@@ -373,6 +381,11 @@ export type WebviewMessage =
   | { type: 'merge/save'; payload: { content: string; /** Marcar el archivo como resuelto (git add). */ resolve: boolean } }
   | { type: 'merge/acceptSide'; payload: { side: 'ours' | 'theirs' } }
   | { type: 'merge/close'; payload: Record<string, never> }
+  | { type: 'remotes/add'; payload: { repoId?: string } }
+  | { type: 'remotes/addAll'; payload: Record<string, never> }
+  | { type: 'remotes/edit'; payload: { repoId: string; name: string } }
+  | { type: 'remotes/remove'; payload: { repoId: string; name: string } }
+  | { type: 'remotes/close'; payload: Record<string, never> }
   | { type: 'commit/run'; payload: { message: string; amend: boolean; push: boolean } }
   | { type: 'commit/requestLastMessage'; payload: Record<string, never> }
   | { type: 'commit/generate'; payload: { current: string } }

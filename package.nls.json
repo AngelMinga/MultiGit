@@ -210,5 +210,6 @@
   "setting.dialogs.tab": "As an editor tab.",
   "setting.dialogsAlwaysOnTop": "Keep the floating dialogs always on top of other windows.",
   "command.operation.primary": "Resolve Conflicts / Continue Operation",
-  "command.operation.abortAll": "Abort Operation (Merge, Rebase…)"
+  "command.operation.abortAll": "Abort Operation (Merge, Rebase…)",
+  "command.manageRemotes": "Manage Remotes…"
 }

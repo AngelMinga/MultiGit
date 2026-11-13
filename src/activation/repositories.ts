@@ -6,6 +6,7 @@ import type { Repo, RepoManager } from '../git/RepoManager';
 import { BranchDecorations } from '../views/BranchDecorations';
 import { CompareView } from '../views/compareView';
 import { PullPanel } from '../webview/PullPanel';
+import { RemotesPanel } from '../webview/RemotesPanel';
 import { RepoDecorations } from '../views/RepoDecorations';
 import { RepositoriesView } from '../views/RepositoriesView';
 import { StatusBar } from '../views/StatusBar';
@@ -35,6 +36,7 @@ export function registerRepositories(core: Core, compareView: CompareView): { tr
     vscode.commands.registerCommand('multigit.createPullRequests.forRepos', (repos: readonly Repo[]) =>
       popup.safely(() => createPullRequests(manager, (r) => core.openPush(r), repos.length ? repos : undefined)),
     ),
+    vscode.commands.registerCommand('multigit.manageRemotes', () => popup.safely(() => RemotesPanel.open(core.context.extensionUri, manager))),
     vscode.commands.registerCommand('multigit.newRepoGroup', () => popup.safely(() => newRepoGroup(manager))),
     view,
     decorations,

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.0
+
+- **Administrar remotos** (como *Manage Remotes* de IntelliJ; menú ⋯ de Repositorios, clic derecho en un
+  repo o *MultiGit: Administrar remotos…*): ventana con cada repo y sus remotos con la URL. **＋** añade un
+  remoto, **−** lo quita (con confirmación) y **✎** o doble clic cambia su nombre y URL. Además, **Añadir a
+  todos los repositorios…** añade el mismo remoto a todos con una plantilla de URL (`{repo}` se cambia
+  por el nombre de cada repo; se propone a partir de la URL de origin).
+
 ## 0.15.1
 
 - Selector de opciones de merge: descripciones más claras junto a cada opción (`--no-ff`: crear siempre

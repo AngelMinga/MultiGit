@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.15.1",
+  "version": "0.16.0",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -813,6 +813,12 @@
         "category": "MultiGit",
         "icon": "$(debug-stop)",
         "enablement": "multigit.operationInProgress"
+      },
+      {
+        "command": "multigit.manageRemotes",
+        "title": "%command.manageRemotes%",
+        "category": "MultiGit",
+        "icon": "$(remote)"
       }
     ],
     "menus": {
@@ -1026,6 +1032,11 @@
           "command": "multigit.createPullRequests",
           "when": "view == multigit.repositories",
           "group": "2_remote@9"
+        },
+        {
+          "command": "multigit.manageRemotes",
+          "when": "view == multigit.repositories",
+          "group": "2_remote@8"
         }
       ],
       "view/item/context": [
@@ -1298,6 +1309,11 @@
           "command": "multigit.createPullRequests",
           "when": "view == multigit.repositories",
           "group": "2_remote@9"
+        },
+        {
+          "command": "multigit.manageRemotes",
+          "when": "view == multigit.repositories",
+          "group": "2_remote@8"
         }
       ],
       "commandPalette": [
