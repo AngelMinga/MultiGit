@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -757,6 +757,48 @@
         "title": "%command.resolveConflicts%",
         "category": "MultiGit",
         "icon": "$(git-merge)"
+      },
+      {
+        "command": "multigit.merge.prevConflict",
+        "title": "%command.merge.prevConflict%",
+        "category": "MultiGit",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "multigit.merge.nextConflict",
+        "title": "%command.merge.nextConflict%",
+        "category": "MultiGit",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "multigit.merge.acceptLeft",
+        "title": "%command.merge.acceptLeft%",
+        "category": "MultiGit",
+        "icon": "$(arrow-right)"
+      },
+      {
+        "command": "multigit.merge.acceptRight",
+        "title": "%command.merge.acceptRight%",
+        "category": "MultiGit",
+        "icon": "$(arrow-left)"
+      },
+      {
+        "command": "multigit.merge.resolveSimple",
+        "title": "%command.merge.resolveSimple%",
+        "category": "MultiGit",
+        "icon": "$(wand)"
+      },
+      {
+        "command": "multigit.merge.reset",
+        "title": "%command.merge.reset%",
+        "category": "MultiGit",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "multigit.merge.complete",
+        "title": "%command.merge.complete%",
+        "category": "MultiGit",
+        "icon": "$(check)"
       }
     ],
     "menus": {
@@ -1580,6 +1622,34 @@
         {
           "command": "multigit.changes.toggleShowIgnored.on",
           "when": "false"
+        },
+        {
+          "command": "multigit.merge.prevConflict",
+          "when": "isMergeEditor"
+        },
+        {
+          "command": "multigit.merge.nextConflict",
+          "when": "isMergeEditor"
+        },
+        {
+          "command": "multigit.merge.acceptLeft",
+          "when": "isMergeEditor"
+        },
+        {
+          "command": "multigit.merge.acceptRight",
+          "when": "isMergeEditor"
+        },
+        {
+          "command": "multigit.merge.resolveSimple",
+          "when": "isMergeEditor"
+        },
+        {
+          "command": "multigit.merge.reset",
+          "when": "isMergeEditor"
+        },
+        {
+          "command": "multigit.merge.complete",
+          "when": "isMergeEditor"
         }
       ],
       "multigit.changes.groupBy": [
@@ -1840,6 +1910,43 @@
           "command": "multigit.changes.toggleShowIgnored.on",
           "group": "2@1",
           "when": "multigit.changesShowIgnored"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "multigit.merge.prevConflict",
+          "when": "isMergeEditor",
+          "group": "navigation@1"
+        },
+        {
+          "command": "multigit.merge.nextConflict",
+          "when": "isMergeEditor",
+          "group": "navigation@2"
+        },
+        {
+          "command": "multigit.merge.acceptLeft",
+          "when": "isMergeEditor",
+          "group": "navigation@3"
+        },
+        {
+          "command": "multigit.merge.acceptRight",
+          "when": "isMergeEditor",
+          "group": "navigation@4"
+        },
+        {
+          "command": "multigit.merge.resolveSimple",
+          "when": "isMergeEditor",
+          "group": "navigation@5"
+        },
+        {
+          "command": "multigit.merge.reset",
+          "when": "isMergeEditor",
+          "group": "navigation@6"
+        },
+        {
+          "command": "multigit.merge.complete",
+          "when": "isMergeEditor",
+          "group": "navigation@7"
         }
       ]
     },
@@ -2315,6 +2422,16 @@
         "key": "delete",
         "mac": "cmd+backspace",
         "when": "focusedView == multigit.changes"
+      },
+      {
+        "command": "multigit.merge.nextConflict",
+        "key": "f7",
+        "when": "isMergeEditor"
+      },
+      {
+        "command": "multigit.merge.prevConflict",
+        "key": "shift+f7",
+        "when": "isMergeEditor"
       }
     ],
     "submenus": [

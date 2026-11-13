@@ -194,5 +194,12 @@
   "setting.mergeEditorLayout": "Layout of the merge editor when MultiGit opens a conflict.",
   "setting.mergeEditorLayout.columns": "Three columns side by side with the result in the middle, like IntelliJ (Incoming | Result | Current).",
   "setting.mergeEditorLayout.mixed": "VS Code default: Incoming and Current on top, Result below.",
-  "setting.mergeEditorLayout.keep": "Do not change it (VS Code remembers the last one used)."
+  "setting.mergeEditorLayout.keep": "Do not change it (VS Code remembers the last one used).",
+  "command.merge.prevConflict": "Previous Conflict",
+  "command.merge.nextConflict": "Next Conflict",
+  "command.merge.acceptLeft": "Accept Left: all changes from Incoming",
+  "command.merge.acceptRight": "Accept Right: all changes from Current",
+  "command.merge.resolveSimple": "Resolve Simple Conflicts (combine both sides where possible)",
+  "command.merge.reset": "Reset Result (apply only the non-conflicting changes)",
+  "command.merge.complete": "Apply Changes (Complete Merge)"
 }

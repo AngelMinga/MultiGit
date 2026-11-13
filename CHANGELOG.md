@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.2
+
+- **Botones del merge editor como IntelliJ** (barra superior, solo en el merge editor): conflicto
+  anterior / siguiente (**Shift+F7** / **F7**), **Aceptar izquierda** / **Aceptar derecha** (todos los
+  cambios de ese lado), **Resolver conflictos simples** (varita: combina los dos lados donde se puede),
+  **Restablecer el resultado** y **Aplicar cambios** (Complete Merge).
+
 ## 0.10.1
 
 - El merge editor se abre en **columnas** como IntelliJ: Incoming | **Result** | Current, con el

@@ -79,6 +79,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
   setConflictsOpener((repo) => ConflictsPanel.open(repo));
   core.track(vscode.commands.registerCommand('multigit.resolveConflicts', () => ConflictsPanel.open()));
 
+  // Botones del merge editor como la ventana de IntelliJ (↑↓ conflictos, Accept Left/Right, varita,
+  // Apply Changes): cada uno ejecuta la acción equivalente del merge editor de VS Code.
+  for (const [id, builtin] of [
+    ['prevConflict', 'merge.goToPreviousUnhandledConflict'],
+    ['nextConflict', 'merge.goToNextUnhandledConflict'],
+    ['acceptLeft', 'merge.acceptAllInput1'],
+    ['acceptRight', 'merge.acceptAllInput2'],
+    ['resolveSimple', 'mergeEditor.acceptAllCombination'],
+    ['reset', 'mergeEditor.resetResultToBaseAndAutoMerge'],
+    ['complete', 'mergeEditor.acceptMerge'],
+  ] as const) {
+    core.track(vscode.commands.registerCommand(`multigit.merge.${id}`, () => vscode.commands.executeCommand(builtin)));
+  }
+
   // Opciones de los menús ⋯ con estado: cada una tiene una versión "✓ …" (que se muestra cuando está
   // activa) que ejecuta la misma. Así el estado se ve también en los menús nativos de macOS, que no
   // dibujan el ✓ de `toggled`.
