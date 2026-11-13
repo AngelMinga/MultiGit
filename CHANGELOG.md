@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.2
+
+- **Pull como IntelliJ**: un solo diálogo `[repositorio ▾] git pull [remote ▾] [rama ▾]` con el modo
+  (Merge / Rebase / --ff-only). La rama se elige en una lista con búsqueda (upstream y en cuántos
+  repos existe); con *Todos los repositorios* se puede usar el upstream de cada repo. Reemplaza los
+  pasos encadenados.
+
 ## 0.9.1
 
 - **Push Commits como IntelliJ**: cada repo con sus commits debajo, en el mismo árbol (desplegados

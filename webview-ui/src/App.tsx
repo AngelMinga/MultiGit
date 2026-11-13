@@ -7,6 +7,7 @@ import { PushDialog } from './push/PushDialog';
 import { RollbackDialog } from './rollback/RollbackDialog';
 import { HunksDialog } from './hunks/HunksDialog';
 import { RebaseDialog } from './rebase/RebaseDialog';
+import { PullDialog } from './pull/PullDialog';
 import { onHostMessage, post } from './vscode';
 import { t } from './i18n';
 
@@ -35,7 +36,7 @@ export function App() {
           </button>
         </div>
       )}
-      {kind === 'push' ? <PushDialog /> : kind === 'commit' ? <CommitBox /> : kind === 'log' ? <LogApp /> : kind === 'toolbar' ? <Toolbar /> : kind === 'rollback' ? <RollbackDialog /> : kind === 'hunks' ? <HunksDialog /> : kind === 'rebase' ? <RebaseDialog /> : <p className="muted pad">{t('Loading…')}</p>}
+      {kind === 'push' ? <PushDialog /> : kind === 'commit' ? <CommitBox /> : kind === 'log' ? <LogApp /> : kind === 'toolbar' ? <Toolbar /> : kind === 'rollback' ? <RollbackDialog /> : kind === 'hunks' ? <HunksDialog /> : kind === 'rebase' ? <RebaseDialog /> : kind === 'pull' ? <PullDialog /> : <p className="muted pad">{t('Loading…')}</p>}
     </>
   );
 }

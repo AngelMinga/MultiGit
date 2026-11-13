@@ -267,6 +267,19 @@ describe('Rebase interactivo', () => {
   });
 });
 
+describe('Pull', () => {
+  it('Pull… abre el diálogo de una línea (repositorio · remote · rama)', async () => {
+    await vscode.commands.executeCommand('multigit.pull');
+    let tab: vscode.Tab | undefined;
+    for (let i = 0; i < 40 && !tab; i++) {
+      await new Promise((r) => setTimeout(r, 50));
+      tab = vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((x) => x.input instanceof vscode.TabInputWebview && /^Pull/.test(x.label));
+    }
+    assert.ok(tab, 'pestaña de Pull');
+    await vscode.window.tabGroups.close(tab);
+  });
+});
+
 describe('package.json', () => {
   it('ningún submenú aparece dos veces en el mismo menú (VS Code descarta el segundo)', () => {
     const menus = vscode.extensions.getExtension('angelminga.multigit')!.packageJSON.contributes.menus as Record<

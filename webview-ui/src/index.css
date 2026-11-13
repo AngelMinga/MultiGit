@@ -1241,3 +1241,92 @@ button.claude-btn.running {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ------------------------------------------------------------ Pull */
+
+.pull {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+  max-width: 900px;
+}
+.pull-title {
+  margin: 0;
+  font-size: 1.15em;
+  font-weight: 600;
+}
+.pull-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pull-row select {
+  min-width: 140px;
+}
+.pull-cmd {
+  font-family: var(--vscode-editor-font-family);
+}
+.combo {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+}
+.combo input {
+  flex: 1;
+  padding-right: 22px;
+}
+.combo.invalid input {
+  border-color: var(--vscode-inputValidation-errorBorder);
+}
+.combo-caret {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--vscode-foreground);
+  padding: 0 4px;
+}
+.combo-list {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  max-height: 320px;
+  overflow: auto;
+  margin: 0;
+  padding: 2px 0;
+  list-style: none;
+  background: var(--vscode-dropdown-background, var(--vscode-menu-background));
+  border: 1px solid var(--vscode-dropdown-border, var(--vscode-panel-border));
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+}
+.combo-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.combo-list li.active {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+.combo-list li.current {
+  font-weight: 600;
+}
+.pull-options {
+  display: flex;
+  gap: 16px;
+}
+.pull-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

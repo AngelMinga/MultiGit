@@ -5,7 +5,7 @@ import { GitContentProvider } from '../git/GitContentProvider';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import { BranchDecorations } from '../views/BranchDecorations';
 import { CompareView } from '../views/compareView';
-import { showPullDialog } from '../views/pullDialog';
+import { PullPanel } from '../webview/PullPanel';
 import { RepoDecorations } from '../views/RepoDecorations';
 import { RepositoriesView } from '../views/RepositoriesView';
 import { StatusBar } from '../views/StatusBar';
@@ -47,7 +47,7 @@ export function registerRepositories(core: Core, compareView: CompareView): { tr
     new StatusBar(manager),
     new AutoFetcher(manager, log),
     vscode.commands.registerCommand('multigit.push', (repo?: Repo) => core.openPush(repo ? [repo] : undefined)),
-    vscode.commands.registerCommand('multigit.pull', (repo?: Repo) => showPullDialog(manager, repo)),
+    vscode.commands.registerCommand('multigit.pull', (repo?: Repo) => popup.safely(() => PullPanel.open(core.context.extensionUri, manager, repo))),
     vscode.commands.registerCommand('multigit.refresh', () =>
       vscode.window.withProgress(
         { location: { viewId: 'multigit.repositories' }, title: t('Refreshing repositories…') },

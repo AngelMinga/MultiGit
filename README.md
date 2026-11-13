@@ -94,8 +94,8 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
   en un commit → sus archivos (doble clic → diff). *Solo con commits*, *Edit all targets*,
   *Push tags*, **Force push (with lease)** con confirmación y **Pull y reintentar** si el remote
   rechaza el push.
-- **Pull…**: Repositorio (o Todos) → Remote → Rama (por defecto el upstream) → Merge / Rebase /
-  `--ff-only`. Si quedan conflictos, **Resolver conflictos** abre el merge editor.
+- **Pull…**: como IntelliJ, en una línea `[repositorio ▾] git pull [remote ▾] [rama ▾]` (la rama con
+  búsqueda; por defecto el upstream) y Merge / Rebase / `--ff-only`. Si quedan conflictos, **Resolver conflictos** abre el merge editor.
 - **Crear pull requests…** (menú ⋯ de Repositorios, clic derecho en un repo o el popup de una rama):
   un PR por repo hacia la misma rama destino (las ramas por defecto de los remotos y las favoritas),
   solo en los repos con commits para integrar, con el mismo título y descripción. En **GitHub** se

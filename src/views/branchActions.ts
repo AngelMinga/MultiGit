@@ -9,7 +9,6 @@ import { errorText, runInRepos } from '../git/MultiRepoRunner';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import { GitContentProvider } from '../git/GitContentProvider';
 import type { CompareView } from './compareView';
-import { showPullDialog } from './pullDialog';
 import { resolveConflicts } from './conflicts';
 import { t } from '../i18n';
 
@@ -64,9 +63,9 @@ export class BranchActions {
     });
   }
 
-  /** Pull…: diálogo Repositorio → Remote → Rama → Modo (con el repo ya elegido si el alcance es uno). */
+  /** Pull…: diálogo como IntelliJ (con el repo ya elegido si el alcance es uno). */
   async pull(scope: Scope): Promise<void> {
-    await showPullDialog(this.manager, scope.repos.length === 1 ? scope.repos[0] : undefined);
+    await vscode.commands.executeCommand('multigit.pull', scope.repos.length === 1 ? scope.repos[0] : undefined);
   }
 
   /** Commit…: enfoca la caja de commit de MultiGit. */

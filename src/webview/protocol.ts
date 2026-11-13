@@ -6,7 +6,7 @@ import type { LogFilters, RefLabel } from '../git/log';
 export type { LogFilters, RefLabel };
 
 /** Paneles webview que existen (el log llega en la Fase 6). */
-export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks' | 'rebase';
+export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks' | 'rebase' | 'pull';
 
 // ------------------------------------------------------------------ Push
 
@@ -82,6 +82,36 @@ export interface HunksState {
   /** Aviso (p. ej. la selección anterior ya no valía porque el archivo cambió). */
   notice?: string;
 }
+
+// ------------------------------------------------------------------ Pull
+
+export interface PullBranchView {
+  /** Rama en el remote, sin el remote: `develop`. */
+  name: string;
+  /** Repos donde existe. */
+  exists: number;
+  /** Repos cuya rama actual la tiene de upstream. */
+  upstream: number;
+}
+
+export interface PullScopeView {
+  /** `*` = todos los repos; si no, la raíz del repo. */
+  id: string;
+  label: string;
+  /** Repos del alcance. */
+  total: number;
+  /** Rama actual (la común, o null si difieren). */
+  branch: string | null;
+  remotes: Array<{ name: string; branches: PullBranchView[]; /** Upstream común de todos, si lo hay. */ common: string | null }>;
+}
+
+export interface PullState {
+  scopes: PullScopeView[];
+  initialScope: string;
+  busy: boolean;
+}
+
+export type PullModeName = 'merge' | 'rebase' | 'ff-only';
 
 // ------------------------------------------------------------------ Rebase interactivo
 
@@ -222,6 +252,7 @@ export type HostMessage =
   | { type: 'rollback/state'; payload: RollbackState }
   | { type: 'hunks/state'; payload: HunksState }
   | { type: 'rebase/state'; payload: RebaseState }
+  | { type: 'pull/state'; payload: PullState }
   | { type: 'commit/state'; payload: CommitState }
   | { type: 'commit/setMessage'; payload: { message: string } }
   | { type: 'commit/done'; payload: Record<string, never> }
@@ -259,6 +290,8 @@ export type WebviewMessage =
   | { type: 'hunks/close'; payload: Record<string, never> }
   | { type: 'rebase/start'; payload: { entries: Array<{ hash: string; action: RebaseActionName; message?: string }> } }
   | { type: 'rebase/close'; payload: Record<string, never> }
+  | { type: 'pull/run'; payload: { scopeId: string; remote: string; /** null = el upstream de cada repo. */ branch: string | null; mode: PullModeName } }
+  | { type: 'pull/close'; payload: Record<string, never> }
   | { type: 'commit/run'; payload: { message: string; amend: boolean; push: boolean } }
   | { type: 'commit/requestLastMessage'; payload: Record<string, never> }
   | { type: 'commit/generate'; payload: { current: string } }
