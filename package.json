@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -248,14 +248,12 @@
       {
         "command": "multigit.changes.toggleGroupByRepo",
         "title": "%command.changes.toggleGroupByRepo%",
-        "category": "MultiGit",
-        "toggled": "multigit.changesGroupByRepo"
+        "category": "MultiGit"
       },
       {
         "command": "multigit.changes.toggleGroupByDir",
         "title": "%command.changes.toggleGroupByDir%",
-        "category": "MultiGit",
-        "toggled": "multigit.changesGroupByDir"
+        "category": "MultiGit"
       },
       {
         "command": "multigit.openGitLog",
@@ -508,38 +506,32 @@
       {
         "command": "multigit.branches.click.actions",
         "title": "%command.branches.click.actions%",
-        "category": "MultiGit",
-        "toggled": "multigit.branches.clickMode == actions"
+        "category": "MultiGit"
       },
       {
         "command": "multigit.branches.click.filter",
         "title": "%command.branches.click.filter%",
-        "category": "MultiGit",
-        "toggled": "multigit.branches.clickMode == filter"
+        "category": "MultiGit"
       },
       {
         "command": "multigit.branches.click.navigate",
         "title": "%command.branches.click.navigate%",
-        "category": "MultiGit",
-        "toggled": "multigit.branches.clickMode == navigate"
+        "category": "MultiGit"
       },
       {
         "command": "multigit.branches.toggleByDir",
         "title": "%command.branches.toggleByDir%",
-        "category": "MultiGit",
-        "toggled": "multigit.branches.byDir"
+        "category": "MultiGit"
       },
       {
         "command": "multigit.branches.toggleByRepo",
         "title": "%command.branches.toggleByRepo%",
-        "category": "MultiGit",
-        "toggled": "multigit.branches.byRepo"
+        "category": "MultiGit"
       },
       {
         "command": "multigit.branches.toggleTags",
         "title": "%command.branches.toggleTags%",
-        "category": "MultiGit",
-        "toggled": "multigit.branches.showTags"
+        "category": "MultiGit"
       },
       {
         "command": "multigit.branchesTree.navigateLog",
@@ -555,14 +547,12 @@
       {
         "command": "multigit.changes.toggleGroupByModule",
         "title": "%command.changes.toggleGroupByModule%",
-        "category": "MultiGit",
-        "toggled": "multigit.changesGroupByModule"
+        "category": "MultiGit"
       },
       {
         "command": "multigit.changes.toggleShowIgnored",
         "title": "%command.changes.toggleShowIgnored%",
-        "category": "MultiGit",
-        "toggled": "multigit.changesShowIgnored"
+        "category": "MultiGit"
       },
       {
         "command": "multigit.operation.menu",
@@ -711,6 +701,56 @@
         "command": "multigit.createPullRequests.forRepos",
         "title": "%command.createPullRequests%",
         "category": "MultiGit"
+      },
+      {
+        "command": "multigit.changes.toggleGroupByRepo.on",
+        "title": "%command.changes.toggleGroupByRepo.on%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.changes.toggleGroupByDir.on",
+        "title": "%command.changes.toggleGroupByDir.on%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branches.click.actions.on",
+        "title": "%command.branches.click.actions.on%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branches.click.filter.on",
+        "title": "%command.branches.click.filter.on%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branches.click.navigate.on",
+        "title": "%command.branches.click.navigate.on%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branches.toggleByDir.on",
+        "title": "%command.branches.toggleByDir.on%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branches.toggleByRepo.on",
+        "title": "%command.branches.toggleByRepo.on%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branches.toggleTags.on",
+        "title": "%command.branches.toggleTags.on%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.changes.toggleGroupByModule.on",
+        "title": "%command.changes.toggleGroupByModule.on%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.changes.toggleShowIgnored.on",
+        "title": "%command.changes.toggleShowIgnored.on%",
+        "category": "MultiGit"
       }
     ],
     "menus": {
@@ -802,32 +842,62 @@
         },
         {
           "command": "multigit.branches.click.actions",
-          "when": "view == multigit.branches",
+          "when": "view == multigit.branches && multigit.branches.clickMode != actions",
+          "group": "1_click@1"
+        },
+        {
+          "command": "multigit.branches.click.actions.on",
+          "when": "view == multigit.branches && multigit.branches.clickMode == actions",
           "group": "1_click@1"
         },
         {
           "command": "multigit.branches.click.filter",
-          "when": "view == multigit.branches",
+          "when": "view == multigit.branches && multigit.branches.clickMode != filter",
+          "group": "1_click@2"
+        },
+        {
+          "command": "multigit.branches.click.filter.on",
+          "when": "view == multigit.branches && multigit.branches.clickMode == filter",
           "group": "1_click@2"
         },
         {
           "command": "multigit.branches.click.navigate",
-          "when": "view == multigit.branches",
+          "when": "view == multigit.branches && multigit.branches.clickMode != navigate",
+          "group": "1_click@3"
+        },
+        {
+          "command": "multigit.branches.click.navigate.on",
+          "when": "view == multigit.branches && multigit.branches.clickMode == navigate",
           "group": "1_click@3"
         },
         {
           "command": "multigit.branches.toggleByDir",
-          "when": "view == multigit.branches",
+          "when": "view == multigit.branches && !multigit.branches.byDir",
+          "group": "2_group@1"
+        },
+        {
+          "command": "multigit.branches.toggleByDir.on",
+          "when": "view == multigit.branches && multigit.branches.byDir",
           "group": "2_group@1"
         },
         {
           "command": "multigit.branches.toggleByRepo",
-          "when": "view == multigit.branches",
+          "when": "view == multigit.branches && !multigit.branches.byRepo",
+          "group": "2_group@2"
+        },
+        {
+          "command": "multigit.branches.toggleByRepo.on",
+          "when": "view == multigit.branches && multigit.branches.byRepo",
           "group": "2_group@2"
         },
         {
           "command": "multigit.branches.toggleTags",
-          "when": "view == multigit.branches",
+          "when": "view == multigit.branches && !multigit.branches.showTags",
+          "group": "3_tags@1"
+        },
+        {
+          "command": "multigit.branches.toggleTags.on",
+          "when": "view == multigit.branches && multigit.branches.showTags",
           "group": "3_tags@1"
         },
         {
@@ -837,7 +907,12 @@
         },
         {
           "command": "multigit.changes.toggleShowIgnored",
-          "when": "view == multigit.changes",
+          "when": "view == multigit.changes && !multigit.changesShowIgnored",
+          "group": "0_group@2"
+        },
+        {
+          "command": "multigit.changes.toggleShowIgnored.on",
+          "when": "view == multigit.changes && multigit.changesShowIgnored",
           "group": "0_group@2"
         },
         {
@@ -1459,24 +1534,88 @@
         {
           "command": "multigit.createPullRequests.forRepos",
           "when": "false"
+        },
+        {
+          "command": "multigit.changes.toggleGroupByRepo.on",
+          "when": "false"
+        },
+        {
+          "command": "multigit.changes.toggleGroupByDir.on",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branches.click.actions.on",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branches.click.filter.on",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branches.click.navigate.on",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branches.toggleByDir.on",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branches.toggleByRepo.on",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branches.toggleTags.on",
+          "when": "false"
+        },
+        {
+          "command": "multigit.changes.toggleGroupByModule.on",
+          "when": "false"
+        },
+        {
+          "command": "multigit.changes.toggleShowIgnored.on",
+          "when": "false"
         }
       ],
       "multigit.changes.groupBy": [
         {
           "command": "multigit.changes.toggleGroupByDir",
-          "group": "1@1"
+          "group": "1@1",
+          "when": "!multigit.changesGroupByDir"
+        },
+        {
+          "command": "multigit.changes.toggleGroupByDir.on",
+          "group": "1@1",
+          "when": "multigit.changesGroupByDir"
         },
         {
           "command": "multigit.changes.toggleGroupByRepo",
-          "group": "1@2"
+          "group": "1@2",
+          "when": "!multigit.changesGroupByRepo"
+        },
+        {
+          "command": "multigit.changes.toggleGroupByRepo.on",
+          "group": "1@2",
+          "when": "multigit.changesGroupByRepo"
         },
         {
           "command": "multigit.changes.toggleGroupByModule",
-          "group": "1@3"
+          "group": "1@3",
+          "when": "!multigit.changesGroupByModule"
+        },
+        {
+          "command": "multigit.changes.toggleGroupByModule.on",
+          "group": "1@3",
+          "when": "multigit.changesGroupByModule"
         },
         {
           "command": "multigit.changes.toggleShowIgnored",
-          "group": "2@1"
+          "group": "2@1",
+          "when": "!multigit.changesShowIgnored"
+        },
+        {
+          "command": "multigit.changes.toggleShowIgnored.on",
+          "group": "2@1",
+          "when": "multigit.changesShowIgnored"
         }
       ],
       "multigit.changes.ignoreMenu": [
@@ -1658,19 +1797,43 @@
       "multigit.changes.groupByMore": [
         {
           "command": "multigit.changes.toggleGroupByDir",
-          "group": "1@1"
+          "group": "1@1",
+          "when": "!multigit.changesGroupByDir"
+        },
+        {
+          "command": "multigit.changes.toggleGroupByDir.on",
+          "group": "1@1",
+          "when": "multigit.changesGroupByDir"
         },
         {
           "command": "multigit.changes.toggleGroupByRepo",
-          "group": "1@2"
+          "group": "1@2",
+          "when": "!multigit.changesGroupByRepo"
+        },
+        {
+          "command": "multigit.changes.toggleGroupByRepo.on",
+          "group": "1@2",
+          "when": "multigit.changesGroupByRepo"
         },
         {
           "command": "multigit.changes.toggleGroupByModule",
-          "group": "1@3"
+          "group": "1@3",
+          "when": "!multigit.changesGroupByModule"
+        },
+        {
+          "command": "multigit.changes.toggleGroupByModule.on",
+          "group": "1@3",
+          "when": "multigit.changesGroupByModule"
         },
         {
           "command": "multigit.changes.toggleShowIgnored",
-          "group": "2@1"
+          "group": "2@1",
+          "when": "!multigit.changesShowIgnored"
+        },
+        {
+          "command": "multigit.changes.toggleShowIgnored.on",
+          "group": "2@1",
+          "when": "multigit.changesShowIgnored"
         }
       ]
     },

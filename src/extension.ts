@@ -72,6 +72,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
   registerOperations(core, repositories.treeView);
   registerToolbar(core);
 
+  // Opciones de los menús ⋯ con estado: cada una tiene una versión "✓ …" (que se muestra cuando está
+  // activa) que ejecuta la misma. Así el estado se ve también en los menús nativos de macOS, que no
+  // dibujan el ✓ de `toggled`.
+  for (const { command } of context.extension.packageJSON.contributes.commands as Array<{ command: string }>) {
+    if (command.endsWith('.on')) {
+      core.track(vscode.commands.registerCommand(command, (...args: unknown[]) => vscode.commands.executeCommand(command.slice(0, -3), ...args)));
+    }
+  }
+
   log.info('MultiGit activado.');
   void revealNewViewsOnce(context, log);
   try {

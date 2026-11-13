@@ -179,5 +179,15 @@
   "command.createPullRequests": "Create Pull Requests…",
   "setting.pullRequests.useGitHubApi": "Create the GitHub (github.com) pull requests directly through the API, with the GitHub account signed in to VS Code. If disabled, the creation page opens in the browser, like for the other services.",
   "setting.pullRequests.draft": "Create the GitHub pull requests as drafts.",
-  "setting.pullRequests.providers": "Service of your own Git servers, by host: e.g. `{ \"git.company.com\": \"gitlab\" }`. MultiGit asks the first time and saves the answer here."
+  "setting.pullRequests.providers": "Service of your own Git servers, by host: e.g. `{ \"git.company.com\": \"gitlab\" }`. MultiGit asks the first time and saves the answer here.",
+  "command.changes.toggleGroupByRepo.on": "✓ Repository",
+  "command.changes.toggleGroupByDir.on": "✓ Directory",
+  "command.branches.click.actions.on": "✓ Show Actions",
+  "command.branches.click.filter.on": "✓ Update Branch Filter",
+  "command.branches.click.navigate.on": "✓ Navigate Log to Branch Head",
+  "command.branches.toggleByDir.on": "✓ Group by Directory",
+  "command.branches.toggleByRepo.on": "✓ Group by Repository",
+  "command.branches.toggleTags.on": "✓ Show Tags",
+  "command.changes.toggleGroupByModule.on": "✓ Module",
+  "command.changes.toggleShowIgnored.on": "✓ Show Ignored Files"
 }

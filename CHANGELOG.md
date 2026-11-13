@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.5
+
+- Menús ⋯ de Ramas y Changes: las opciones activas se ven con **✓** en el propio texto (On Single
+  Click, Group by…, Show Tags, Show Ignored Files). Los menús nativos de macOS no dibujaban el ✓.
+
 ## 0.9.4
 
 - Git Log: en el detalle de un merge, los grupos de archivos (y sus carpetas) empiezan plegados; se
