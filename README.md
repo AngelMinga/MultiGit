@@ -184,6 +184,7 @@ Para usarlos en todas partes, cámbialos en *Preferences → Keyboard Shortcuts*
 | `multigit.warnBranchMismatch` | `true` | Avisar cuando algún repo queda en otra rama que la mayoría. |
 | `multigit.commit.ticketPattern` | `[A-Z][A-Z0-9]+-\d+` | Regex que saca el ticket del nombre de la rama (`feature/ABC-123-login` → `ABC-123`). Vacío: sin ticket. |
 | `multigit.pullRequests.*` | — | `useGitHubApi` (`true`), `draft` (`false`) y `providers` (servicio de tus servidores Git propios por host, p. ej. `{ "git.empresa.com": "gitlab" }`). |
+| `multigit.mergeEditorLayout` | `columns` | Merge editor en tres columnas con el resultado en el centro, como IntelliJ (`mixed` = el de VS Code, `keep` = no tocarlo). |
 | `multigit.repoGroups` | `{}` | Grupos de repos: nombre → repos (admite `*`). |
 | `multigit.commitChecks.*` | activadas | Comprobaciones antes del commit: `enabled`, `diagnostics` (`off`/`errors`/`warnings`), `todo`, `conflictMarkers`, `secrets`, `largeFileMB` (`5`; `0` = no). |
 | `multigit.commit.ticketTemplate` | `{ticket} {message}` | Dónde va el ticket en el mensaje (`{ticket}`, `{branch}`, `{message}`). Vacío: desactivado. |

@@ -190,5 +190,9 @@
   "command.branches.toggleTags.on": "✓ Show Tags",
   "command.changes.toggleGroupByModule.on": "✓ Module",
   "command.changes.toggleShowIgnored.on": "✓ Show Ignored Files",
-  "command.resolveConflicts": "Resolver conflictos…"
+  "command.resolveConflicts": "Resolver conflictos…",
+  "setting.mergeEditorLayout": "Disposición del merge editor cuando MultiGit abre un conflicto.",
+  "setting.mergeEditorLayout.columns": "Tres columnas seguidas con el resultado en el centro, como IntelliJ (Incoming | Result | Current).",
+  "setting.mergeEditorLayout.mixed": "La de VS Code por defecto: Incoming y Current arriba, Result abajo.",
+  "setting.mergeEditorLayout.keep": "No cambiarla (VS Code recuerda la última que usaste)."
 }

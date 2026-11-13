@@ -29,6 +29,9 @@ export async function resolveConflicts(repo: Repo, files: readonly string[]): Pr
 export async function openMergeEditor(uri: vscode.Uri): Promise<void> {
   try {
     await vscode.commands.executeCommand('git.openMergeEditor', uri);
+    // Como IntelliJ: las tres columnas seguidas, con el resultado en el centro (Incoming | Result | Current).
+    const layout = vscode.workspace.getConfiguration('multigit').get<string>('mergeEditorLayout', 'columns');
+    if (layout !== 'keep') await vscode.commands.executeCommand(layout === 'mixed' ? 'merge.mixedLayout' : 'merge.columnLayout').then(undefined, () => undefined);
   } catch {
     await vscode.commands.executeCommand('vscode.open', uri);
     await vscode.commands.executeCommand('workbench.view.scm');

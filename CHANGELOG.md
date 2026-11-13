@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.1
+
+- El merge editor se abre en **columnas** como IntelliJ: Incoming | **Result** | Current, con el
+  resultado en el centro (`multigit.mergeEditorLayout`: `columns`, `mixed` o `keep`).
+
 ## 0.10.0
 
 - **Diálogo Conflicts como IntelliJ**: tras un pull, merge, rebase, cherry-pick o Smart Checkout con

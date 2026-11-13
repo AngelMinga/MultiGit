@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -2111,6 +2111,22 @@
           },
           "order": 32,
           "markdownDescription": "%setting.pullRequests.providers%"
+        },
+        "multigit.mergeEditorLayout": {
+          "type": "string",
+          "enum": [
+            "columns",
+            "mixed",
+            "keep"
+          ],
+          "enumDescriptions": [
+            "%setting.mergeEditorLayout.columns%",
+            "%setting.mergeEditorLayout.mixed%",
+            "%setting.mergeEditorLayout.keep%"
+          ],
+          "default": "columns",
+          "order": 33,
+          "markdownDescription": "%setting.mergeEditorLayout%"
         }
       }
     },
