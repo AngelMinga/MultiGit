@@ -136,6 +136,10 @@ input[type='checkbox'] {
   gap: 8px;
   padding: 6px 12px;
 }
+.banner.warning {
+  background: var(--vscode-inputValidation-warningBackground);
+  border-bottom: 1px solid var(--vscode-inputValidation-warningBorder);
+}
 .banner.error {
   background: var(--vscode-inputValidation-errorBackground);
   border-bottom: 1px solid var(--vscode-inputValidation-errorBorder);
@@ -1006,4 +1010,90 @@ button.claude-btn.running {
 }
 .check.disabled {
   opacity: 0.6;
+}
+
+/* ------------------------------------------------------------ Select Changes (commit parcial) */
+
+.hunks {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.hk-toolbar {
+  gap: 8px;
+  border-bottom: 1px solid var(--vscode-panel-border, transparent);
+}
+.hk-file {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hk-body {
+  flex: 1;
+  overflow: auto;
+  padding: 6px 0;
+}
+.hk-hunk {
+  margin: 0 12px 12px;
+  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  border-radius: 4px;
+  overflow: hidden;
+}
+.hk-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--vscode-sideBarSectionHeader-background, rgba(128, 128, 128, 0.12));
+  cursor: pointer;
+}
+.hk-lines {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
+}
+.hk-row td {
+  padding: 0 6px;
+  vertical-align: top;
+  line-height: 1.5;
+}
+.hk-del,
+.hk-add {
+  cursor: pointer;
+}
+.hk-del {
+  background: var(--vscode-diffEditor-removedLineBackground, rgba(255, 0, 0, 0.15));
+}
+.hk-add {
+  background: var(--vscode-diffEditor-insertedLineBackground, rgba(0, 255, 0, 0.12));
+}
+.hk-off {
+  opacity: 0.45;
+}
+.hk-off .hk-text {
+  text-decoration: line-through;
+}
+.hk-check {
+  width: 20px;
+}
+.hk-check input {
+  margin: 0;
+  vertical-align: middle;
+}
+.hk-no {
+  width: 1%;
+  text-align: right;
+  color: var(--vscode-editorLineNumber-foreground);
+  user-select: none;
+  white-space: nowrap;
+}
+.hk-sign {
+  width: 12px;
+  user-select: none;
+}
+.hk-text {
+  white-space: pre;
+  tab-size: 4;
 }

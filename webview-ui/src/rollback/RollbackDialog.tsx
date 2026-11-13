@@ -175,7 +175,7 @@ export function RollbackDialog() {
   );
 }
 
-function TriCheckbox(props: { checked: boolean; indeterminate: boolean; disabled?: boolean; label: string; onChange: (on: boolean) => void }) {
+export function TriCheckbox(props: { checked: boolean; indeterminate: boolean; disabled?: boolean; label: string; onChange: (on: boolean) => void }) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (ref.current) ref.current.indeterminate = props.indeterminate;

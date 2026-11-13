@@ -18,6 +18,9 @@ for base in sys.argv[1:]:
                     continue
                 code = re.sub(r"\bt\((`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*')", 't(<>', line)  # quitar los t('…')
                 for m in lit.finditer(code):
+                    # Identificadores de una sola palabra ('del', 'add'…) no son texto de interfaz.
+                    if re.fullmatch(r"['\"`][a-z]+['\"`]", m.group(0)):
+                        continue
                     if spanish.search(m.group(0)):
                         print(f'{p}:{i}\t{m.group(0)[:110]}')
                         bad += 1

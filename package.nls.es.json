@@ -156,5 +156,6 @@
   "welcome.stashes": "No hay stashes en los repositorios.\n[Stash Changes](command:multigit.stashes.create)",
   "command.commit.history": "Historial de mensajes de commit…",
   "setting.commit.ticketPattern": "Expresión regular que busca el ticket en el nombre de la rama (distingue mayúsculas; con un grupo, el ticket es el grupo 1). Ej.: `feature/ABC-123-login` → `ABC-123`. Vacío: sin ticket.",
-  "setting.commit.ticketTemplate": "Cómo va el ticket en el mensaje de commit: `{ticket}`, `{branch}` y `{message}`. La caja de commit vacía se rellena con lo que va antes de `{message}`, y a los mensajes que escribe Claude se les aplica la plantilla entera si no llevan el ticket. Ej.: `{ticket} {message}`, `{ticket}: {message}`, `{message} [{ticket}]`. Vacío: desactivado."
+  "setting.commit.ticketTemplate": "Cómo va el ticket en el mensaje de commit: `{ticket}`, `{branch}` y `{message}`. La caja de commit vacía se rellena con lo que va antes de `{message}`, y a los mensajes que escribe Claude se les aplica la plantilla entera si no llevan el ticket. Ej.: `{ticket} {message}`, `{ticket}: {message}`, `{message} [{ticket}]`. Vacío: desactivado.",
+  "command.changes.selectHunks": "Elegir líneas para el commit…"
 }

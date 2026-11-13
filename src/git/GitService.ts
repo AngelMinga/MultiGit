@@ -32,6 +32,10 @@ const MAX_BUFFER = 64 * 1024 * 1024;
 export interface GitExecOptions {
   timeoutMs?: number;
   signal?: AbortSignal;
+  /** Variables de entorno extra (p. ej. GIT_INDEX_FILE). */
+  env?: Record<string, string>;
+  /** Texto para la entrada estándar. */
+  input?: string;
 }
 
 /** Error de un comando git, con su código de salida y stderr para mostrar al usuario. */
@@ -76,7 +80,7 @@ export class GitService {
   /** Ejecuta `git <args>` en la raíz del repo y devuelve stdout. */
   exec(args: readonly string[], options: GitExecOptions = {}): Promise<string> {
     return new Promise((resolve, reject) => {
-      execFile(
+      const child = execFile(
         this.gitPath,
         [...args],
         {
@@ -95,6 +99,7 @@ export class GitService {
             LC_ALL: 'C',
             // ":" es el editor "no-op" de git: merge/rebase nunca se quedan esperando un editor.
             GIT_EDITOR: ':',
+            ...options.env,
           },
         },
         (error, stdout, stderr) => {
@@ -110,6 +115,7 @@ export class GitService {
           resolve(stdout);
         },
       );
+      if (options.input !== undefined) child.stdin?.end(options.input);
     });
   }
 
@@ -481,6 +487,43 @@ export class GitService {
     if (paths.length) await this.exec(['add', '--', ...paths]);
   }
 
+  /** Diff de un archivo contra HEAD sin contexto (para elegir líneas del commit parcial). */
+  diffForPartial(filePath: string): Promise<string> {
+    return this.exec(['diff', '-U0', '--no-color', '--no-ext-diff', '--no-textconv', 'HEAD', '--', filePath]);
+  }
+
+  /**
+   * Commit con archivos completos (`paths`, como `commitPaths`) y archivos con solo parte de sus
+   * cambios (`partial`: contenido ya calculado). Se arma en un índice temporal a partir de HEAD, así
+   * el working tree no se toca y lo no elegido queda como cambio sin commit. Después, el índice real
+   * de esas rutas queda igual que el commit.
+   */
+  async commitPartial(
+    message: string,
+    paths: readonly string[],
+    partial: ReadonlyArray<{ path: string; content: string }>,
+    amend: boolean,
+  ): Promise<string> {
+    const tmp = path.resolve(this.root, (await this.exec(['rev-parse', '--git-path', 'multigit-index'])).trim());
+    const env = { GIT_INDEX_FILE: tmp };
+    let out: string;
+    try {
+      await this.exec(['read-tree', 'HEAD'], { env });
+      if (paths.length) await this.exec(['add', '-A', '--', ...paths], { env });
+      for (const p of partial) {
+        const sha = (await this.exec(['hash-object', '-w', '--no-filters', '--stdin'], { input: p.content })).trim();
+        const mode = (await this.exec(['ls-tree', 'HEAD', '--', p.path])).split(' ')[0] || '100644';
+        await this.exec(['update-index', '--add', '--cacheinfo', `${mode},${sha},${p.path}`], { env });
+      }
+      out = await this.exec(['commit', '-m', message, ...(amend ? ['--amend'] : [])], { env, timeoutMs: COMMIT_TIMEOUT_MS });
+    } finally {
+      await fs.rm(tmp, { force: true });
+    }
+    // Como `commit --only`: en el índice real, esas rutas quedan como en el commit nuevo.
+    await this.exec(['reset', '-q', 'HEAD', '--', ...paths, ...partial.map((p) => p.path)]);
+    return out;
+  }
+
   /** Commit solo de `paths` (`git commit --only`), opcionalmente `--amend`. */
   commitPaths(message: string, paths: readonly string[], amend: boolean): Promise<string> {
     const args = ['commit', '--only', '-m', message];
@@ -488,7 +531,6 @@ export class GitService {
     return this.exec([...args, '--', ...paths], { timeoutMs: COMMIT_TIMEOUT_MS });
   }
 
-  /** Mensaje completo del último commit (para Amend). */
   /** Mensajes completos de los últimos `count` commits de un autor (email). */
   async recentMessages(email: string, count: number): Promise<string[]> {
     if (!email) return [];
@@ -496,6 +538,7 @@ export class GitService {
     return out.split('\x1e').map((m) => m.trim()).filter(Boolean);
   }
 
+  /** Mensaje completo del último commit (para Amend). */
   async lastCommitMessage(): Promise<string> {
     return (await this.exec(['log', '-1', '--format=%B'])).trim();
   }

@@ -280,10 +280,11 @@ export class CommitView implements vscode.WebviewViewProvider, vscode.Disposable
     const repos = this.manager.all
       .map((r) => ({ name: r.name, colorIndex: r.colorIndex, count: checked.filter((c) => c.repo === r).length }))
       .filter((r) => r.count > 0);
+    const partial = checked.filter((c) => this.tree.partialOf(c)).length;
     const state: CommitState = {
       repos,
       total: checked.length,
-      summary: describeCounts(checked.map((c) => c.file)),
+      summary: [describeCounts(checked.map((c) => c.file)), partial ? t('{0} partial', partial) : ''].filter(Boolean).join(' · '),
       busy: this.busy,
       generating: this.generation !== undefined,
       prefix: this.prefix(),

@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -641,6 +641,12 @@
         "title": "%command.commit.history%",
         "category": "MultiGit",
         "icon": "$(history)"
+      },
+      {
+        "command": "multigit.changes.selectHunks",
+        "title": "%command.changes.selectHunks%",
+        "category": "MultiGit",
+        "icon": "$(checklist)"
       }
     ],
     "menus": {
@@ -1041,6 +1047,16 @@
           "command": "multigit.stashes.openDiff",
           "when": "view == multigit.stashes && viewItem == multigit.stash.file",
           "group": "1_diff@1"
+        },
+        {
+          "command": "multigit.changes.selectHunks",
+          "when": "view == multigit.changes && viewItem == multigit.changes.file.tracked",
+          "group": "inline@0"
+        },
+        {
+          "command": "multigit.changes.selectHunks",
+          "when": "view == multigit.changes && viewItem == multigit.changes.file.tracked",
+          "group": "1_commit@3"
         }
       ],
       "commandPalette": [
@@ -1306,6 +1322,10 @@
         },
         {
           "command": "multigit.stashes.openDiff",
+          "when": "false"
+        },
+        {
+          "command": "multigit.changes.selectHunks",
           "when": "false"
         }
       ],

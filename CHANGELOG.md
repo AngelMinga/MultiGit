@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0
+
+- **Commit parcial por hunks o líneas**: *Select Changes to Commit…* en un archivo modificado abre su
+  diff con casillas por cambio y por línea. Solo lo marcado entra en el commit (se arma en un índice
+  temporal: el working tree no se toca y lo no elegido queda sin commit). Si el archivo cambia después
+  de elegir, el commit se bloquea hasta volver a elegir.
+
 ## 0.6.0
 
 - **Historial de mensajes de commit** (botón en la caja, `Ctrl+M` o *Commit Message History…*): los

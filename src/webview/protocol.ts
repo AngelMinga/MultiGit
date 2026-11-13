@@ -6,7 +6,7 @@ import type { LogFilters, RefLabel } from '../git/log';
 export type { LogFilters, RefLabel };
 
 /** Paneles webview que existen (el log llega en la Fase 6). */
-export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback';
+export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks';
 
 // ------------------------------------------------------------------ Push
 
@@ -59,6 +59,28 @@ export interface PushState {
   busy: boolean;
   /** Ya se intentó un push en esta sesión del diálogo. */
   attempted: boolean;
+}
+
+// ------------------------------------------------------------------ Commit parcial (hunks)
+
+export interface HunkRowView {
+  kind: 'ctx' | 'del' | 'add';
+  text: string;
+  /** Solo las líneas cambiadas (las que se pueden elegir). */
+  id?: string;
+  oldNo?: number;
+  newNo?: number;
+}
+
+export interface HunksState {
+  repo: string;
+  colorIndex: number;
+  path: string;
+  /** Un array de filas por hunk. */
+  hunks: HunkRowView[][];
+  selected: string[];
+  /** Aviso (p. ej. la selección anterior ya no valía porque el archivo cambió). */
+  notice?: string;
 }
 
 // ------------------------------------------------------------------ Rollback
@@ -167,6 +189,7 @@ export type HostMessage =
   | { type: 'push/state'; payload: PushState }
   | { type: 'push/files'; payload: { repoId: string; hash: string; files: PushFile[] } }
   | { type: 'rollback/state'; payload: RollbackState }
+  | { type: 'hunks/state'; payload: HunksState }
   | { type: 'commit/state'; payload: CommitState }
   | { type: 'commit/setMessage'; payload: { message: string } }
   | { type: 'commit/done'; payload: Record<string, never> }
@@ -198,6 +221,9 @@ export type WebviewMessage =
   | { type: 'rollback/run'; payload: { keys: string[]; deleteAdded: boolean } }
   | { type: 'rollback/openDiff'; payload: { repoId: string; path: string } }
   | { type: 'rollback/close'; payload: Record<string, never> }
+  | { type: 'hunks/save'; payload: { selected: string[] } }
+  | { type: 'hunks/openDiff'; payload: Record<string, never> }
+  | { type: 'hunks/close'; payload: Record<string, never> }
   | { type: 'commit/run'; payload: { message: string; amend: boolean; push: boolean } }
   | { type: 'commit/requestLastMessage'; payload: Record<string, never> }
   | { type: 'commit/generate'; payload: { current: string } }

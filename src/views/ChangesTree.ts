@@ -51,6 +51,14 @@ export type ChangeNode =
 
 const keyOf = (ref: FileRef) => `${ref.repo.root}\0${ref.file.path}`;
 
+/** Commit parcial de un archivo: qué líneas del diff entran (ver src/git/hunks.ts). */
+export interface PartialSelection {
+  /** Huella del diff cuando se eligieron; si el archivo cambia, la selección ya no vale. */
+  fingerprint: string;
+  selected: string[];
+  total: number;
+}
+
 export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.Disposable {
   private readonly changeEmitter = new vscode.EventEmitter<ChangeNode | undefined>();
   readonly onDidChangeTreeData = this.changeEmitter.event;
@@ -61,6 +69,8 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
   private files: FileRef[] = [];
   /** Marcas explícitas del usuario; sin entrada = valor por defecto de su sección. */
   private readonly overrides = new Map<string, boolean>();
+  /** Archivos con solo parte de sus líneas elegidas para el commit. */
+  private readonly partial = new Map<string, PartialSelection>();
   private grouping: ChangesGrouping;
   private loading: Promise<void> | undefined;
 
@@ -91,6 +101,7 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
         // Olvida las marcas de archivos que ya no tienen cambios.
         const alive = new Set(this.files.map(keyOf));
         for (const k of this.overrides.keys()) if (!alive.has(k)) this.overrides.delete(k);
+        for (const k of this.partial.keys()) if (!alive.has(k)) this.partial.delete(k);
       } finally {
         this.loading = undefined;
       }
@@ -114,8 +125,32 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
     return this.files.filter((f) => f.file.kind === 'tracked');
   }
 
+  partialOf(ref: FileRef): PartialSelection | undefined {
+    return this.partial.get(keyOf(ref));
+  }
+
+  /** Guarda las líneas elegidas de un archivo (todas → archivo completo; ninguna → desmarcado). */
+  setPartial(ref: FileRef, selection: PartialSelection | undefined): void {
+    const key = keyOf(ref);
+    if (!selection || selection.selected.length === selection.total) this.partial.delete(key);
+    else if (selection.selected.length === 0) this.partial.delete(key);
+    else this.partial.set(key, selection);
+    this.overrides.set(key, !selection || selection.selected.length > 0);
+    this.changeEmitter.fire(undefined);
+    this.checkedEmitter.fire();
+  }
+
+  /** Olvida las selecciones parciales (después de un commit). */
+  clearPartial(refs: readonly FileRef[]): void {
+    for (const ref of refs) this.partial.delete(keyOf(ref));
+    this.changeEmitter.fire(undefined);
+  }
+
   setChecked(refs: readonly FileRef[], checked: boolean): void {
-    for (const ref of refs) this.overrides.set(keyOf(ref), checked);
+    for (const ref of refs) {
+      this.overrides.set(keyOf(ref), checked);
+      this.partial.delete(keyOf(ref));
+    }
     this.changeEmitter.fire(undefined);
     this.checkedEmitter.fire();
   }
@@ -124,6 +159,7 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
   setOnlyChecked(refs: readonly FileRef[]): void {
     const keep = new Set(refs.map(keyOf));
     for (const f of this.files) this.overrides.set(keyOf(f), keep.has(keyOf(f)));
+    for (const k of this.partial.keys()) if (!keep.has(k)) this.partial.delete(k);
     this.changeEmitter.fire(undefined);
     this.checkedEmitter.fire();
   }
@@ -132,7 +168,10 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
   onCheckboxChange(event: vscode.TreeCheckboxChangeEvent<ChangeNode>): void {
     for (const [node, state] of event.items) {
       const checked = state === vscode.TreeItemCheckboxState.Checked;
-      for (const ref of filesOf(node)) this.overrides.set(keyOf(ref), checked);
+      for (const ref of filesOf(node)) {
+        this.overrides.set(keyOf(ref), checked);
+        this.partial.delete(keyOf(ref));
+      }
     }
     this.changeEmitter.fire(undefined);
     this.checkedEmitter.fire();
@@ -311,9 +350,10 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
             ? ''
             : repo.name
           : this.relativeToWorkspace(node.ref);
-        const parts = [where, file.origPath ? `← ${file.origPath}` : ''];
+        const partial = this.isChecked(node.ref) ? this.partialOf(node.ref) : undefined;
+        const parts = [partial ? t('{0}/{1} lines', partial.selected.length, partial.total) : '', where, file.origPath ? `← ${file.origPath}` : ''];
         item.description = parts.filter(Boolean).join('  ');
-        item.tooltip = `${statusLabel(file.status)}: ${repo.name}/${file.path}`;
+        item.tooltip = `${statusLabel(file.status)}: ${repo.name}/${file.path}${partial ? `\n${t('Partial commit: {0} of {1} changed lines', partial.selected.length, partial.total)}` : ''}`;
         item.contextValue = `multigit.changes.file.${file.kind}`;
         if (file.kind === 'ignored') {
           // Los ignorados no se commitean: sin checkbox; clic → mostrarlo en el Explorer.

@@ -14,6 +14,7 @@ import { BranchActions } from './views/branchActions';
 import { BranchPopup } from './views/branchPopup';
 import type { BranchesTree } from './views/BranchesTree';
 import type { ChangesTree } from './views/ChangesTree';
+import type { ChangesActions } from './views/changesActions';
 import { installTranslations } from './views/claudeCommit';
 import { CompareView } from './views/compareView';
 import { startCredentials } from './views/credentials';
@@ -29,6 +30,7 @@ export interface MultiGitTestApi {
   repositories: RepositoriesView;
   branches: BranchesTree;
   changes: ChangesTree;
+  changesActions: ChangesActions;
   stashes: StashesTree;
 }
 
@@ -74,7 +76,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
     log.error('Error al inicializar MultiGit', error);
     void vscode.window.showErrorMessage(t('MultiGit: the repositories could not be loaded. {0}', String(error)));
   }
-  return { manager, repositories: repositories.view, branches: branches.tree, changes: changes.tree, stashes: stashes.tree };
+  return { manager, repositories: repositories.view, branches: branches.tree, changes: changes.tree, changesActions: changes.actions, stashes: stashes.tree };
 }
 
 export function deactivate(): void {

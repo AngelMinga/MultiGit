@@ -6,6 +6,7 @@ import { ChangesTree, filesOf, type ChangeNode, type FileRef } from '../views/Ch
 import { CommitView } from '../views/CommitView';
 import type { LogView } from '../webview/LogView';
 import type { Core } from './core';
+import { HunksPanel } from '../webview/HunksPanel';
 import { t } from '../i18n';
 
 export function registerChanges(
@@ -102,6 +103,11 @@ export function registerChanges(
       }),
     ),
     vscode.commands.registerCommand('multigit.changes.unshelve', () => actions.unshelve()),
+    vscode.commands.registerCommand('multigit.changes.selectHunks', (node?: ChangeNode) => {
+      const ref = fileNode(node ?? view.selection[0]);
+      if (ref) return popup.safely(() => HunksPanel.open(context.extensionUri, tree, ref, (r) => actions.openDiff(r)));
+      return undefined;
+    }),
     vscode.commands.registerCommand('multigit.changes.openDiff', (node?: ChangeNode) => {
       const ref = fileNode(node ?? view.selection[0]);
       if (ref) void actions.openDiff(ref);

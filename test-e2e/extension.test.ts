@@ -1,7 +1,11 @@
 // Tests dentro de VS Code: activación, comandos registrados y que todas las vistas se dibujan.
 import * as assert from 'node:assert/strict';
 import * as vscode from 'vscode';
+import { execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync } from 'node:fs';
+import * as path from 'node:path';
 import type { MultiGitTestApi } from '../src/extension';
+import { allLineIds, diffFingerprint, parseHunks } from '../src/git/hunks';
 
 /** Recorre un TreeDataProvider completo y devuelve cada elemento con su TreeItem. */
 async function walk<T>(provider: vscode.TreeDataProvider<T>, parent?: T, depth = 0): Promise<Array<{ node: T; item: vscode.TreeItem }>> {
@@ -127,6 +131,57 @@ describe('MultiGit en VS Code', () => {
     await vscode.commands.executeCommand('multigit.branchesTree.refresh');
     await vscode.commands.executeCommand('multigit.openGitLog');
     await vscode.commands.executeCommand('multigit.showLog');
+  });
+});
+
+describe('Commit parcial', () => {
+  let api: MultiGitTestApi;
+  before(async () => {
+    api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+  });
+
+  it('elige el primer hunk de un archivo y solo ese entra en el commit', async () => {
+    const repo = api.manager.all.find((r) => r.name === 'mflogin')!;
+    const env = { ...process.env, GIT_AUTHOR_NAME: 'E2E', GIT_AUTHOR_EMAIL: 'e2e@example.com', GIT_COMMITTER_NAME: 'E2E', GIT_COMMITTER_EMAIL: 'e2e@example.com' };
+    const git = (...args: string[]) => execFileSync('git', args, { cwd: repo.root, env, encoding: 'utf8' });
+    const file = path.join(repo.root, 'src', 'app.js');
+    writeFileSync(file, 'a\nb\nc\nd\ne\nf\ng\nh\n');
+    git('add', 'src/app.js');
+    git('commit', '-q', '-m', 'feat: app');
+    writeFileSync(file, 'a\nB\nc\nd\ne\nf\ng\nH\n');
+    await api.manager.refresh();
+    await api.changes.refresh();
+
+    const node = (await walk(api.changes)).find((i) => label(i.item) === 'app.js')!;
+    assert.equal(node.item.contextValue, 'multigit.changes.file.tracked');
+    // El diálogo se abre sin errores (las casillas se eligen en el webview; aquí se guarda la selección a mano).
+    await vscode.commands.executeCommand('multigit.changes.selectHunks', node.node);
+    // La pestaña del webview aparece un poco después.
+    let tabs: readonly vscode.Tab[] = [];
+    let tab: vscode.Tab | undefined;
+    for (let i = 0; i < 40 && !tab; i++) {
+      await new Promise((r) => setTimeout(r, 50));
+      tabs = vscode.window.tabGroups.all.flatMap((g) => g.tabs);
+      tab = tabs.find((x) => x.input instanceof vscode.TabInputWebview && /app\.js/.test(x.label));
+    }
+    assert.ok(tab, `pestañas: ${tabs.map((x) => x.label).join(', ')}`);
+    await vscode.window.tabGroups.close(tab);
+
+    const diff = await repo.git.diffForPartial('src/app.js');
+    const hunks = parseHunks(diff)!;
+    assert.ok(node.node.kind === 'file');
+    const ref = { repo, file: node.node.ref.file };
+    api.changes.setOnlyChecked([ref]);
+    api.changes.setPartial(ref, { fingerprint: diffFingerprint(diff), selected: hunks[0]!.lines.map((l) => l.id), total: allLineIds(hunks).length });
+    const after = (await walk(api.changes)).find((i) => label(i.item) === 'app.js')!;
+    assert.match(String(after.item.description), /^2\/4 /);
+
+    const done = await api.changesActions.commit('feat: solo B', false);
+    assert.deepEqual(done?.map((r) => r.name), ['mflogin']);
+    assert.equal(git('show', 'HEAD:src/app.js'), 'a\nB\nc\nd\ne\nf\ng\nh\n');
+    assert.equal(readFileSync(file, 'utf8'), 'a\nB\nc\nd\ne\nf\ng\nH\n');
+    assert.equal(git('status', '--porcelain', '--', 'src/app.js'), ' M src/app.js\n');
+    assert.equal(api.changes.partialOf(ref), undefined);
   });
 });
 

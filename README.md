@@ -29,6 +29,11 @@ Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
 - **Commit**: mensaje, *Amend last commit*, contador de archivos marcados, **Commit** y
   **Commit and Push…**. Hace commit solo de los archivos marcados, en cada repo que tenga
   alguno, con el mismo mensaje.
+- **Commit parcial** (ícono ☑ en un archivo modificado, o *Select Changes to Commit…* en su menú):
+  el diff del archivo con una casilla por cambio (hunk) y otra por línea. Solo las líneas marcadas
+  entran en el commit; el resto queda como cambio sin commit y el archivo en disco no se toca. En
+  Changes se ve `2/4 líneas` junto al archivo. Si el archivo cambia después de elegir, el commit se
+  bloquea en ese repo (sin tocar ninguno) hasta volver a elegir.
 - **Generar con Claude** (`⌘G` en la caja de mensaje): escribe el mensaje en formato Conventional
   Commits a partir de los archivos marcados de **todos** los repos, con el CLI de
   [Claude Code](https://claude.com/claude-code) (`claude -p`, usa tu suscripción, sin API key).

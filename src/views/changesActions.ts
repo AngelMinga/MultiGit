@@ -4,11 +4,12 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { planCommit, planRollback, statusLabel, type StatusFile } from '../git/changes';
 import { SHELF_PREFIX } from '../git/stashes';
+import { buildPartial, diffFingerprint, parseHunks } from '../git/hunks';
 import { GitContentProvider } from '../git/GitContentProvider';
 import { errorText, runInRepos } from '../git/MultiRepoRunner';
 import type { StepResult } from '../git/preflight';
 import type { Repo, RepoManager } from '../git/RepoManager';
-import type { ChangesTree, FileRef } from './ChangesTree';
+import type { ChangesTree, FileRef, PartialSelection } from './ChangesTree';
 import { commonAncestorDirs, gitignoreIn, ignorePattern } from '../git/ignoreTargets';
 import { RollbackPanel, rollbackKey } from '../webview/RollbackPanel';
 import { openMergeEditor } from './conflicts';
@@ -46,17 +47,46 @@ export class ChangesActions {
     }
     const filesOf = new Map(groups.map((g) => [g.repo, g.files]));
     const total = groups.reduce((n, g) => n + g.files.length, 0);
+    /** Archivos con solo parte de sus líneas elegidas, por repo. */
+    const partialOf = (repo: Repo) =>
+      filesOf.get(repo)!.flatMap((file) => {
+        const selection = this.tree.partialOf({ repo, file });
+        return selection ? [{ file, selection }] : [];
+      });
 
     const results = await runInRepos(this.manager, {
       title: t('{0} of {1} file(s)', amend ? 'Amend commit' : 'Commit', total),
       repos: groups.map((g) => g.repo),
-      check: () => undefined,
+      // Si un archivo cambió después de elegir sus líneas, no se toca ningún repo.
+      check: async (repo) => {
+        for (const { file, selection } of partialOf(repo)) {
+          if (!(await partialContent(repo, file.path, selection))) {
+            return { block: t("'{0}' changed after its lines were selected; select them again", file.path) };
+          }
+        }
+        return undefined;
+      },
       run: async (repo) => {
         const files = filesOf.get(repo)!;
-        const plan = planCommit(files);
-        await repo.git.addPaths(plan.add);
-        await repo.git.commitPaths(message, plan.paths, amend);
-        return t('{0} file(s)', files.length);
+        const partial = partialOf(repo);
+        if (partial.length === 0) {
+          const plan = planCommit(files);
+          await repo.git.addPaths(plan.add);
+          await repo.git.commitPaths(message, plan.paths, amend);
+          return t('{0} file(s)', files.length);
+        }
+        const partialPaths = new Set(partial.map((p) => p.file.path));
+        const plan = planCommit(files.filter((f) => !partialPaths.has(f.path)));
+        const contents = await Promise.all(
+          partial.map(async ({ file, selection }) => {
+            const content = await partialContent(repo, file.path, selection);
+            if (content === undefined) throw new Error(t("'{0}' changed after its lines were selected; select them again", file.path));
+            return { path: file.path, content };
+          }),
+        );
+        await repo.git.commitPartial(message, plan.paths, contents, amend);
+        this.tree.clearPartial(partial.map((p) => ({ repo, file: p.file })));
+        return t('{0} file(s), {1} partial', files.length, partial.length);
       },
     });
     await this.tree.refresh();
@@ -402,4 +432,16 @@ async function appendIgnore(file: string, patterns: readonly string[]): Promise<
   if (!lines.length) return;
   const sep = current && !current.endsWith('\n') ? '\n' : '';
   await fs.writeFile(file, `${current}${sep}${lines.join('\n')}\n`, 'utf8');
+}
+
+/**
+ * Contenido de un archivo con solo las líneas elegidas, o `undefined` si el archivo cambió desde que
+ * se eligieron (el diff ya no es el mismo).
+ */
+export async function partialContent(repo: Repo, filePath: string, selection: PartialSelection): Promise<string | undefined> {
+  const diff = await repo.git.diffForPartial(filePath);
+  if (diffFingerprint(diff) !== selection.fingerprint) return undefined;
+  const hunks = parseHunks(diff);
+  if (!hunks) return undefined;
+  return buildPartial(await repo.git.showFile('HEAD', filePath), hunks, new Set(selection.selected));
 }
