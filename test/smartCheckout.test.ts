@@ -84,6 +84,21 @@ describe('smartCheckout', () => {
     expect(run('stash', 'list')).toBe('');
   });
 
+  it('rebase --autostash: con cambios sin commit, rebasa y los conserva', async () => {
+    write('otro.js', 'cambio local\n'); // develop no toca otro.js
+    await git.rebase('develop');
+    expect(run('log', '-1', '--format=%s').trim()).toBe('develop');
+    expect(read('otro.js')).toBe('cambio local\n');
+    expect(run('stash', 'list')).toBe('');
+  });
+
+  it('createBranch con force: rama nueva desde otra revisión descartando lo que estorba', async () => {
+    write('hook.js', 'UNO\ndos\ntres\n');
+    await git.createBranch('nueva-desde-develop', 'develop', true, true);
+    expect((await git.getStatus()).branch).toBe('nueva-desde-develop');
+    expect(read('hook.js')).toBe('uno\ndos\nTRES\n');
+  });
+
   it('force: descarta lo que estorba', async () => {
     write('hook.js', 'UNO\ndos\ntres\n');
     await git.checkout('develop', true);

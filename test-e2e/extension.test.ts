@@ -9,6 +9,7 @@ import { allLineIds, diffFingerprint, parseHunks } from '../src/git/hunks';
 import { runCommitChecks } from '../src/views/commitChecks';
 import { RebasePanel } from '../src/webview/RebasePanel';
 import { MergePanel } from '../src/webview/MergePanel';
+import { runInRepos } from '../src/git/MultiRepoRunner';
 
 /** Recorre un TreeDataProvider completo y devuelve cada elemento con su TreeItem. */
 async function walk<T>(provider: vscode.TreeDataProvider<T>, parent?: T, depth = 0): Promise<Array<{ node: T; item: vscode.TreeItem }>> {
@@ -348,6 +349,48 @@ describe('Conflictos', () => {
     await closeWebviewTab(/Conflict/);
     git('commit', '-q', '--no-edit');
     git('stash', 'pop', '-q');
+    await api.manager.refresh();
+  });
+});
+
+describe('Merge en varios repos', () => {
+  it('si un repo queda con conflictos, sigue con los demás', async () => {
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    const env = { ...process.env, GIT_AUTHOR_NAME: 'E2E', GIT_AUTHOR_EMAIL: 'e2e@example.com', GIT_COMMITTER_NAME: 'E2E', GIT_COMMITTER_EMAIL: 'e2e@example.com' };
+    const repos = api.manager.all.filter((r) => r.name === 'mflogin' || r.name === 'shell');
+    for (const repo of repos) {
+      const git = (...args: string[]) => execFileSync('git', args, { cwd: repo.root, env, encoding: 'utf8' });
+      git('stash', 'push', '-q', '-u');
+      const current = git('rev-parse', '--abbrev-ref', 'HEAD').trim();
+      git('checkout', '-q', '-b', 'multi-a');
+      writeFileSync(path.join(repo.root, 'multi.js'), 'a\n');
+      git('add', '.');
+      git('commit', '-q', '-m', 'a');
+      git('checkout', '-q', current);
+      writeFileSync(path.join(repo.root, 'multi.js'), 'b\n');
+      git('add', '.');
+      git('commit', '-q', '-m', 'b');
+    }
+    await api.manager.refresh();
+    const results = await runInRepos(api.manager, {
+      title: 'Merge multi-a',
+      repos,
+      silent: true,
+      continueAfterConflict: true,
+      run: async (repo) => {
+        await repo.git.merge('multi-a');
+      },
+    });
+    // Los dos repos se intentaron (antes se paraba en el primero) y los dos quedan con su conflicto.
+    assert.deepEqual(
+      results?.map((r) => [r.repo, r.state, r.conflicts]),
+      repos.map((r) => [r.name, 'failed', ['multi.js']]),
+    );
+    for (const repo of repos) {
+      const git = (...args: string[]) => execFileSync('git', args, { cwd: repo.root, env, encoding: 'utf8' });
+      git('merge', '--abort');
+      git('stash', 'pop', '-q');
+    }
     await api.manager.refresh();
   });
 });

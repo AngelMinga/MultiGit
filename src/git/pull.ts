@@ -11,10 +11,12 @@ export const PULL_MODE_LABEL: Record<PullMode, string> = {
 
 /**
  * Argumentos de `git pull`. Sin `remote`/`branch`, usa el upstream de la rama actual.
- * En merge se pasa `--no-edit` para no abrir un editor con el mensaje del merge.
+ * En merge se pasa `--no-edit` para no abrir un editor con el mensaje del merge. Con `--autostash`, los
+ * cambios sin commit no impiden el pull.
  */
 export function pullArgs(mode: PullMode, remote?: string, branch?: string): string[] {
-  const args = ['pull'];
+  // --autostash: con cambios sin commit, git los aparta y los vuelve a aplicar al terminar.
+  const args = ['pull', '--autostash'];
   if (mode === 'merge') args.push('--no-rebase', '--no-edit');
   else if (mode === 'rebase') args.push('--rebase');
   else args.push('--ff-only');

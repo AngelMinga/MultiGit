@@ -33,6 +33,16 @@ export function currentLabel(scope: Scope): string {
   return s.kind === 'single' ? s.branch : t('current branch');
 }
 
+/** Cómo se cambia de rama en cada repo (ver planSwitch). */
+interface SwitchPlan {
+  mode: 'normal' | 'smart' | 'force';
+  /** Repos donde el cambio pisaría cambios locales, con esos archivos. */
+  collisions: Map<Repo, string[]>;
+  /** Repos donde Smart Checkout dejó conflictos al reaplicar los cambios. */
+  conflicts: Map<Repo, string[]>;
+  label: string;
+}
+
 export class BranchActions {
   constructor(
     private readonly manager: RepoManager,
@@ -47,6 +57,7 @@ export class BranchActions {
     await runInRepos(this.manager, {
       title: 'Update Project',
       repos: scope.repos,
+      continueAfterConflict: true,
       check: (_repo, status) => {
         if (!status.branch) return { skip: 'HEAD detached' };
         if (!status.upstream) return { skip: t('the branch has no upstream') };
@@ -90,6 +101,12 @@ export class BranchActions {
       { title: t('New branch \'{0}\'', name), placeHolder: t('Check out the new branch?') },
     );
     if (!mode) return;
+    // Cambiar a la rama nueva desde otra revisión puede pisar cambios locales: Smart Checkout.
+    const plan =
+      mode.checkout && start
+        ? await this.planSwitch(scope, startRef, t('New branch \'{0}\' from \'{1}\'', name, startRef), async () => startRef)
+        : ({ mode: 'normal', collisions: new Map(), conflicts: new Map(), label: startRef } as SwitchPlan);
+    if (!plan) return;
 
     await runInRepos(this.manager, {
       title: start ? t('New branch \'{0}\' from \'{1}\'', name, startRef) : t('New branch \'{0}\'', name),
@@ -101,10 +118,15 @@ export class BranchActions {
         if (!status.oid) return { block: t('the repository has no commits') };
         return undefined;
       },
-      run: async (repo) => {
-        await repo.git.createBranch(name, startRef, mode.checkout);
-      },
+      run: (repo) =>
+        mode.checkout
+          ? this.runSwitch(repo, plan, async (force) => {
+              await repo.git.createBranch(name, startRef, true, force);
+              return undefined;
+            })
+          : repo.git.createBranch(name, startRef, false).then(() => undefined),
     });
+    await this.finishSwitch(plan);
   }
 
   /**
@@ -113,7 +135,13 @@ export class BranchActions {
    */
   async alignTo(target: string, repos: readonly Repo[]): Promise<void> {
     const scope: Scope = { repos, label: t('{0} repositories', repos.length) };
-    if (!(await this.confirmDirty(scope, t('Checkout of \'{0}\'', target)))) return;
+    const plan = await this.planSwitch(scope, target, t('Checkout of \'{0}\'', target), async (repo) => {
+      if (repo.status?.branch === target) return undefined;
+      const b = await repo.git.getBranches();
+      if (b.local.some((l) => l.name === target)) return target;
+      return (b.remote.find((r) => r.name === target && r.remote === 'origin') ?? b.remote.find((r) => r.name === target))?.full;
+    });
+    if (!plan) return;
     const remoteRef = new Map<Repo, string>();
     await runInRepos(this.manager, {
       title: t('Align with \'{0}\'', target),
@@ -127,15 +155,18 @@ export class BranchActions {
         remoteRef.set(repo, remote.full);
         return undefined;
       },
-      run: async (repo) => {
-        const remote = remoteRef.get(repo);
-        if (remote) {
-          await repo.git.checkoutTracking(target, remote);
-          return t('new local branch from {0}', remote);
-        }
-        await repo.git.checkout(target);
-      },
+      run: (repo) =>
+        this.runSwitch(repo, plan, async (force) => {
+          const remote = remoteRef.get(repo);
+          if (remote) {
+            await repo.git.checkoutTracking(target, remote, force);
+            return t('new local branch from {0}', remote);
+          }
+          await repo.git.checkout(target, force);
+          return undefined;
+        }),
     });
+    await this.finishSwitch(plan);
   }
 
   /** Checkout de un tag o revisión conocida (HEAD queda detached). */
@@ -182,46 +213,20 @@ export class BranchActions {
   async checkout(scope: Scope, ref: BranchRef): Promise<void> {
     const title = t('Checkout of \'{0}\'', refName(ref));
     // Rama a la que se cambia en cada repo: la local, o la remota si todavía no hay local.
-    const targetOf = async (repo: Repo) => {
-      if (ref.type === 'local') return ref.name;
+    const plan = await this.planSwitch(scope, refName(ref), title, async (repo) => {
+      if (ref.type === 'local') return repo.status?.branch === ref.name ? undefined : ref.name;
       const branches = await repo.git.getBranches();
       return branches.local.some((b) => b.name === ref.name) ? ref.name : ref.full;
-    };
-
-    // Antes de tocar nada: ¿qué cambios locales sobrescribiría el checkout? (git fallaría en ese repo)
-    const collisions = await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: t('MultiGit: checking local changes…') }, async () => {
-      const found = new Map<Repo, string[]>();
-      await Promise.all(
-        scope.repos
-          .filter((r) => (r.status?.changes.total ?? 0) > 0 && !(ref.type === 'local' && r.status?.branch === ref.name))
-          .map(async (repo) => {
-            const target = await targetOf(repo);
-            if (!(await repo.git.revisionExists(target))) return;
-            const files = await repo.git.wouldBeOverwritten(target, await repo.git.getChanges()).catch(() => []);
-            if (files.length) found.set(repo, files);
-          }),
-      );
-      return found;
     });
+    if (!plan) return;
 
-    let mode: 'normal' | 'smart' | 'force' = 'normal';
-    if (collisions.size) {
-      const chosen = await askCheckoutProblem(refName(ref), collisions);
-      if (!chosen) return;
-      mode = chosen;
-    } else if (!(await this.confirmDirty(scope, title))) {
-      return;
-    }
-
-    const conflicts = new Map<Repo, string[]>();
     await runInRepos(this.manager, {
       title,
       repos: scope.repos,
       check: (_repo, status) =>
         ref.type === 'local' && status.branch === ref.name ? { skip: t('already on that branch') } : undefined,
-      run: async (repo) => {
-        const force = mode === 'force' && collisions.has(repo);
-        const doCheckout = async () => {
+      run: (repo) =>
+        this.runSwitch(repo, plan, async (force) => {
           if (ref.type === 'local') {
             await repo.git.checkout(ref.name, force);
             return undefined;
@@ -233,22 +238,65 @@ export class BranchActions {
           }
           await repo.git.checkoutTracking(ref.name, ref.full, force);
           return t('new local branch \'{0}\' → {1}', ref.name, ref.full);
-        };
-        if (mode === 'smart' && collisions.has(repo)) {
-          let note: string | undefined;
-          const result = await repo.git.smartCheckout(refName(ref), async () => {
-            note = await doCheckout();
-          });
-          if (result.conflicts.length) {
-            conflicts.set(repo, result.conflicts);
-            return t('local changes restored with {0} conflict(s)', result.conflicts.length);
-          }
-          return [note, t('local changes kept (Smart Checkout)')].filter(Boolean).join(' · ');
-        }
-        return (await doCheckout()) ?? (force ? t('local changes discarded (Force Checkout)') : undefined);
-      },
+        }),
     });
-    if (conflicts.size) await offerSmartCheckoutConflicts(refName(ref), conflicts);
+    await this.finishSwitch(plan);
+  }
+
+  // ------------------------------------------------------------------ Smart Checkout (común)
+
+  /**
+   * Antes de cambiar de rama: en qué repos el cambio sobrescribiría cambios locales (git fallaría ahí).
+   * Si hay alguno, pregunta Smart Checkout / Force Checkout; si no, el aviso de cambios de siempre.
+   * `targetOf` da la revisión a la que irá cada repo (undefined = ese repo no cambia).
+   * Devuelve undefined si se cancela.
+   */
+  private async planSwitch(scope: Scope, label: string, title: string, targetOf: (repo: Repo) => Promise<string | undefined>): Promise<SwitchPlan | undefined> {
+    const collisions = await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: t('MultiGit: checking local changes…') }, async () => {
+      const found = new Map<Repo, string[]>();
+      await Promise.all(
+        scope.repos
+          .filter((r) => (r.status?.changes.total ?? 0) > 0)
+          .map(async (repo) => {
+            const target = await targetOf(repo).catch(() => undefined);
+            if (!target || !(await repo.git.revisionExists(target))) return;
+            const files = await repo.git.wouldBeOverwritten(target, await repo.git.getChanges()).catch(() => []);
+            if (files.length) found.set(repo, files);
+          }),
+      );
+      return found;
+    });
+    let mode: SwitchPlan['mode'] = 'normal';
+    if (collisions.size) {
+      const chosen = await askCheckoutProblem(label, collisions);
+      if (!chosen) return undefined;
+      mode = chosen;
+    } else if (!(await this.confirmDirty(scope, title))) {
+      return undefined;
+    }
+    return { mode, collisions, conflicts: new Map(), label };
+  }
+
+  /** Hace el cambio de rama en un repo según el plan (normal, Smart Checkout o Force Checkout). */
+  private async runSwitch(repo: Repo, plan: SwitchPlan, doCheckout: (force: boolean) => Promise<string | undefined>): Promise<string | undefined> {
+    if (plan.mode === 'smart' && plan.collisions.has(repo)) {
+      let note: string | undefined;
+      const result = await repo.git.smartCheckout(plan.label, async () => {
+        note = await doCheckout(false);
+      });
+      if (result.conflicts.length) {
+        plan.conflicts.set(repo, result.conflicts);
+        return t('local changes restored with {0} conflict(s)', result.conflicts.length);
+      }
+      return [note, t('local changes kept (Smart Checkout)')].filter(Boolean).join(' · ');
+    }
+    const force = plan.mode === 'force' && plan.collisions.has(repo);
+    return (await doCheckout(force)) ?? (force ? t('local changes discarded (Force Checkout)') : undefined);
+  }
+
+  /** Tras un Smart Checkout con conflictos: ofrecer resolverlos. */
+  private async finishSwitch(plan: SwitchPlan): Promise<void> {
+    if (plan.conflicts.size) await offerSmartCheckoutConflicts(plan.label, plan.conflicts);
   }
 
   /** Checkout and Rebase onto '<actual>': `git rebase <actual> <rama>`. */
@@ -257,7 +305,8 @@ export class BranchActions {
     await runInRepos(this.manager, {
       title: t('Checkout of \'{0}\' and rebase onto \'{1}\'', ref.name, currentLabel(scope)),
       repos: scope.repos,
-      requireClean: true,
+      continueAfterConflict: true,
+      // Sin exigir repo limpio: `rebase --autostash` aparta los cambios y los vuelve a aplicar.
       check: (repo, status) => {
         if (!status.branch) return { block: 'HEAD detached' };
         if (status.branch === ref.name) return { skip: t('already on that branch') };
@@ -276,7 +325,8 @@ export class BranchActions {
     await runInRepos(this.manager, {
       title: t('Rebase of \'{0}\' onto \'{1}\'', currentLabel(scope), target),
       repos: scope.repos,
-      requireClean: true,
+      continueAfterConflict: true,
+      // Sin exigir repo limpio: `rebase --autostash` aparta los cambios y los vuelve a aplicar.
       check: async (repo, status) => {
         if (!status.branch) return { block: 'HEAD detached' };
         if (status.branch === target) return { skip: t('it is the current branch') };
@@ -295,6 +345,7 @@ export class BranchActions {
     await runInRepos(this.manager, {
       title: t('Merge of \'{0}\' into \'{1}\'', source, currentLabel(scope)),
       repos: scope.repos,
+      continueAfterConflict: true,
       requireClean: true,
       check: async (repo, status) => {
         if (!status.branch) return { block: 'HEAD detached' };
@@ -463,6 +514,7 @@ export class BranchActions {
     await runInRepos(this.manager, {
       title: t('Update of \'{0}\'', ref.name),
       repos: scope.repos,
+      continueAfterConflict: true,
       check: async (repo) => {
         const lb = (await repo.git.getBranches()).local.find((b) => b.name === ref.name);
         if (!lb) return { block: t('branch \'{0}\' does not exist', ref.name) };

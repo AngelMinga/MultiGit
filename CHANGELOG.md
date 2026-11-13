@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.14.0
+
+- **Merge, pull, update y rebase siguen tras un conflicto**: si un repo queda con conflictos, se
+  sigue con los demás y al final un aviso ofrece resolverlos todos juntos en la ventana Conflictos
+  (antes se paraba en el primero y los siguientes quedaban sin hacer).
+- **Smart Checkout también en *Nueva rama desde…* (al cambiar a ella) y en *Alinear***. *Checkout and
+  Rebase* y *Rebase onto* ya no exigen el repo limpio: usan `git rebase --autostash`. El pull también
+  usa `--autostash`.
+- Si una parte de la extensión no se puede cargar, las demás siguen funcionando y se avisa con
+  **Recargar la ventana** (antes fallaba todo).
+
 ## 0.13.0
 
 - **Ventana de merge con colores de sintaxis**, como el editor: palabras clave, cadenas, números,

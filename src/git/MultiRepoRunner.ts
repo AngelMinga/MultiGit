@@ -23,6 +23,11 @@ export interface MultiRepoOperation {
   check?: (repo: Repo, status: RepoStatus) => Promise<Verdict> | Verdict;
   /** Ejecuta la operación en un repo. Puede devolver un mensaje para el resumen. */
   run: (repo: Repo) => Promise<string | void>;
+  /**
+   * Si un repo queda con conflictos, seguir con los demás (merge, pull, rebase en varios repos) y al
+   * final ofrecer resolverlos todos juntos. Con otros errores se sigue deteniendo.
+   */
+  continueAfterConflict?: boolean;
   /** No mostrar los mensajes finales (el llamador muestra el resumen; los bloqueos sí se muestran). */
   silent?: boolean;
   /** Se llama justo antes de ejecutar en cada repo. */
@@ -78,7 +83,8 @@ export async function runInRepos(manager: RepoManager, op: MultiRepoOperation): 
           }
         }
         op.onStep?.(repo, result);
-        if (result.state === 'failed') break; // 3. se detiene al primer fallo
+        // 3. Se detiene al primer fallo (salvo conflictos, si la operación sigue con los demás repos).
+        if (result.state === 'failed' && !(op.continueAfterConflict && result.conflicts?.length)) break;
       }
       results.forEach((r, i) => {
         if (r.state === 'skipped' || r.state === 'pending') op.onStep?.(repos[i]!, r);
@@ -103,6 +109,22 @@ export async function runInRepos(manager: RepoManager, op: MultiRepoOperation): 
   if (op.silent) return results;
   const counts = countByState(results);
   const summary = formatSummary(results);
+  // Conflictos en uno o más repos (y el resto bien): se resuelven todos juntos en la ventana Conflictos.
+  const conflicted = results.filter((r) => r.state === 'failed' && r.conflicts?.length);
+  if (conflicted.length && conflicted.length === counts.failed && counts.pending === 0) {
+    const RESOLVE = t('Resolve Conflicts');
+    const first = repos.find((r) => r.name === conflicted[0]!.repo)!;
+    void vscode.window
+      .showWarningMessage(
+        t('MultiGit: "{0}" left conflicts in {1} of {2} repositories', op.title, conflicted.length, repos.length),
+        { modal: true, detail: t('{0}\n\nResolve them and continue (or abort) the operation in each repository.', summary) },
+        RESOLVE,
+      )
+      .then((choice) => {
+        if (choice === RESOLVE) void resolveConflicts(first, conflicted[0]!.conflicts!);
+      });
+    return results;
+  }
   if (counts.failed > 0 || counts.pending > 0) {
     const failed = results.find((r) => r.state === 'failed');
     const head = failed

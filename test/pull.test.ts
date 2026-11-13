@@ -28,9 +28,9 @@ function branches(locals: LocalBranch[], remotes: string[]): RepoBranches {
 
 describe('pullArgs', () => {
   it('modos y destino', () => {
-    expect(pullArgs('merge')).toEqual(['pull', '--no-rebase', '--no-edit']);
-    expect(pullArgs('rebase', 'origin', 'develop')).toEqual(['pull', '--rebase', 'origin', 'develop']);
-    expect(pullArgs('ff-only', 'origin')).toEqual(['pull', '--ff-only']);
+    expect(pullArgs('merge')).toEqual(['pull', '--autostash', '--no-rebase', '--no-edit']);
+    expect(pullArgs('rebase', 'origin', 'develop')).toEqual(['pull', '--autostash', '--rebase', 'origin', 'develop']);
+    expect(pullArgs('ff-only', 'origin')).toEqual(['pull', '--autostash', '--ff-only']);
   });
 });
 

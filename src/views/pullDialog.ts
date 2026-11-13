@@ -19,7 +19,7 @@ export async function runPull(
   await runInRepos(manager, {
     title: `Pull ${targetLabel(target)} (${PULL_MODE_LABEL[mode]})`,
     repos,
-    requireClean: mode === 'rebase',
+    continueAfterConflict: true,
     check: (repo, status) => {
       if (!status.branch) return { skip: 'HEAD detached' };
       if (target.kind === 'upstream') {

@@ -150,7 +150,10 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
   revisa el estado de todos. Si alguno la impide (conflictos, merge/rebase a medias, cambios sin
   commit cuando hacen falta), se muestra cuál y por qué y **no se toca ninguno**.
 - **Repo por repo**, con progreso (`3/9 mftheme…`). Si uno falla, se detiene y muestra el resumen
-  ✅ ok / ❌ falló + motivo / ⏭ no ejecutado.
+  ✅ ok / ❌ falló + motivo / ⏭ no ejecutado. En **merge, pull, update y rebase**, si un repo queda con
+  **conflictos** se sigue con los demás y al final se resuelven todos juntos en la ventana Conflictos.
+- **Cambios sin commit**: pull y rebase usan `--autostash` (git aparta los cambios y los vuelve a
+  aplicar); checkout, *Nueva rama* y *Alinear* usan Smart Checkout si el cambio de rama los pisaría.
 - **Checkout con cambios locales** (como el *Git Checkout Problem* de IntelliJ): antes de tocar nada
   se detecta en todos los repos qué archivos sobrescribiría el checkout. Si hay alguno, se listan por
   repo con **Smart Checkout** (aparta tus cambios en un stash, cambia de rama y los vuelve a aplicar;

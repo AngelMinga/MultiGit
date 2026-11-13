@@ -376,9 +376,9 @@ export class GitService {
    * Crea `name` desde `start` (sin upstream: si `start` es remota, git lo enlazaría y el push
    * iría a esa rama). Con `checkout`, además cambia a ella.
    */
-  createBranch(name: string, start: string, checkout: boolean): Promise<string> {
+  createBranch(name: string, start: string, checkout: boolean, force = false): Promise<string> {
     return checkout
-      ? this.exec(['checkout', '--no-track', '-b', name, start, '--'])
+      ? this.exec(['checkout', ...(force ? ['-f'] : []), '--no-track', '-b', name, start, '--'])
       : this.exec(['branch', '--no-track', name, start]);
   }
 
@@ -399,8 +399,12 @@ export class GitService {
   }
 
   /** `git rebase <onto>` (rama actual) o `git rebase <onto> <branch>` (checkout + rebase). */
+  /**
+   * `git rebase --autostash <onto> [<rama>]`: los cambios sin commit se guardan antes y se vuelven a
+   * aplicar al terminar (si chocan, quedan en conflicto y el stash se conserva).
+   */
   rebase(onto: string, branch?: string): Promise<string> {
-    return this.exec(branch ? ['rebase', onto, branch] : ['rebase', onto]);
+    return this.exec(['rebase', '--autostash', onto, ...(branch ? [branch] : [])]);
   }
 
   /** Pull del upstream con merge. */

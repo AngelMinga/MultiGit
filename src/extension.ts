@@ -66,15 +66,33 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
   };
   core.track(manager);
 
-  const repositories = registerRepositories(core, compareView);
-  const logView = registerLog(core);
-  const branches = registerBranches(core, logView);
-  const changes = registerChanges(core, logView);
-  const stashes = registerStashes(core);
-  const compareFiles = registerCompare(core);
-  registerFileActions(core, logView, changes);
-  registerOperations(core, repositories.treeView);
-  registerToolbar(core);
+  // Cada área se activa por separado: si una falla (p. ej. "No view is registered" tras actualizar sin
+  // recargar la ventana), las demás siguen funcionando y se avisa una vez.
+  const failed: string[] = [];
+  const area = <T>(name: string, register: () => T): T | undefined => {
+    try {
+      return register();
+    } catch (error) {
+      failed.push(name);
+      log.error(`No se pudo activar ${name}`, error);
+      return undefined;
+    }
+  };
+  const repositories = area('Repositorios', () => registerRepositories(core, compareView));
+  const logView = area('Git Log', () => registerLog(core));
+  const branches = logView && area('Ramas', () => registerBranches(core, logView));
+  const changes = logView && area('Changes', () => registerChanges(core, logView));
+  const stashes = area('Stashes', () => registerStashes(core));
+  const compareFiles = area('Comparar', () => registerCompare(core));
+  if (logView && changes) area('Acciones de archivo', () => registerFileActions(core, logView, changes));
+  if (repositories) area('Operaciones', () => registerOperations(core, repositories.treeView));
+  area('Proyecto', () => registerToolbar(core));
+  if (failed.length) {
+    const RELOAD = t('Reload Window');
+    void vscode.window
+      .showWarningMessage(t('MultiGit: some parts could not be loaded ({0}). Reload the window; details in the MultiGit output.', failed.join(', ')), RELOAD)
+      .then((choice) => choice === RELOAD && vscode.commands.executeCommand('workbench.action.reloadWindow'));
+  }
 
   // Resolver conflictos (tras pull, merge, rebase, Smart Checkout…) abre el diálogo Conflicts.
   setConflictsHost(context.extensionUri, manager);
@@ -120,7 +138,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
     log.error('Error al inicializar MultiGit', error);
     void vscode.window.showErrorMessage(t('MultiGit: the repositories could not be loaded. {0}', String(error)));
   }
-  return { manager, repositories: repositories.view, branches: branches.tree, changes: changes.tree, changesActions: changes.actions, stashes: stashes.tree, compareFiles };
+  return {
+    manager,
+    repositories: repositories?.view as RepositoriesView,
+    branches: branches?.tree as BranchesTree,
+    changes: changes?.tree as ChangesTree,
+    changesActions: changes?.actions as ChangesActions,
+    stashes: stashes?.tree as StashesTree,
+    compareFiles: compareFiles as CompareFilesTree,
+  };
 }
 
 export function deactivate(): void {
