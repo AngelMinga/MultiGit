@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.16.1",
+  "version": "0.16.2",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -819,6 +819,17 @@
         "title": "%command.manageRemotes%",
         "category": "MultiGit",
         "icon": "$(remote)"
+      },
+      {
+        "command": "multigit.mergeWithOptions",
+        "title": "%command.mergeWithOptions%",
+        "category": "MultiGit",
+        "icon": "$(git-merge)"
+      },
+      {
+        "command": "multigit.branch.mergeWithOptions",
+        "title": "%command.branch.mergeWithOptions%",
+        "category": "MultiGit"
       }
     ],
     "menus": {
@@ -1037,6 +1048,11 @@
           "command": "multigit.manageRemotes",
           "when": "view == multigit.repositories",
           "group": "2_remote@8"
+        },
+        {
+          "command": "multigit.mergeWithOptions",
+          "when": "view == multigit.repositories",
+          "group": "1_branch@9"
         }
       ],
       "view/item/context": [
@@ -1104,6 +1120,11 @@
           "command": "multigit.branch.merge",
           "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\.(local|remote)$/",
           "group": "3_merge@2"
+        },
+        {
+          "command": "multigit.branch.mergeWithOptions",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\.(local|remote)$/",
+          "group": "3_merge@3"
         },
         {
           "command": "multigit.branch.newWorktree",
@@ -1680,6 +1701,10 @@
         {
           "command": "multigit.merge.complete",
           "when": "isMergeEditor"
+        },
+        {
+          "command": "multigit.branch.mergeWithOptions",
+          "when": "false"
         }
       ],
       "multigit.changes.groupBy": [

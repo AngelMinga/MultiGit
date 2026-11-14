@@ -56,6 +56,7 @@ export function registerBranches(core: Core, logView: LogView): { tree: Branches
         ['diffWorkingTree', (sc, ref) => actions.diffWithWorkingTree(sc, ref)],
         ['rebaseOnto', (sc, ref) => actions.rebaseOnto(sc, ref)],
         ['merge', (sc, ref) => actions.merge(sc, ref)],
+        ['mergeWithOptions', (sc, ref) => actions.mergeWithOptions(sc, ref)],
         ['newWorktree', (sc, ref) => actions.newWorktree(sc, ref)],
         ['update', (sc, ref) => actions.update(sc, ref)],
         ['push', (sc, ref) => (ref.type === 'local' ? actions.push(sc, ref.name) : undefined)],

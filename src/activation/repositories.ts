@@ -36,6 +36,9 @@ export function registerRepositories(core: Core, compareView: CompareView): { tr
     vscode.commands.registerCommand('multigit.createPullRequests.forRepos', (repos: readonly Repo[]) =>
       popup.safely(() => createPullRequests(manager, (r) => core.openPush(r), repos.length ? repos : undefined)),
     ),
+    vscode.commands.registerCommand('multigit.mergeWithOptions', () =>
+      popup.safely(() => core.actions.mergeWithOptions({ repos: manager.all, label: t('{0} repositories', manager.all.length) })),
+    ),
     vscode.commands.registerCommand('multigit.manageRemotes', () => popup.safely(() => RemotesPanel.open(core.context.extensionUri, manager))),
     vscode.commands.registerCommand('multigit.newRepoGroup', () => popup.safely(() => newRepoGroup(manager))),
     view,

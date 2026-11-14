@@ -339,11 +339,12 @@ export class BranchActions {
     });
   }
 
-  /** Merge '<rama>' into '<actual>', con opciones como IntelliJ (--no-ff, --squash, mensaje…). */
-  async merge(scope: Scope, ref: BranchRef): Promise<void> {
+  /**
+   * Merge '<rama>' into '<actual>'. Como IntelliJ, desde el menú de una rama es directo (sin preguntar);
+   * las opciones (--no-ff, --squash, mensaje…) llegan desde "Merge…" (mergeWithOptions).
+   */
+  async merge(scope: Scope, ref: BranchRef, chosen: { options: string[]; message?: string } = { options: [] }): Promise<void> {
     const source = refName(ref);
-    const chosen = await askMergeOptions(source, currentLabel(scope));
-    if (!chosen) return;
     const { options, message } = chosen;
     await runInRepos(this.manager, {
       title: t('Merge of \'{0}\' into \'{1}\'', source, currentLabel(scope)),
@@ -363,6 +364,45 @@ export class BranchActions {
         return undefined;
       },
     });
+  }
+
+  /**
+   * Merge… (como Git → Merge… de IntelliJ): elegir la rama a integrar en la actual y las opciones.
+   * Sin `ref`, se ofrecen las ramas locales y remotas de los repos.
+   */
+  async mergeWithOptions(scope: Scope, ref?: BranchRef): Promise<void> {
+    let target = ref;
+    if (!target) {
+      const lists = await Promise.all(scope.repos.map((r) => r.git.getBranches().catch(() => undefined)));
+      const current = new Set(scope.repos.map((r) => r.status?.branch).filter(Boolean));
+      const locals = new Map<string, number>();
+      const remotes = new Map<string, { ref: BranchRef; count: number }>();
+      for (const b of lists) {
+        for (const l of b?.local ?? []) if (!current.has(l.name)) locals.set(l.name, (locals.get(l.name) ?? 0) + 1);
+        for (const r of b?.remote ?? []) {
+          const e = remotes.get(r.full) ?? { ref: { type: 'remote', remote: r.remote, name: r.name, full: r.full } as BranchRef, count: 0 };
+          e.count++;
+          remotes.set(r.full, e);
+        }
+      }
+      const n = scope.repos.length;
+      const picked = await vscode.window.showQuickPick(
+        [
+          { label: t('Local'), kind: vscode.QuickPickItemKind.Separator },
+          ...[...locals].sort().map(([name, count]) => ({ label: `$(git-branch) ${name}`, description: count < n ? `${count}/${n}` : '', ref: { type: 'local', name } as BranchRef })),
+          { label: t('Remote'), kind: vscode.QuickPickItemKind.Separator },
+          ...[...remotes.values()]
+            .sort((a, b) => refName(a.ref).localeCompare(refName(b.ref)))
+            .map((e) => ({ label: `$(cloud) ${refName(e.ref)}`, description: e.count < n ? `${e.count}/${n}` : '', ref: e.ref })),
+        ] as Array<vscode.QuickPickItem & { ref?: BranchRef }>,
+        { title: t("Merge into '{0}'", currentLabel(scope)), placeHolder: t('Branch to merge into the current one') },
+      );
+      target = picked?.ref;
+    }
+    if (!target) return;
+    const chosen = await askMergeOptions(refName(target), currentLabel(scope));
+    if (!chosen) return;
+    await this.merge(scope, target, chosen);
   }
 
   /** Compare with '<actual>': commits que tiene cada lado y el otro no, por repo. */

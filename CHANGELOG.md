@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.2
+
+- Merge como en IntelliJ: **"Merge Selected into Current"** (vista Ramas, popup, Git Log) vuelve a hacer
+  el merge **directamente**, sin preguntar. Las opciones (`--no-ff`, `--squash`, mensaje…) están en
+  **Merge…** (menú ⋯ de Repositorios o paleta de comandos: eliges la rama y luego las opciones, como
+  *Git → Merge…* de IntelliJ) y en *Merge en la actual con opciones…* del menú de una rama.
+
 ## 0.16.1
 
 - **Push rechazado como IntelliJ**: si el remoto tiene commits que no tienes, el aviso ofrece **Merge**

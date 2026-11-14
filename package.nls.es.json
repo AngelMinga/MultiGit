@@ -211,5 +211,7 @@
   "setting.dialogsAlwaysOnTop": "Mantener los diálogos flotantes siempre delante de las demás ventanas.",
   "command.operation.primary": "Resolver conflictos / Continuar la operación",
   "command.operation.abortAll": "Abortar la operación (merge, rebase…)",
-  "command.manageRemotes": "Administrar remotos…"
+  "command.manageRemotes": "Administrar remotos…",
+  "command.mergeWithOptions": "Merge…",
+  "command.branch.mergeWithOptions": "Merge en la actual con opciones…"
 }

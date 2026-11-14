@@ -129,7 +129,9 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
   sintaxis y la palabra que cambia resaltada, » « ✕ en cada cambio, aplicar los cambios sin conflicto
   de un lado o de los dos, **varita** para los conflictos simples, Resultado editable entero, F7 /
   Shift+F7 entre conflictos, Aceptar izquierda / derecha y Aplicar cambios.
-- **Merge con opciones**: `--no-ff`, `--ff-only`, `--squash`, `--no-commit` y mensaje propio. `multigit.mergeTool: vscode` usa el merge
+- **Merge…** (menú ⋯ de Repositorios, como *Git → Merge…* de IntelliJ): elegir la rama y las opciones
+  `--no-ff`, `--ff-only`, `--squash`, `--no-commit` o mensaje propio. Desde el menú de una rama, el
+  merge es directo. `multigit.mergeTool: vscode` usa el merge
   editor de VS Code.
 - **Conflictos** (como IntelliJ): la ventana *Conflicts* lista los archivos en conflicto de todos los
   repos con las columnas *Tuyos* / *Otros* (con el nombre de cada rama). **Aceptar** un lado (también
