@@ -455,6 +455,9 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
       case 'squashInto':
         await this.prepareAutosquash(action === 'fixup' ? 'fixup' : 'squash', repo, hash);
         return;
+      case 'createPatch':
+        await vscode.commands.executeCommand('multigit.patch.createFromCommit', repo.root, hash);
+        return;
       case 'newBranch':
         await this.branchActions.newBranch(scope, { type: 'local', name: hash });
         break;

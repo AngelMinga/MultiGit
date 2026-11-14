@@ -1843,3 +1843,34 @@ body.vscode-light .mg-word {
 .msgedit-text:focus {
   outline: 1px solid var(--vscode-focusBorder);
 }
+
+/* ------------------------------------------------------------------ opciones del commit */
+.commit-advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+}
+.commit-author {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.commit-author input {
+  flex: 1;
+  min-width: 0;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, transparent);
+  padding: 2px 4px;
+}
+.commit-author input.invalid {
+  border-color: var(--vscode-inputValidation-errorBorder, #be1100);
+}
+.commit-option-summary {
+  cursor: pointer;
+  padding: 2px 0;
+}
+.icon-btn.active {
+  color: var(--vscode-textLink-foreground);
+}

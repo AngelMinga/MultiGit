@@ -26,6 +26,7 @@ type DatePreset = 'all' | 'today' | '7' | '30' | 'custom';
 
 const MENU: Array<{ action: LogAction; label: string } | 'sep'> = [
   { action: 'copyHash', label: 'Copy hash' },
+  { action: 'createPatch', label: 'Create Patch…' },
   'sep',
   { action: 'checkout', label: 'Checkout revision' },
   { action: 'cherryPick', label: 'Cherry-pick' },

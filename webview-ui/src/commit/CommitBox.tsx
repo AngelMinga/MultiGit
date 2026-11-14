@@ -5,11 +5,23 @@ import { onHostMessage, post } from '../vscode';
 import { t } from '../i18n';
 
 const DRAFT_KEY = 'multigit.commitDraft';
+const OPTIONS_KEY = 'multigit.commitOptions';
+
+/** "Nombre <email>" (como `git commit --author`). */
+const AUTHOR_RE = /^[^<>\n]+ <[^<>\s@]+@[^<>\s]+>$/;
 
 export function CommitBox() {
   const [state, setState] = useState<CommitState>({ repos: [], total: 0, summary: '', busy: false, generating: false, prefix: '' });
   const [message, setMessage] = useState(() => readDraft());
   const [amend, setAmend] = useState(false);
+  // Opciones del commit (engranaje, como "Commit Options" de IntelliJ). Sign-off y hooks se recuerdan;
+  // el autor vale para el próximo commit.
+  const [showOptions, setShowOptions] = useState(false);
+  const [author, setAuthor] = useState('');
+  const [signoff, setSignoff] = useState(() => readOptions().signoff);
+  const [runHooks, setRunHooks] = useState(() => readOptions().runHooks);
+  const [authors, setAuthors] = useState<{ authors: string[]; me: string }>({ authors: [], me: '' });
+  const authorInvalid = author.trim() !== '' && !AUTHOR_RE.test(author.trim());
   const textarea = useRef<HTMLTextAreaElement>(null);
   /** El usuario escribió mientras Claude generaba: no pisar su texto con el streaming. */
   const typedWhileGenerating = useRef(false);
@@ -47,17 +59,21 @@ export function CommitBox() {
         if (m.type === 'commit/done') {
           fillPrefix(prefix.current);
           setAmend(false);
+          setAuthor('');
         }
+        if (m.type === 'commit/authors') setAuthors(m.payload);
       }),
     [],
   );
 
   useEffect(() => writeDraft(message), [message]);
+  useEffect(() => writeOptions({ signoff, runHooks }), [signoff, runHooks]);
 
-  const canCommit = !state.busy && state.total > 0 && message.trim().length > 0;
+  const canCommit = !state.busy && state.total > 0 && message.trim().length > 0 && !authorInvalid;
   const run = (push: boolean) => {
-    if (canCommit) post({ type: 'commit/run', payload: { message, amend, push } });
+    if (canCommit) post({ type: 'commit/run', payload: { message, amend, push, options: { author: author.trim() || undefined, signoff, noVerify: !runHooks } } });
   };
+  const optionSummary = [author.trim() ? t('Author: {0}', author.trim().replace(/ <.*$/, '')) : '', signoff ? 'Sign-off' : '', runHooks ? '' : t('no hooks')].filter(Boolean);
 
   const generate = () => {
     typedWhileGenerating.current = false;
@@ -75,6 +91,18 @@ export function CommitBox() {
           onClick={() => post({ type: 'commit/history', payload: { current: message } })}
         >
           <HistoryIcon />
+        </button>
+        <button
+          className={`icon-btn${showOptions || optionSummary.length ? ' active' : ''}`}
+          title={t('Commit Options (author, sign-off, Git hooks)')}
+          aria-label={t('Commit Options')}
+          aria-expanded={showOptions}
+          onClick={() => {
+            if (!showOptions && !authors.authors.length) post({ type: 'commit/requestAuthors', payload: {} });
+            setShowOptions((v) => !v);
+          }}
+        >
+          <GearIcon />
         </button>
         {state.generating ? (
           <button
@@ -122,6 +150,40 @@ export function CommitBox() {
           }
         }}
       />
+      {showOptions && (
+        <div className="commit-advanced">
+          <label className="commit-author">
+            <span>{t('Author')}</span>
+            <input
+              list="multigit-authors"
+              value={author}
+              placeholder={authors.me ? t('{0} (default)', authors.me) : t('Name <email>')}
+              className={authorInvalid ? 'invalid' : ''}
+              title={authorInvalid ? t('Use "Name <email>"') : t('Commit on behalf of someone else (git commit --author)')}
+              disabled={state.busy}
+              onChange={(e) => setAuthor(e.target.value)}
+            />
+            <datalist id="multigit-authors">
+              {authors.authors.map((a) => (
+                <option key={a} value={a} />
+              ))}
+            </datalist>
+          </label>
+          <label className="check" title={t('Adds "Signed-off-by: <you>" at the end of the message (git commit --signoff)')}>
+            <input type="checkbox" checked={signoff} disabled={state.busy} onChange={(e) => setSignoff(e.target.checked)} />
+            <span>Sign-off commit</span>
+          </label>
+          <label className="check" title={t('Unchecked: the pre-commit and commit-msg hooks are skipped (git commit --no-verify)')}>
+            <input type="checkbox" checked={runHooks} disabled={state.busy} onChange={(e) => setRunHooks(e.target.checked)} />
+            <span>Run Git hooks</span>
+          </label>
+        </div>
+      )}
+      {!showOptions && optionSummary.length > 0 && (
+        <div className="small muted commit-option-summary" onClick={() => setShowOptions(true)}>
+          ⚙ {optionSummary.join(' · ')}
+        </div>
+      )}
       <div className="commit-options">
       <label className="check">
         <input
@@ -157,6 +219,32 @@ export function CommitBox() {
         </button>
       </div>
     </div>
+  );
+}
+
+function readOptions(): { signoff: boolean; runHooks: boolean } {
+  try {
+    const saved = JSON.parse(localStorage.getItem(OPTIONS_KEY) ?? '{}') as { signoff?: boolean; runHooks?: boolean };
+    return { signoff: saved.signoff === true, runHooks: saved.runHooks !== false };
+  } catch {
+    return { signoff: false, runHooks: true };
+  }
+}
+
+function writeOptions(options: { signoff: boolean; runHooks: boolean }): void {
+  try {
+    localStorage.setItem(OPTIONS_KEY, JSON.stringify(options));
+  } catch {
+    // sin almacenamiento: las opciones duran mientras la vista esté abierta
+  }
+}
+
+/** Engranaje (opciones del commit). */
+function GearIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
+      <path d="M9.1 1l.4 1.9c.4.1.8.3 1.1.5l1.7-1 1.3 1.3-1 1.7c.2.3.4.7.5 1.1l1.9.4v1.8l-1.9.4c-.1.4-.3.8-.5 1.1l1 1.7-1.3 1.3-1.7-1c-.3.2-.7.4-1.1.5L9.1 15H7.3l-.4-1.9c-.4-.1-.8-.3-1.1-.5l-1.7 1-1.3-1.3 1-1.7c-.2-.3-.4-.7-.5-1.1L1.4 9.1V7.3l1.9-.4c.1-.4.3-.8.5-1.1l-1-1.7 1.3-1.3 1.7 1c.3-.2.7-.4 1.1-.5L7.3 1h1.8zM8.2 5.5a2.7 2.7 0 1 0 0 5.4 2.7 2.7 0 0 0 0-5.4z" />
+    </svg>
   );
 }
 

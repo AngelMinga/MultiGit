@@ -71,3 +71,38 @@ export function addToHistory(history: readonly string[], message: string, max = 
   if (!text) return [...history];
   return [text, ...history.filter((m) => m !== text)].slice(0, max);
 }
+
+/** Opciones del commit (engranaje de la caja de commit, como "Commit Options" de IntelliJ). */
+export interface CommitOptions {
+  /** Autor distinto del de la configuración: `Nombre <email>`. */
+  author?: string;
+  /** `--signoff`: añade "Signed-off-by: <tú>" al mensaje. */
+  signoff?: boolean;
+  /** `--no-verify`: no ejecutar los hooks pre-commit y commit-msg. */
+  noVerify?: boolean;
+}
+
+/** ¿Es un autor válido para `git commit --author` ("Nombre <email>")? */
+export function isValidAuthor(author: string): boolean {
+  return /^[^<>\n]+ <[^<>\s@]+@[^<>\s]+>$/.test(author.trim());
+}
+
+/** Argumentos de `git commit` para las opciones. */
+export function commitOptionArgs(options: CommitOptions = {}): string[] {
+  const args: string[] = [];
+  if (options.author?.trim()) args.push(`--author=${options.author.trim()}`);
+  if (options.signoff) args.push('--signoff');
+  if (options.noVerify) args.push('--no-verify');
+  return args;
+}
+
+/** Autores distintos ("Nombre <email>") de una salida de `git log --format=%an <%ae>`, en orden de aparición. */
+export function uniqueAuthors(lines: readonly string[], max = 30): string[] {
+  const seen = new Set<string>();
+  for (const l of lines) {
+    const a = l.trim();
+    if (a && isValidAuthor(a)) seen.add(a);
+    if (seen.size >= max) break;
+  }
+  return [...seen];
+}

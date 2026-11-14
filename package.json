@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -386,6 +386,53 @@
         "title": "%command.changes.copyPatch%",
         "category": "MultiGit",
         "icon": "$(copy)"
+      },
+      {
+        "command": "multigit.changes.createPatch",
+        "title": "%command.changes.createPatch%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.patch.apply",
+        "title": "%command.patch.apply%",
+        "category": "MultiGit",
+        "icon": "$(diff-insert)"
+      },
+      {
+        "command": "multigit.patch.applyClipboard",
+        "title": "%command.patch.applyClipboard%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.patch.createFromCommit",
+        "title": "%command.patch.createFromCommit%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.changelist.new",
+        "title": "%command.changelist.new%",
+        "category": "MultiGit",
+        "icon": "$(add)"
+      },
+      {
+        "command": "multigit.changelist.move",
+        "title": "%command.changelist.move%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.changelist.setActive",
+        "title": "%command.changelist.setActive%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.changelist.edit",
+        "title": "%command.changelist.edit%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.changelist.delete",
+        "title": "%command.changelist.delete%",
+        "category": "MultiGit"
       },
       {
         "command": "multigit.changes.git.add",
@@ -1073,6 +1120,21 @@
           "command": "multigit.mergeWithOptions",
           "when": "view == multigit.repositories",
           "group": "1_branch@9"
+        },
+        {
+          "command": "multigit.changelist.new",
+          "when": "view == multigit.changes",
+          "group": "changelist@1"
+        },
+        {
+          "command": "multigit.patch.apply",
+          "when": "view == multigit.changes",
+          "group": "patch@1"
+        },
+        {
+          "command": "multigit.patch.applyClipboard",
+          "when": "view == multigit.changes",
+          "group": "patch@2"
         }
       ],
       "view/item/context": [
@@ -1193,7 +1255,7 @@
         },
         {
           "command": "multigit.changes.rollback",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file\\.tracked|(repo|dir|section)\\.changes)$/",
+          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file\\.tracked|(repo|dir|section)\\.changes(\\.default)?(\\.active)?)$/",
           "group": "inline@2"
         },
         {
@@ -1203,7 +1265,7 @@
         },
         {
           "command": "multigit.changes.rollback",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file\\.tracked|(repo|dir|section)\\.changes)$/",
+          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file\\.tracked|(repo|dir|section)\\.changes(\\.default)?(\\.active)?)$/",
           "group": "1_commit@2"
         },
         {
@@ -1365,6 +1427,36 @@
           "command": "multigit.manageRemotes",
           "when": "view == multigit.repositories",
           "group": "2_remote@8"
+        },
+        {
+          "command": "multigit.changes.createPatch",
+          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\./",
+          "group": "4_patch@0"
+        },
+        {
+          "command": "multigit.changelist.move",
+          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file\\.(tracked|conflict|untracked)|(repo|dir)\\.(changes|unversioned)|section\\.unversioned)/",
+          "group": "1_commit@4"
+        },
+        {
+          "command": "multigit.changelist.new",
+          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.section\\.changes/",
+          "group": "0_changelist@1"
+        },
+        {
+          "command": "multigit.changelist.setActive",
+          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.section\\.changes(\\.default)?$/",
+          "group": "0_changelist@2"
+        },
+        {
+          "command": "multigit.changelist.edit",
+          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.section\\.changes/",
+          "group": "0_changelist@3"
+        },
+        {
+          "command": "multigit.changelist.delete",
+          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.section\\.changes(\\.active)?$/",
+          "group": "0_changelist@4"
         }
       ],
       "commandPalette": [
@@ -1751,6 +1843,30 @@
         {
           "command": "multigit.branch.mergeWithOptions",
           "when": "false"
+        },
+        {
+          "command": "multigit.changes.createPatch",
+          "when": "false"
+        },
+        {
+          "command": "multigit.patch.createFromCommit",
+          "when": "false"
+        },
+        {
+          "command": "multigit.changelist.move",
+          "when": "false"
+        },
+        {
+          "command": "multigit.changelist.setActive",
+          "when": "false"
+        },
+        {
+          "command": "multigit.changelist.edit",
+          "when": "false"
+        },
+        {
+          "command": "multigit.changelist.delete",
+          "when": "false"
         }
       ],
       "multigit.changes.groupBy": [
@@ -1830,7 +1946,7 @@
         },
         {
           "command": "multigit.changes.rollback",
-          "when": "viewItem =~ /^multigit\\.changes\\.(file\\.tracked|(repo|dir|section)\\.changes)$/",
+          "when": "viewItem =~ /^multigit\\.changes\\.(file\\.tracked|(repo|dir|section)\\.changes(\\.default)?(\\.active)?)$/",
           "group": "0c_rollback@1"
         },
         {
@@ -1957,6 +2073,11 @@
           "submenu": "multigit.file.localHistoryMenu",
           "when": "resourceScheme == file && multigit.hasRepos && !explorerResourceIsFolder",
           "group": "7_modification@10"
+        },
+        {
+          "command": "multigit.patch.apply",
+          "when": "resourceExtname =~ /^\\.(patch|diff)$/",
+          "group": "7_multigit@1"
         }
       ],
       "editor/context": [
@@ -2048,6 +2169,13 @@
           "command": "multigit.merge.complete",
           "when": "isMergeEditor",
           "group": "navigation@7"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "multigit.patch.apply",
+          "when": "resourceExtname =~ /^\\.(patch|diff)$/",
+          "group": "7_multigit@1"
         }
       ]
     },
@@ -2583,6 +2711,11 @@
         "command": "multigit.merge.prevConflict",
         "key": "shift+f7",
         "when": "isMergeEditor"
+      },
+      {
+        "command": "multigit.changelist.move",
+        "key": "f6",
+        "when": "focusedView == multigit.changes"
       }
     ],
     "submenus": [

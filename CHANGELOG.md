@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.18.0
+
+- **Changelists** como IntelliJ: listas con nombre dentro de Changes (New, Move to Another Changelist…
+  con `F6` o arrastrando, Set Active, Edit con descripción y Delete). Los cambios nuevos van a la lista
+  activa y solo los de la activa entran marcados en el commit; la descripción de la lista se propone
+  como mensaje.
+- **Patches**: *Create Patch…* (Changes y Git Log) a un archivo o al portapapeles, y *Apply Patch…* /
+  *Apply Patch from Clipboard…* (también clic derecho en un `.patch`). Los patches de varios repos usan
+  rutas desde la carpeta común, como IntelliJ, y cada archivo se aplica en su repo; si no encaja, merge
+  a 3 bandas.
+- **Opciones del commit** (⚙ en la caja de commit): autor, *Sign-off commit* y *Run Git hooks*.
+
 ## 0.17.0
 
 - **Update Project como IntelliJ**: pregunta **Merge** o **Rebase** (o siempre uno, con el ajuste

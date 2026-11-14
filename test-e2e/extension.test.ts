@@ -10,6 +10,8 @@ import { runCommitChecks } from '../src/views/commitChecks';
 import { RebasePanel } from '../src/webview/RebasePanel';
 import { MergePanel } from '../src/webview/MergePanel';
 import { runInRepos } from '../src/git/MultiRepoRunner';
+import { addList, moveTo, setActive } from '../src/git/changelists';
+import { keyOf } from '../src/views/ChangesTree';
 
 /** Recorre un TreeDataProvider completo y devuelve cada elemento con su TreeItem. */
 async function walk<T>(provider: vscode.TreeDataProvider<T>, parent?: T, depth = 0): Promise<Array<{ node: T; item: vscode.TreeItem }>> {
@@ -203,6 +205,53 @@ describe('Commit parcial', () => {
     assert.equal(readFileSync(file, 'utf8'), 'a\nB\nc\nd\ne\nf\ng\nH\n');
     assert.equal(git('status', '--porcelain', '--', 'src/app.js'), ' M src/app.js\n');
     assert.equal(api.changes.partialOf(ref), undefined);
+  });
+});
+
+describe('Changelists', () => {
+  let api: MultiGitTestApi;
+  before(async () => {
+    api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+  });
+
+  it('una lista nueva, mover un archivo, solo la activa entra marcada y commit con autor y sign-off', async () => {
+    const repo = api.manager.all.find((r) => r.name === 'mflogin')!;
+    const env = { ...process.env, GIT_AUTHOR_NAME: 'E2E', GIT_AUTHOR_EMAIL: 'e2e@example.com', GIT_COMMITTER_NAME: 'E2E', GIT_COMMITTER_EMAIL: 'e2e@example.com' };
+    const git = (...args: string[]) => execFileSync('git', args, { cwd: repo.root, env, encoding: 'utf8' });
+    for (const f of ['uno.txt', 'dos.txt']) writeFileSync(path.join(repo.root, f), 'base\n');
+    git('add', 'uno.txt', 'dos.txt');
+    git('commit', '-q', '-m', 'chore: base changelists');
+    for (const f of ['uno.txt', 'dos.txt']) writeFileSync(path.join(repo.root, f), 'cambio\n');
+    await api.manager.refresh();
+    await api.changes.refresh();
+    const before = api.changes.changelists;
+    try {
+      const refOf = (name: string) => api.changes.trackedFiles.find((r) => r.repo === repo && r.file.path === name)!;
+      // Nueva lista activa "Tarea"; "dos.txt" pasa a ella.
+      api.changes.updateLists(moveTo(setActive(addList(before, 'e2e', 'Tarea'), 'e2e'), [keyOf(refOf('dos.txt'))], 'e2e'), [refOf('uno.txt'), refOf('dos.txt')]);
+      const items = await walk(api.changes);
+      const sections = items.filter((i) => i.node.kind === 'section' && i.node.section === 'changes');
+      assert.deepEqual(sections.map((i) => label(i.item)), ['Changes', 'Tarea']);
+      assert.equal(sections[1]!.item.contextValue, 'multigit.changes.section.changes.active');
+      assert.equal(sections[0]!.item.contextValue, 'multigit.changes.section.changes.default');
+      assert.ok(api.changes.isChecked(refOf('dos.txt')), 'dos.txt (lista activa) marcado');
+      assert.ok(!api.changes.isChecked(refOf('uno.txt')), 'uno.txt (otra lista) sin marcar');
+      // Los dos repos pueden tener el mismo repo en dos listas: ids distintos.
+      const ids = items.map((i) => i.item.id);
+      assert.equal(new Set(ids).size, ids.length);
+
+      api.changes.setOnlyChecked([refOf('dos.txt')]);
+      const done = await api.changesActions.commit('feat: dos', false, { author: 'Ana Pérez <ana@empresa.com>', signoff: true });
+      assert.deepEqual(done?.map((r) => r.name), ['mflogin']);
+      assert.equal(git('log', '-1', '--format=%an <%ae>').trim(), 'Ana Pérez <ana@empresa.com>');
+      assert.match(git('log', '-1', '--format=%B'), /\n\nSigned-off-by: [^<]+ <[^>]+>/);
+      assert.equal(api.changes.filesInList('e2e').length, 0);
+      assert.equal(api.changes.listOfRef(refOf('uno.txt')), 'default');
+    } finally {
+      api.changes.updateLists(before);
+      git('checkout', '--', 'uno.txt');
+      await api.changes.refresh();
+    }
   });
 });
 

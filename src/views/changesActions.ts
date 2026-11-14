@@ -1,4 +1,5 @@
 // Acciones de la vista Changes: Commit (solo archivos marcados), Rollback, Shelve / Unshelve y diff.
+import type { CommitOptions } from '../git/commitMessage';
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
@@ -36,7 +37,7 @@ export class ChangesActions {
    * Commit de los archivos marcados: en cada repo con archivos marcados, con el mismo mensaje.
    * Devuelve los repos donde se hizo el commit (o `undefined` si no se ejecutó).
    */
-  async commit(message: string, amend: boolean): Promise<Repo[] | undefined> {
+  async commit(message: string, amend: boolean, options: CommitOptions = {}): Promise<Repo[] | undefined> {
     const groups = byRepo(this.tree.checkedFiles, this.manager.all);
     if (groups.length === 0) {
       void vscode.window.showWarningMessage(t('MultiGit: check at least one file in the Changes view.'));
@@ -79,7 +80,7 @@ export class ChangesActions {
         if (partial.length === 0) {
           const plan = planCommit(files);
           await repo.git.addPaths(plan.add);
-          await repo.git.commitPaths(message, plan.paths, amend);
+          await repo.git.commitPaths(message, plan.paths, amend, options);
           return t('{0} file(s)', files.length);
         }
         const partialPaths = new Set(partial.map((p) => p.file.path));
@@ -91,7 +92,7 @@ export class ChangesActions {
             return { path: file.path, content };
           }),
         );
-        await repo.git.commitPartial(message, plan.paths, contents, amend);
+        await repo.git.commitPartial(message, plan.paths, contents, amend, options);
         this.tree.clearPartial(partial.map((p) => ({ repo, file: p.file })));
         return t('{0} file(s), {1} partial', files.length, partial.length);
       },

@@ -336,6 +336,7 @@ export type LogAction =
   | 'squashInto'
   | 'drop'
   | 'pushUpTo'
+  | 'createPatch'
   | 'newBranch'
   | 'newTag'
   | 'interactiveRebase';
@@ -390,6 +391,7 @@ export type HostMessage =
   | { type: 'commit/partial'; payload: { text: string } }
   | { type: 'commit/replaceMessage'; payload: { message: string } }
   | { type: 'commit/requestHistory'; payload: Record<string, never> }
+  | { type: 'commit/authors'; payload: { authors: string[]; me: string } }
   | {
       type: 'log/init';
       payload: { repos: LogRepoInfo[]; me: { name: string; email: string }; filters: LogFilters; favorites: string[] };
@@ -435,7 +437,8 @@ export type WebviewMessage =
   | { type: 'remotes/edit'; payload: { repoId: string; name: string } }
   | { type: 'remotes/remove'; payload: { repoId: string; name: string } }
   | { type: 'remotes/close'; payload: Record<string, never> }
-  | { type: 'commit/run'; payload: { message: string; amend: boolean; push: boolean } }
+  | { type: 'commit/run'; payload: { message: string; amend: boolean; push: boolean; options?: { author?: string; signoff?: boolean; noVerify?: boolean } } }
+  | { type: 'commit/requestAuthors'; payload: Record<string, never> }
   | { type: 'commit/requestLastMessage'; payload: Record<string, never> }
   | { type: 'commit/generate'; payload: { current: string } }
   | { type: 'commit/cancelGenerate'; payload: Record<string, never> }

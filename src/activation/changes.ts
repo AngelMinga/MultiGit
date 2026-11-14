@@ -7,6 +7,8 @@ import { CommitView } from '../views/CommitView';
 import type { LogView } from '../webview/LogView';
 import type { Core } from './core';
 import { HunksPanel } from '../webview/HunksPanel';
+import { PatchActions } from '../views/patchActions';
+import { ChangelistActions } from '../views/changelistActions';
 import { t } from '../i18n';
 
 export function registerChanges(
@@ -14,14 +16,17 @@ export function registerChanges(
   logView: LogView,
 ): { tree: ChangesTree; view: vscode.TreeView<ChangeNode>; actions: ChangesActions } {
   const { manager, context, popup } = core;
-  const tree = new ChangesTree(manager, context.globalState);
+  const tree = new ChangesTree(manager, context.globalState, context.workspaceState);
+  const changelists = new ChangelistActions(tree);
   const view = vscode.window.createTreeView('multigit.changes', {
     treeDataProvider: tree,
+    dragAndDropController: changelists,
     canSelectMany: true,
     manageCheckboxStateManually: true,
     showCollapseAll: true,
   });
   const actions = new ChangesActions(manager, tree, context.extensionUri);
+  const patches = new PatchActions(manager);
   const commitView = new CommitView(context.extensionUri, manager, tree, actions, (repos) => core.openPush(repos), context.workspaceState);
 
   let stale = true;
@@ -83,6 +88,7 @@ export function registerChanges(
         ['ignoreRoot', (refs) => actions.ignore(refs, 'root')],
         ['delete', (refs) => actions.deleteFiles(refs)],
         ['copyPatch', (refs) => actions.copyPatch(refs)],
+        ['createPatch', (refs) => patches.createFromChanges(refs)],
       ] as Array<[string, (refs: FileRef[]) => Promise<unknown>]>
     ).map(([id, run]) =>
       vscode.commands.registerCommand(`multigit.changes.${id}`, (node?: ChangeNode, nodes?: ChangeNode[]) => {
@@ -107,6 +113,39 @@ export function registerChanges(
       }),
     ),
     vscode.commands.registerCommand('multigit.changes.unshelve', () => actions.unshelve()),
+    // Changelists (como IntelliJ).
+    vscode.commands.registerCommand('multigit.changelist.new', (node?: ChangeNode, nodes?: ChangeNode[]) =>
+      popup.safely(() => changelists.create(node && node.kind !== 'section' ? selected(node, nodes) : [])),
+    ),
+    vscode.commands.registerCommand('multigit.changelist.move', (node?: ChangeNode, nodes?: ChangeNode[]) => {
+      const refs = selected(node, nodes);
+      if (refs.length) return popup.safely(() => changelists.move(refs));
+      return undefined;
+    }),
+    vscode.commands.registerCommand('multigit.changelist.setActive', (node?: ChangeNode) => {
+      const id = (node ?? view.selection[0])?.list;
+      if (id) changelists.setActive(id);
+    }),
+    vscode.commands.registerCommand('multigit.changelist.edit', (node?: ChangeNode) => {
+      const id = (node ?? view.selection[0])?.list;
+      if (id) return popup.safely(() => changelists.edit(id));
+      return undefined;
+    }),
+    vscode.commands.registerCommand('multigit.changelist.delete', (node?: ChangeNode) => {
+      const id = (node ?? view.selection[0])?.list;
+      if (id) return popup.safely(() => changelists.remove(id));
+      return undefined;
+    }),
+    // Patches: Create Patch… (vista Changes y Git Log) y Apply Patch… (paleta, ⋯ de Changes, clic derecho en un .patch).
+    vscode.commands.registerCommand('multigit.patch.apply', (uri?: vscode.Uri) =>
+      popup.safely(() => patches.apply(uri instanceof vscode.Uri ? uri : undefined)),
+    ),
+    vscode.commands.registerCommand('multigit.patch.applyClipboard', () => popup.safely(() => patches.apply('clipboard'))),
+    vscode.commands.registerCommand('multigit.patch.createFromCommit', (repoRoot: string, hash: string) => {
+      const repo = manager.allRepos.find((r) => r.root === repoRoot);
+      if (repo) return popup.safely(() => patches.createFromCommit(repo, hash));
+      return undefined;
+    }),
     vscode.commands.registerCommand('multigit.changes.selectHunks', (node?: ChangeNode) => {
       const ref = fileNode(node ?? view.selection[0]);
       if (ref) return popup.safely(() => HunksPanel.open(context.extensionUri, tree, ref, (r) => actions.openDiff(r)));

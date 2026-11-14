@@ -6,6 +6,7 @@ import * as path from 'node:path';
 import { parseRefs, REF_FORMAT, type RepoBranches } from './branches';
 import { pullArgs, type PullMode } from './pull';
 import type { HistoryInfo } from './historyEdit';
+import { commitOptionArgs, uniqueAuthors, type CommitOptions } from './commitMessage';
 import { LOG_PAGE_FORMAT, parseLogPage, type LogCommit } from './log';
 import { parseStatusFiles, type StatusFile } from './changes';
 import { parseStashList, SHELF_PREFIX, STASH_FORMAT, type StashEntry } from './stashes';
@@ -710,6 +711,7 @@ export class GitService {
     paths: readonly string[],
     partial: ReadonlyArray<{ path: string; content: string }>,
     amend: boolean,
+    options: CommitOptions = {},
   ): Promise<string> {
     const tmp = path.resolve(this.root, (await this.exec(['rev-parse', '--git-path', 'multigit-index'])).trim());
     const env = { GIT_INDEX_FILE: tmp };
@@ -722,7 +724,7 @@ export class GitService {
         const mode = (await this.exec(['ls-tree', 'HEAD', '--', p.path])).split(' ')[0] || '100644';
         await this.exec(['update-index', '--add', '--cacheinfo', `${mode},${sha},${p.path}`], { env });
       }
-      out = await this.exec(['commit', '-m', message, ...(amend ? ['--amend'] : [])], { env, timeoutMs: COMMIT_TIMEOUT_MS });
+      out = await this.exec(['commit', '-m', message, ...(amend ? ['--amend'] : []), ...commitOptionArgs(options)], { env, timeoutMs: COMMIT_TIMEOUT_MS });
     } finally {
       await fs.rm(tmp, { force: true });
     }
@@ -732,10 +734,16 @@ export class GitService {
   }
 
   /** Commit solo de `paths` (`git commit --only`), opcionalmente `--amend`. */
-  commitPaths(message: string, paths: readonly string[], amend: boolean): Promise<string> {
-    const args = ['commit', '--only', '-m', message];
+  commitPaths(message: string, paths: readonly string[], amend: boolean, options: CommitOptions = {}): Promise<string> {
+    const args = ['commit', '--only', '-m', message, ...commitOptionArgs(options)];
     if (amend) args.push('--amend');
     return this.exec([...args, '--', ...paths], { timeoutMs: COMMIT_TIMEOUT_MS });
+  }
+
+  /** Autores recientes del repo ("Nombre <email>"), para elegir otro autor en el commit. */
+  async recentAuthors(max = 30): Promise<string[]> {
+    const out = await this.exec(['log', '-500', '--no-merges', '--format=%an <%ae>']).catch(() => '');
+    return uniqueAuthors(out.split('\n'), max);
   }
 
   /** Mensajes completos de los últimos `count` commits de un autor (email). */
@@ -849,18 +857,32 @@ export class GitService {
   /** Patch (formato `git diff`) de archivos versionados contra HEAD. */
   async patchTracked(paths: readonly string[]): Promise<string> {
     if (!paths.length) return '';
-    return this.exec(['diff', 'HEAD', '--binary', '--no-color', '--no-ext-diff', '--', ...paths]);
+    return this.exec(['-c', 'core.quotepath=false', 'diff', 'HEAD', '--binary', '--no-color', '--no-ext-diff', '--', ...paths]);
   }
 
   /** Patch de un archivo sin versionar (`git diff --no-index /dev/null <archivo>`). */
   async patchUntracked(filePath: string): Promise<string> {
     try {
-      return await this.exec(['diff', '--no-index', '--binary', '--no-color', '--', '/dev/null', filePath]);
+      return await this.exec(['-c', 'core.quotepath=false', 'diff', '--no-index', '--binary', '--no-color', '--', '/dev/null', filePath]);
     } catch (error) {
       // --no-index sale con código 1 cuando hay diferencias (siempre, para un archivo nuevo).
       if (error instanceof GitError && error.exitCode === 1) return error.stdout;
       throw error;
     }
+  }
+
+  /** Patch de un commit (`git format-patch -1 --stdout`): con autor, fecha y mensaje, como "Create Patch" del log. */
+  commitPatch(hash: string): Promise<string> {
+    return this.exec(['-c', 'core.quotepath=false', 'format-patch', '-1', '--stdout', '--binary', '--no-color', hash]);
+  }
+
+  /**
+   * `git apply` de un patch (por stdin) al working tree. `check`: solo comprueba; `threeWay`: si no
+   * encaja, merge a tres bandas con las versiones del repo (deja conflictos y los cambios en el stage).
+   */
+  applyPatch(patch: string, mode: 'check' | 'apply' | 'threeWay'): Promise<string> {
+    const args = ['apply', '--whitespace=nowarn', ...(mode === 'check' ? ['--check'] : mode === 'threeWay' ? ['--3way'] : []), '-'];
+    return this.exec(args, { input: patch });
   }
 
   /** Shelve: `git stash push -u -m "MultiGit: <nombre>" -- <paths>`. */

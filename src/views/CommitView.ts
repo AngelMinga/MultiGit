@@ -9,6 +9,7 @@ import {
   DEFAULT_TICKET_PATTERN,
   DEFAULT_TICKET_TEMPLATE,
   isOnlyPrefix,
+  isValidAuthor,
   templatePrefix,
 } from '../git/commitMessage';
 import {
@@ -74,7 +75,19 @@ export class CommitView implements vscode.WebviewViewProvider, vscode.Disposable
 
   private prefix(): string {
     const ticket = this.ticket();
+    // Como IntelliJ: la descripción de la changelist de los archivos marcados se propone como mensaje.
+    const comment = this.changelistComment();
+    if (comment) return ticket ? applyTemplate(comment, ticket.template, ticket.ticket, ticket.branch) : comment;
     return ticket ? templatePrefix(ticket.template, ticket.ticket, ticket.branch) : '';
+  }
+
+  /** Descripción de la changelist si todos los archivos marcados están en la misma (y tiene). */
+  private changelistComment(): string | undefined {
+    const checked = this.tree.checkedFiles.filter((f) => f.file.kind !== 'untracked');
+    const ids = new Set(checked.map((f) => this.tree.listOfRef(f)));
+    if (ids.size !== 1) return undefined;
+    const [id] = ids;
+    return this.tree.changelists.lists.find((l) => l.id === id)?.comment?.trim() || undefined;
   }
 
   /** Comando Commit Message History…: la caja responde con su texto actual (commit/history). */
@@ -203,6 +216,16 @@ export class CommitView implements vscode.WebviewViewProvider, vscode.Disposable
         if (this.view) void postToWebview(this.view.webview, { type: 'commit/setMessage', payload: { message: last } });
         break;
       }
+      case 'commit/requestAuthors': {
+        // Autores recientes de todos los repos (para el campo Author de las opciones).
+        const lists = await Promise.all(this.manager.all.map((r) => r.git.recentAuthors().catch(() => [])));
+        const first = this.manager.all[0];
+        const [name, email] = first ? await Promise.all([first.git.configGet('user.name'), first.git.configGet('user.email')]) : ['', ''];
+        const me = name && email ? `${name} <${email}>` : '';
+        const authors = [...new Set(lists.flat())].filter((a) => a !== me);
+        if (this.view) void postToWebview(this.view.webview, { type: 'commit/authors', payload: { authors, me } });
+        break;
+      }
       case 'commit/generate':
         await this.generate(message.payload.current);
         break;
@@ -217,8 +240,12 @@ export class CommitView implements vscode.WebviewViewProvider, vscode.Disposable
         this.busy = true;
         this.postState();
         try {
-          const { message: text, amend, push } = message.payload;
-          const repos = await this.actions.commit(text, amend);
+          const { message: text, amend, push, options } = message.payload;
+          if (options?.author?.trim() && !isValidAuthor(options.author)) {
+            void vscode.window.showWarningMessage(t('MultiGit: the author must be "Name <email>".'));
+            return;
+          }
+          const repos = await this.actions.commit(text, amend, options);
           if (repos && repos.length > 0) {
             await this.state.update(HISTORY_KEY, addToHistory(this.history, text));
             if (this.view) void postToWebview(this.view.webview, { type: 'commit/done', payload: {} });

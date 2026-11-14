@@ -10,6 +10,14 @@ import { commonAncestor } from '../git/branches';
 import { statusLabel, type StatusFile } from '../git/changes';
 import { describeHead } from '../git/parsers';
 import type { Repo, RepoManager } from '../git/RepoManager';
+import {
+  DEFAULT_LIST,
+  listOf,
+  normalize,
+  orderedLists,
+  sync as syncLists,
+  type ChangelistState,
+} from '../git/changelists';
 import { t } from '../i18n';
 
 export interface ChangesGrouping {
@@ -42,14 +50,20 @@ export interface FileRef {
   file: StatusFile;
 }
 
+/** `list`: changelist del nodo (solo en la sección de cambios versionados). */
 export type ChangeNode =
-  | { kind: 'section'; section: Section; files: FileRef[] }
-  | { kind: 'repo'; section: Section; repo: Repo; files: FileRef[]; depth: number }
-  | { kind: 'module'; section: Section; id: string; label: string; files: FileRef[]; depth: number; moduleRel: string }
-  | { kind: 'dir'; section: Section; id: string; label: string; files: FileRef[] }
-  | { kind: 'file'; section: Section; ref: FileRef };
+  | { kind: 'section'; section: Section; files: FileRef[]; list?: string }
+  | { kind: 'repo'; section: Section; repo: Repo; files: FileRef[]; depth: number; list?: string }
+  | { kind: 'module'; section: Section; id: string; label: string; files: FileRef[]; depth: number; moduleRel: string; list?: string }
+  | { kind: 'dir'; section: Section; id: string; label: string; files: FileRef[]; list?: string }
+  | { kind: 'file'; section: Section; ref: FileRef; list?: string };
 
-const keyOf = (ref: FileRef) => `${ref.repo.root}\0${ref.file.path}`;
+export const keyOf = (ref: FileRef) => `${ref.repo.root}\0${ref.file.path}`;
+const CHANGELISTS_KEY = 'multigit.changelists';
+/** Parte de los ids de los nodos: la sección, y en Changes también la lista (puede haber el mismo repo en dos). */
+const scopeOf = (section: Section, list?: string) => (list ? `${section}:${list}` : section);
+/** ¿Va en una changelist? (los versionados con cambios y los conflictos; los sin versionar no). */
+const inChangelists = (ref: FileRef) => ref.file.kind === 'tracked' || ref.file.kind === 'conflict';
 
 /** Commit parcial de un archivo: qué líneas del diff entran (ver src/git/hunks.ts). */
 export interface PartialSelection {
@@ -74,12 +88,51 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
   private grouping: ChangesGrouping;
   private loading: Promise<void> | undefined;
 
+  private lists: ChangelistState;
+
   constructor(
     private readonly manager: RepoManager,
     private readonly memento: vscode.Memento,
+    /** Donde se guardan las changelists (por workspace). */
+    private readonly workspaceMemento: vscode.Memento = memento,
   ) {
     this.grouping = { ...DEFAULT_GROUPING, ...memento.get<Partial<ChangesGrouping>>(GROUPING_KEY) };
+    this.lists = normalize(workspaceMemento.get<Partial<ChangelistState>>(CHANGELISTS_KEY));
     this.publishGrouping();
+    this.publishLists();
+  }
+
+  // ------------------------------------------------------------------ changelists
+
+  get changelists(): ChangelistState {
+    return this.lists;
+  }
+
+  /** Changelist de un archivo versionado. */
+  listOfRef(ref: FileRef): string {
+    return listOf(this.lists, keyOf(ref));
+  }
+
+  /** Archivos versionados con cambios de una lista. */
+  filesInList(id: string): FileRef[] {
+    return this.files.filter((f) => inChangelists(f) && this.listOfRef(f) === id);
+  }
+
+  /** Cambia las changelists, lo guarda y redibuja (`resetChecks`: esos archivos vuelven a su marca por defecto). */
+  updateLists(next: ChangelistState, resetChecks: readonly FileRef[] = []): void {
+    this.lists = next;
+    void this.workspaceMemento.update(CHANGELISTS_KEY, next);
+    for (const ref of resetChecks) {
+      this.overrides.delete(keyOf(ref));
+      this.partial.delete(keyOf(ref));
+    }
+    this.publishLists();
+    this.changeEmitter.fire(undefined);
+    this.checkedEmitter.fire();
+  }
+
+  private publishLists(): void {
+    void vscode.commands.executeCommand('setContext', 'multigit.changelistCount', this.lists.lists.length);
   }
 
   // ------------------------------------------------------------------ datos
@@ -98,6 +151,12 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
           }),
         );
         this.files = lists.flat();
+        // Los archivos nuevos van a la changelist activa; se olvidan los que ya no tienen cambios.
+        const synced = syncLists(this.lists, this.files.filter(inChangelists).map(keyOf));
+        if (synced !== this.lists) {
+          this.lists = synced;
+          void this.workspaceMemento.update(CHANGELISTS_KEY, synced);
+        }
         // Olvida las marcas de archivos que ya no tienen cambios.
         const alive = new Set(this.files.map(keyOf));
         for (const k of this.overrides.keys()) if (!alive.has(k)) this.overrides.delete(k);
@@ -112,7 +171,8 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
   }
 
   isChecked(ref: FileRef): boolean {
-    return this.overrides.get(keyOf(ref)) ?? ref.file.kind === 'tracked';
+    // Como IntelliJ: por defecto entran los cambios de la changelist activa.
+    return this.overrides.get(keyOf(ref)) ?? (ref.file.kind === 'tracked' && this.listOfRef(ref) === this.lists.active);
   }
 
   /** Archivos marcados (de todas las secciones). */
@@ -209,35 +269,42 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
   async getChildren(node?: ChangeNode): Promise<ChangeNode[]> {
     if (!node) {
       if (this.loading) await this.loading;
-      const changes = this.files.filter((f) => f.file.kind === 'tracked' || f.file.kind === 'conflict');
+      const changes = this.files.filter(inChangelists);
       const unversioned = this.files.filter((f) => f.file.kind === 'untracked');
       const ignored = this.files.filter((f) => f.file.kind === 'ignored');
-      const sections: ChangeNode[] = [{ kind: 'section', section: 'changes', files: changes }];
+      // Una sección por changelist (aunque esté vacía, como IntelliJ).
+      const sections: ChangeNode[] = orderedLists(this.lists).map((l) => ({
+        kind: 'section' as const,
+        section: 'changes' as const,
+        list: l.id,
+        files: changes.filter((f) => this.listOfRef(f) === l.id),
+      }));
       if (unversioned.length) sections.push({ kind: 'section', section: 'unversioned', files: unversioned });
       if (this.grouping.showIgnored && ignored.length) sections.push({ kind: 'section', section: 'ignored', files: ignored });
       return sections;
     }
     switch (node.kind) {
       case 'section':
-        return this.group(node.section, node.files, 0, null);
+        return this.group(node.section, node.files, 0, null, node.list);
       case 'repo':
-        return this.group(node.section, node.files, node.depth + 1, null);
+        return this.group(node.section, node.files, node.depth + 1, null, node.list);
       case 'module':
-        return this.group(node.section, node.files, node.depth + 1, node.moduleRel);
+        return this.group(node.section, node.files, node.depth + 1, node.moduleRel, node.list);
       case 'dir':
-        return sortFiles(node.files).map((ref) => ({ kind: 'file', section: node.section, ref }));
+        return sortFiles(node.files).map((ref) => ({ kind: 'file', section: node.section, ref, list: node.list }));
       case 'file':
         return [];
     }
   }
 
   /** Hijos para el nivel `depth` de agrupación (o los archivos, si no quedan niveles). */
-  private group(section: Section, files: FileRef[], depth: number, moduleRel: string | null): ChangeNode[] {
+  private group(section: Section, files: FileRef[], depth: number, moduleRel: string | null, list?: string): ChangeNode[] {
+    const scope = scopeOf(section, list);
     const level = this.levels[depth];
     const hasRepoLevel = this.grouping.repo;
     if (level === 'repo') {
       return this.manager.all
-        .map((repo) => ({ kind: 'repo' as const, section, repo, files: files.filter((f) => f.repo === repo), depth }))
+        .map((repo) => ({ kind: 'repo' as const, section, repo, files: files.filter((f) => f.repo === repo), depth, list }))
         .filter((n) => n.files.length > 0);
     }
     if (level === 'module') {
@@ -247,8 +314,8 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
         byModule.set(key, [...(byModule.get(key) ?? []), ref]);
       }
       return [...byModule.entries()]
-        .map(([key, list]) => {
-          const ref = list[0]!;
+        .map(([key, inModule]) => {
+          const ref = inModule[0]!;
           const rel = key.slice(key.indexOf('\0') + 1);
           // Con nivel repo, la ruta del módulo dentro del repo; sin él, la ruta desde el workspace.
           const label = hasRepoLevel
@@ -257,9 +324,10 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
           return {
             kind: 'module' as const,
             section,
-            id: `module/${section}/${this.modeId}/${key}`,
+            list,
+            id: `module/${scope}/${this.modeId}/${key}`,
             label,
-            files: list,
+            files: inModule,
             depth,
             moduleRel: rel,
           };
@@ -274,9 +342,9 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
         if (hasRepoLevel) return dir;
         return this.relativeToWorkspace(ref);
       };
-      return this.dirNodes(section, files, dirOf, `${depth}/${moduleRel ?? ''}`);
+      return this.dirNodes(section, files, dirOf, `${depth}/${moduleRel ?? ''}`, list);
     }
-    return this.flatFiles(section, files);
+    return this.flatFiles(section, files, list);
   }
 
   /** Módulo de un archivo: la carpeta más cercana (hasta la raíz del repo) con un manifiesto. */
@@ -299,7 +367,8 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
   getTreeItem(node: ChangeNode): vscode.TreeItem {
     switch (node.kind) {
       case 'section': {
-        const label = node.section === 'changes' ? 'Changes' : node.section === 'unversioned' ? 'Unversioned Files' : 'Ignored Files';
+        if (node.list) return this.changelistItem(node, node.list);
+        const label = node.section === 'unversioned' ? 'Unversioned Files' : 'Ignored Files';
         const item = new vscode.TreeItem(
           label,
           node.section === 'ignored' ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.Expanded,
@@ -312,7 +381,7 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
       }
       case 'repo': {
         const item = new vscode.TreeItem(node.repo.name, vscode.TreeItemCollapsibleState.Expanded);
-        item.id = `repo/${node.section}/${node.repo.root}/${this.modeId}`;
+        item.id = `repo/${scopeOf(node.section, node.list)}/${node.repo.root}/${this.modeId}`;
         item.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor(this.manager.colorIdOf(node.repo)));
         const head = node.repo.status ? `⎇ ${describeHead(node.repo.status)}` : '';
         item.description = `${head}  ${node.files.length}`;
@@ -341,7 +410,7 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
       case 'file': {
         const { repo, file } = node.ref;
         const item = new vscode.TreeItem(path.posix.basename(file.path.replace(/\/$/, '')), vscode.TreeItemCollapsibleState.None);
-        item.id = `file/${node.section}/${this.modeId}/${keyOf(node.ref)}`;
+        item.id = `file/${scopeOf(node.section, node.list)}/${this.modeId}/${keyOf(node.ref)}`;
         // resourceUri: ícono del tema de archivos y color/letra de la extensión git integrada.
         item.resourceUri = vscode.Uri.file(path.join(repo.root, file.path));
         // Sin carpetas en el árbol, la ruta va en gris al lado (como IntelliJ); sin repos, el repo.
@@ -373,6 +442,25 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
     return undefined;
   }
 
+  /** Nodo de una changelist: nombre (resaltado si es la activa), archivos y su descripción. */
+  private changelistItem(node: ChangeNode & { kind: 'section' }, id: string): vscode.TreeItem {
+    const list = this.lists.lists.find((l) => l.id === id)!;
+    const active = id === this.lists.active;
+    const multiple = this.lists.lists.length > 1;
+    const item = new vscode.TreeItem(
+      active && multiple ? { label: list.name, highlights: [[0, list.name.length]] } : list.name,
+      vscode.TreeItemCollapsibleState.Expanded,
+    );
+    item.id = `section/changes:${id}/${this.modeId}`;
+    item.description = [t('{0} file(s)', node.files.length), active && multiple ? t('active') : ''].filter(Boolean).join(' · ');
+    item.tooltip = [list.name + (active ? ` (${t('active changelist')})` : ''), list.comment ?? ''].filter(Boolean).join('\n\n');
+    if (multiple) item.iconPath = new vscode.ThemeIcon(active ? 'pass-filled' : 'list-unordered');
+    item.checkboxState = this.containerState(node.files);
+    // `.changes` como antes (Rollback, Commit…) más si es la de por defecto y/o la activa.
+    item.contextValue = `multigit.changes.section.changes${id === DEFAULT_LIST ? '.default' : ''}${active ? '.active' : ''}`;
+    return item;
+  }
+
   // ------------------------------------------------------------------ helpers
 
   private containerState(files: readonly FileRef[]): vscode.TreeItemCheckboxState {
@@ -382,20 +470,20 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
   }
 
   /** Agrupa archivos por directorio; los de la raíz van sueltos. */
-  private dirNodes(section: Section, files: FileRef[], dirOf: (ref: FileRef) => string, scope: string): ChangeNode[] {
+  private dirNodes(section: Section, files: FileRef[], dirOf: (ref: FileRef) => string, scope: string, list?: string): ChangeNode[] {
     const byDir = new Map<string, FileRef[]>();
     for (const ref of files) {
       const dir = dirOf(ref);
-      const list = byDir.get(dir) ?? [];
-      list.push(ref);
-      byDir.set(dir, list);
+      const inDir = byDir.get(dir) ?? [];
+      inDir.push(ref);
+      byDir.set(dir, inDir);
     }
     const nodes: ChangeNode[] = [];
-    for (const [dir, list] of [...byDir.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    for (const [dir, group] of [...byDir.entries()].sort(([a], [b]) => a.localeCompare(b))) {
       if (dir === '.' || dir === '') {
-        nodes.push(...sortFiles(list).map((ref) => ({ kind: 'file' as const, section, ref })));
+        nodes.push(...sortFiles(group).map((ref) => ({ kind: 'file' as const, section, ref, list })));
       } else {
-        nodes.push({ kind: 'dir', section, id: `dir/${section}/${this.modeId}/${scope}/${dir}`, label: dir, files: list });
+        nodes.push({ kind: 'dir', section, list, id: `dir/${scopeOf(section, list)}/${this.modeId}/${scope}/${dir}`, label: dir, files: group });
       }
     }
     // Carpetas primero, luego archivos sueltos (como el explorador).
@@ -403,10 +491,10 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
   }
 
   /** Archivos sin carpetas, ordenados por ruta. */
-  private flatFiles(section: Section, files: readonly FileRef[]): ChangeNode[] {
+  private flatFiles(section: Section, files: readonly FileRef[], list?: string): ChangeNode[] {
     return [...files]
       .sort((a, b) => a.file.path.localeCompare(b.file.path))
-      .map((ref) => ({ kind: 'file' as const, section, ref }));
+      .map((ref) => ({ kind: 'file' as const, section, ref, list }));
   }
 
   /** Ruta de una carpeta relativa a la raíz común del workspace. */

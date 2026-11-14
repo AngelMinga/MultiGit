@@ -29,6 +29,17 @@ Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
 - **Commit**: mensaje, *Amend last commit*, contador de archivos marcados, **Commit** y
   **Commit and Push…**. Hace commit solo de los archivos marcados, en cada repo que tenga
   alguno, con el mismo mensaje.
+- **Opciones del commit** (engranaje ⚙ de la caja, como *Commit Options* de IntelliJ): **Autor** (commit
+  en nombre de otra persona, con los autores recientes de los repos para elegir), **Sign-off commit**
+  (`Signed-off-by:` al final del mensaje) y **Run Git hooks** (desmarcado = `--no-verify`). Sign-off y
+  hooks se recuerdan; el autor vale para el siguiente commit. Debajo de la caja se ve un resumen.
+- **Changelists** (como IntelliJ): Changes se divide en listas con nombre (*Changes* es la de por
+  defecto). **New Changelist…** (⋯ de Changes o clic derecho en una lista), **Move to Another
+  Changelist…** (`F6` o clic derecho; también **arrastrando** archivos de una lista a otra), **Set Active
+  Changelist**, **Edit Changelist…** (nombre y descripción) y **Delete Changelist** (sus archivos pasan a
+  *Changes*). Los cambios nuevos van a la lista activa y solo los de la activa entran marcados en el
+  commit. Si todos los archivos marcados son de una lista con descripción, esa descripción se propone
+  como mensaje. Mover un archivo sin versionar a una lista lo añade a Git. Se guardan por workspace.
 - **Comprobaciones antes del commit** (como las *Commit Checks* de IntelliJ): problemas que informa
   VS Code (errores; también avisos si quieres), `TODO`/`FIXME` nuevos, marcas de conflicto, posibles
   secretos (claves privadas, tokens, API keys, contraseñas) y archivos grandes. Si encuentra algo,
@@ -52,6 +63,13 @@ Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
   ejemplo `{ticket}: {message}` o `{message} [{ticket}]`) y `multigit.commit.ticketPattern`.
 - **Rollback…** (con selección de archivos y confirmación que lista lo que se pierde) y
   **Shelve / Unshelve** con nombre.
+- **Patches** (como IntelliJ): **Create Patch…** (clic derecho en archivos, carpetas, repos o una
+  changelist; y en un commit del Git Log) lo guarda en un archivo o lo copia al portapapeles. **Apply
+  Patch…** / **Apply Patch from Clipboard…** (⋯ de Changes, paleta, o clic derecho en un `.patch` /
+  `.diff`) lo aplica al working tree. Un patch de varios repos lleva las rutas desde la carpeta común
+  (`mftheme/src/…`, igual que IntelliJ) y al aplicarlo cada archivo va a su repo; uno de un solo repo
+  pregunta en cuál, marcando dónde encaja. Si no encaja limpio, ofrece **merge a 3 bandas** (deja
+  conflictos para resolver).
 - **Repositorios**: cada repo con su color, rama actual, `↑` commits por subir / `↓` por bajar
   y un badge con los cambios sin commit.
 - **Grupos de repos** (botón de filtro en Repositorios): por ejemplo *front* = `mftheme`, `mf*`. Con un
@@ -119,7 +137,7 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
 - Filtros: texto o hash (regex y mayúsculas), Branch, User (botón **Yo**), Date, Paths y Repo.
 - Detalle del commit como IntelliJ: archivos en árbol de carpetas (en un merge, agrupados por padre)
   y debajo mensaje, autor, refs y en qué ramas está; doble clic → diff.
-- Clic derecho: Copy hash, Checkout revision, Cherry-pick, Revert, Reset current branch to here,
+- Clic derecho: Copy hash, Create Patch…, Checkout revision, Cherry-pick, Revert, Reset current branch to here,
   New branch here y New tag.
 - Como IntelliJ, sobre un commit de la rama actual:
   - **Undo Commit…**: la rama vuelve al commit anterior y sus cambios quedan para volver a hacer

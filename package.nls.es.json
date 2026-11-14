@@ -221,5 +221,14 @@
   "setting.updateMethod": "Cómo integra **Update Project** (y Update de la rama actual) los commits que llegan, como el diálogo Update Project de IntelliJ.",
   "setting.updateMethod.ask": "Preguntar cada vez (Merge o Rebase).",
   "setting.updateMethod.merge": "Merge: integra los commits que llegan con un commit de merge.",
-  "setting.updateMethod.rebase": "Rebase: pone tus commits locales encima de los que llegan."
+  "setting.updateMethod.rebase": "Rebase: pone tus commits locales encima de los que llegan.",
+  "command.changes.createPatch": "Create Patch…",
+  "command.patch.apply": "Apply Patch…",
+  "command.patch.applyClipboard": "Apply Patch from Clipboard…",
+  "command.patch.createFromCommit": "Create Patch from Commit…",
+  "command.changelist.new": "New Changelist…",
+  "command.changelist.move": "Move to Another Changelist…",
+  "command.changelist.setActive": "Set Active Changelist",
+  "command.changelist.edit": "Edit Changelist…",
+  "command.changelist.delete": "Delete Changelist"
 }
