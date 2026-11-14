@@ -213,5 +213,13 @@
   "command.operation.abortAll": "Abort Operation (Merge, Rebase…)",
   "command.manageRemotes": "Manage Remotes…",
   "command.mergeWithOptions": "Merge…",
-  "command.branch.mergeWithOptions": "Merge Selected into Current with Options…"
+  "command.branch.mergeWithOptions": "Merge Selected into Current with Options…",
+  "command.branch.pullMerge": "Pull into Current Using Merge",
+  "command.branch.pullRebase": "Pull into Current Using Rebase",
+  "command.log.navigate": "Navigate Git Log to Commit",
+  "command.commit.prefill": "Fill Commit Message",
+  "setting.updateMethod": "How **Update Project** (and Update of the current branch) integrates the incoming commits, like IntelliJ's Update Project dialog.",
+  "setting.updateMethod.ask": "Ask every time (Merge or Rebase).",
+  "setting.updateMethod.merge": "Merge: integrates the incoming commits with a merge commit.",
+  "setting.updateMethod.rebase": "Rebase: puts your local commits on top of the incoming ones."
 }

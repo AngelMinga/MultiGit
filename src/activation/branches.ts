@@ -59,6 +59,8 @@ export function registerBranches(core: Core, logView: LogView): { tree: Branches
         ['mergeWithOptions', (sc, ref) => actions.mergeWithOptions(sc, ref)],
         ['newWorktree', (sc, ref) => actions.newWorktree(sc, ref)],
         ['update', (sc, ref) => actions.update(sc, ref)],
+        ['pullMerge', (sc, ref) => (ref.type === 'remote' ? actions.pullInto(sc, ref, 'merge') : undefined)],
+        ['pullRebase', (sc, ref) => (ref.type === 'remote' ? actions.pullInto(sc, ref, 'rebase') : undefined)],
         ['push', (sc, ref) => (ref.type === 'local' ? actions.push(sc, ref.name) : undefined)],
         ['delete', (sc, ref) => (ref.type === 'local' ? actions.deleteLocal(sc, ref) : actions.deleteRemote(sc, ref))],
       ] as Array<[string, (scope: Scope, ref: BranchRef) => Promise<unknown> | undefined]>

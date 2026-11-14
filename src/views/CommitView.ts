@@ -22,6 +22,7 @@ import type { CommitState, WebviewMessage } from '../webview/protocol';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from '../webview/webviewHtml';
 import type { ChangesActions } from './changesActions';
 import type { ChangesTree } from './ChangesTree';
+import { runInRepos } from '../git/MultiRepoRunner';
 import { t } from '../i18n';
 
 const HISTORY_KEY = 'multigit.commitHistory';
@@ -140,6 +141,48 @@ export class CommitView implements vscode.WebviewViewProvider, vscode.Disposable
     );
   }
 
+  /** Mensaje a poner en la caja cuando el webview esté listo. */
+  private pendingPrefill: string | undefined;
+  /** Fixup… / Squash Into… del Git Log: el commit en el que se integrará el próximo commit con ese mensaje. */
+  private autosquashTarget: { repoRoot: string; hash: string; message: string } | undefined;
+
+  /** Pone un mensaje en la caja (Undo Commit, Fixup…, Squash Into…) y la enfoca. */
+  async prefill(message: string, target?: { repoRoot: string; hash: string }): Promise<void> {
+    this.autosquashTarget = target && { ...target, message };
+    this.pendingPrefill = message;
+    await this.focus();
+    if (this.view) {
+      void postToWebview(this.view.webview, { type: 'commit/replaceMessage', payload: { message } });
+      this.pendingPrefill = undefined;
+    }
+  }
+
+  /** Tras el commit "fixup!/squash!" preparado desde el Git Log: ofrecer integrarlo ya (autosquash). */
+  private async offerAutosquash(text: string, repos: readonly Repo[]): Promise<void> {
+    const target = this.autosquashTarget;
+    if (!target || text.split('\n')[0]!.trim() !== target.message.split('\n')[0]!.trim()) return;
+    this.autosquashTarget = undefined;
+    const repo = repos.find((r) => r.root === target.repoRoot);
+    if (!repo) return;
+    const short = target.hash.slice(0, 7);
+    const NOW = t('Integrate Now');
+    const choice = await vscode.window.showInformationMessage(
+      t('MultiGit: integrate "{0}" into {1} now?', text.split('\n')[0]!.trim(), short),
+      { modal: true, detail: t('A rebase with autosquash folds the new commit into {0} in {1}. The later commits are recreated.', short, repo.name) },
+      NOW,
+    );
+    if (choice !== NOW) return;
+    await runInRepos(this.manager, {
+      title: t('Autosquash into {0} in {1}', short, repo.name),
+      repos: [repo],
+      continueAfterConflict: true,
+      run: async (r) => {
+        const base = (await r.git.revisionExists(`${target.hash}^`)) ? `${target.hash}^` : null;
+        await r.git.autosquash(base);
+      },
+    });
+  }
+
   /** Enfoca la caja de commit (comando "Commit…"). */
   async focus(): Promise<void> {
     await vscode.commands.executeCommand(`${CommitView.viewId}.focus`);
@@ -150,6 +193,10 @@ export class CommitView implements vscode.WebviewViewProvider, vscode.Disposable
       case 'ready':
         if (this.view) void postToWebview(this.view.webview, { type: 'init', payload: { kind: 'commit' } });
         this.postState();
+        if (this.view && this.pendingPrefill !== undefined) {
+          void postToWebview(this.view.webview, { type: 'commit/replaceMessage', payload: { message: this.pendingPrefill } });
+          this.pendingPrefill = undefined;
+        }
         break;
       case 'commit/requestLastMessage': {
         const last = await this.actions.lastMessage();
@@ -175,6 +222,7 @@ export class CommitView implements vscode.WebviewViewProvider, vscode.Disposable
           if (repos && repos.length > 0) {
             await this.state.update(HISTORY_KEY, addToHistory(this.history, text));
             if (this.view) void postToWebview(this.view.webview, { type: 'commit/done', payload: {} });
+            await this.offerAutosquash(text, repos);
             if (push) await this.openPush(repos);
           }
         } finally {

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.17.0
+
+- **Update Project como IntelliJ**: pregunta **Merge** o **Rebase** (o siempre uno, con el ajuste
+  `multigit.update.method`) y al terminar ofrece **Ver actualizaciones**: la ventana *Update Info* con
+  los commits que llegaron a cada repo y los archivos que cambiaron (doble clic → diff; doble clic en un
+  commit → Git Log). *Update* de la rama actual usa el mismo método.
+- **Git Log**, clic derecho en un commit de la rama actual: **Undo Commit…**, **Edit Commit Message…**,
+  **Fixup…**, **Squash Into…**, **Drop Commit…** y **Push All up to Here…**, como IntelliJ. Avisan si el
+  commit ya está subido y no exigen el working tree limpio (`--autostash`).
+- Rama remota (vista Ramas, popup y Git Log): **Pull into Current Using Merge / Using Rebase**.
+- El menú contextual del Git Log se desplaza si no cabe en el panel.
+
 ## 0.16.2
 
 - Merge como en IntelliJ: **"Merge Selected into Current"** (vista Ramas, popup, Git Log) vuelve a hacer

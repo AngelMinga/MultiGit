@@ -5,6 +5,7 @@ import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import { parseRefs, REF_FORMAT, type RepoBranches } from './branches';
 import { pullArgs, type PullMode } from './pull';
+import type { HistoryInfo } from './historyEdit';
 import { LOG_PAGE_FORMAT, parseLogPage, type LogCommit } from './log';
 import { parseStatusFiles, type StatusFile } from './changes';
 import { parseStashList, SHELF_PREFIX, STASH_FORMAT, type StashEntry } from './stashes';
@@ -534,6 +535,52 @@ export class GitService {
     return this.exec(['reset', `--${mode}`, hash]);
   }
 
+  /** Datos del commit respecto a la rama actual (para Undo / Edit Message / Drop / Fixup / Push up to here). */
+  async historyInfo(hash: string): Promise<HistoryInfo & { pushed: boolean; upstream: string | null }> {
+    const [status, head, parentsLine] = await Promise.all([
+      this.getStatus(),
+      this.headSha(),
+      this.exec(['rev-list', '--parents', '-n', '1', hash]).catch(() => ''),
+    ]);
+    const parents = parentsLine.trim().split(/\s+/).slice(1);
+    const inBranch = !!head && (head === hash || (await this.isAncestor(hash, 'HEAD')));
+    const mergesAfter = inBranch ? Number((await this.exec(['rev-list', '--count', '--merges', `${hash}..HEAD`])).trim()) || 0 : 0;
+    const upstream = status.upstream && status.ahead !== null ? status.upstream : null;
+    const pushed = upstream
+      ? await this.isAncestor(hash, upstream)
+      : !!(await this.exec(['branch', '-r', '--contains', hash]).catch(() => '')).trim();
+    return { branch: status.branch, inBranch, isHead: head === hash, isMerge: parents.length > 1, isRoot: parents.length === 0, mergesAfter, pushed, upstream };
+  }
+
+  /**
+   * Undo Commit (como IntelliJ): la rama vuelve al padre de `hash` y los cambios de ese commit (y de los
+   * posteriores) quedan en el working tree, preparados (`reset --soft`).
+   */
+  undoCommit(hash: string): Promise<string> {
+    return this.exec(['reset', '--soft', `${hash}^`]);
+  }
+
+  /** Cambia solo el mensaje del último commit (`--only`: no mete lo que haya en el stage). */
+  amendMessage(message: string): Promise<string> {
+    return this.exec(['commit', '--amend', '--only', '--allow-empty', '--no-verify', '--quiet', '-F', '-'], { input: `${message.trim()}\n` });
+  }
+
+  /**
+   * `git rebase -i --autosquash --autostash <base>` aceptando el todo tal cual: los commits `fixup!` y
+   * `squash!` se integran en los suyos. El mensaje de un squash es el combinado que propone git.
+   */
+  autosquash(base: string | null): Promise<string> {
+    return this.exec(['rebase', '-i', '--autosquash', '--autostash', base ?? '--root'], {
+      env: { GIT_SEQUENCE_EDITOR: ':' },
+      timeoutMs: REBASE_TIMEOUT_MS,
+    });
+  }
+
+  /** Push All up to Here: sube hasta `hash` (incluido) a `remote/remoteBranch`, sin los commits posteriores. */
+  pushRevision(remote: string, hash: string, remoteBranch: string): Promise<string> {
+    return this.exec(['push', remote, `${hash}:refs/heads/${remoteBranch}`], { timeoutMs: NETWORK_TIMEOUT_MS });
+  }
+
   /** Tag ligero, o anotado si hay mensaje. */
   createTag(name: string, hash: string, message?: string): Promise<string> {
     return this.exec(message ? ['tag', '-a', name, '-m', message, hash] : ['tag', name, hash]);
@@ -589,7 +636,7 @@ export class GitService {
   }
 
   /** `git rebase -i` con el todo ya armado (sin editor): `reword` usa archivos con el mensaje nuevo. */
-  async interactiveRebase(base: string | null, entries: readonly RebaseEntry[]): Promise<string> {
+  async interactiveRebase(base: string | null, entries: readonly RebaseEntry[], options: { autostash?: boolean } = {}): Promise<string> {
     const dir = path.resolve(this.root, (await this.exec(['rev-parse', '--git-path', 'multigit-rebase'])).trim());
     await fs.rm(dir, { recursive: true, force: true });
     await fs.mkdir(dir, { recursive: true });
@@ -599,7 +646,8 @@ export class GitService {
     await fs.writeFile(todo, buildTodo(entries, messageFile));
     // Git llama a `$GIT_SEQUENCE_EDITOR <archivo-todo>`: copiamos el nuestro encima.
     const editor = `cp "${todo.replace(/\\/g, '/')}"`;
-    return this.exec(['rebase', '-i', base ?? '--root'], { env: { GIT_SEQUENCE_EDITOR: editor }, timeoutMs: REBASE_TIMEOUT_MS });
+    const args = ['rebase', '-i', ...(options.autostash ? ['--autostash'] : []), base ?? '--root'];
+    return this.exec(args, { env: { GIT_SEQUENCE_EDITOR: editor }, timeoutMs: REBASE_TIMEOUT_MS });
   }
 
   async listRemotes(): Promise<RemoteEntry[]> {

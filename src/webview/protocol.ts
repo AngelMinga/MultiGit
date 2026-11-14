@@ -6,7 +6,7 @@ import type { LogFilters, RefLabel } from '../git/log';
 export type { LogFilters, RefLabel };
 
 /** Paneles webview que existen (el log llega en la Fase 6). */
-export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks' | 'rebase' | 'pull' | 'conflicts' | 'merge' | 'remotes';
+export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks' | 'rebase' | 'pull' | 'conflicts' | 'merge' | 'remotes' | 'updateInfo' | 'message';
 
 // ------------------------------------------------------------------ Push
 
@@ -59,6 +59,36 @@ export interface PushState {
   busy: boolean;
   /** Ya se intentó un push en esta sesión del diálogo. */
   attempted: boolean;
+}
+
+// ------------------------------------------------------------------ Update Info (tras Update Project)
+
+export interface UpdateRepoView {
+  id: string;
+  name: string;
+  colorIndex: number;
+  branch: string;
+  /** Commits que llegaron, del más nuevo al más viejo. */
+  commits: PushCommit[];
+  truncated: boolean;
+}
+
+export interface UpdateInfoState {
+  repos: UpdateRepoView[];
+  /** Cuándo se hizo el update (ms). */
+  time: number;
+}
+
+// ------------------------------------------------------------------ Editar mensaje (Edit Commit Message)
+
+export interface MessageEditState {
+  title: string;
+  /** Texto inicial. */
+  message: string;
+  /** Texto del botón de aceptar. */
+  okLabel: string;
+  /** Línea informativa bajo el título (p. ej. "ya está subido: hará falta force push"). */
+  note?: string;
 }
 
 // ------------------------------------------------------------------ Commit parcial (hunks)
@@ -286,13 +316,29 @@ export type LogBranchAction =
   | 'merge'
   | 'newWorktree'
   | 'update'
+  | 'pullMerge'
+  | 'pullRebase'
   | 'push'
   | 'pullRequests'
   | 'rename'
   | 'delete'
   | 'navigate';
 
-export type LogAction = 'copyHash' | 'checkout' | 'cherryPick' | 'revert' | 'reset' | 'newBranch' | 'newTag' | 'interactiveRebase';
+export type LogAction =
+  | 'copyHash'
+  | 'checkout'
+  | 'cherryPick'
+  | 'revert'
+  | 'reset'
+  | 'undoCommit'
+  | 'editMessage'
+  | 'fixup'
+  | 'squashInto'
+  | 'drop'
+  | 'pushUpTo'
+  | 'newBranch'
+  | 'newTag'
+  | 'interactiveRebase';
 
 // ------------------------------------------------------------------ Toolbar (Proyecto)
 
@@ -335,6 +381,9 @@ export type HostMessage =
   | { type: 'conflicts/state'; payload: ConflictsState }
   | { type: 'merge/state'; payload: MergeState }
   | { type: 'remotes/state'; payload: RemotesState }
+  | { type: 'update/state'; payload: UpdateInfoState }
+  | { type: 'update/files'; payload: { repoId: string; /** Hash del commit, o '' = todo lo que llegó al repo. */ hash: string; files: PushFile[]; details?: { body: string; author: string; email: string; date: string } } }
+  | { type: 'message/state'; payload: MessageEditState }
   | { type: 'commit/state'; payload: CommitState }
   | { type: 'commit/setMessage'; payload: { message: string } }
   | { type: 'commit/done'; payload: Record<string, never> }
@@ -399,4 +448,10 @@ export type WebviewMessage =
   | { type: 'log/branchAction'; payload: { action: LogBranchAction; branch: string; repoIds: string[] } }
   | { type: 'log/refresh'; payload: Record<string, never> }
   | { type: 'log/resolveRef'; payload: { ref: string; repoIds: string[] } }
-  | { type: 'toolbar/action'; payload: { action: ToolbarAction } };
+  | { type: 'toolbar/action'; payload: { action: ToolbarAction } }
+  | { type: 'update/select'; payload: { repoId: string; hash: string } }
+  | { type: 'update/openDiff'; payload: { repoId: string; hash: string; file: PushFile } }
+  | { type: 'update/showInLog'; payload: { repoId: string; hash: string } }
+  | { type: 'update/close'; payload: Record<string, never> }
+  | { type: 'message/ok'; payload: { message: string } }
+  | { type: 'message/cancel'; payload: Record<string, never> };

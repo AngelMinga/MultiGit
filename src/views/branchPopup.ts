@@ -252,6 +252,10 @@ export class BranchPopup {
     items.push({ label: '', kind: vscode.QuickPickItemKind.Separator });
     add(!isCurrentEverywhere, `$(git-pull-request) Rebase '${cur}' onto '${name}'`, () => a.rebaseOnto(scope, ref));
     add(!isCurrentEverywhere, `$(git-merge) Merge '${name}' into '${cur}'`, () => a.merge(scope, ref));
+    if (ref.type === 'remote') {
+      add(true, `$(repo-pull) Pull into '${cur}' Using Merge`, () => a.pullInto(scope, ref, 'merge'));
+      add(true, `$(repo-pull) Pull into '${cur}' Using Rebase`, () => a.pullInto(scope, ref, 'rebase'));
+    }
     items.push({ label: '', kind: vscode.QuickPickItemKind.Separator });
     add(!isCurrentSomewhere, `$(folder-opened) New Worktree from '${name}'…`, () => a.newWorktree(scope, ref));
     add(true, '$(sync) Update', () => a.update(scope, ref), ref.type === 'local' ? t('pull this branch') : t('fetch this branch'));

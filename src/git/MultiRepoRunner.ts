@@ -30,6 +30,11 @@ export interface MultiRepoOperation {
   continueAfterConflict?: boolean;
   /** No mostrar los mensajes finales (el llamador muestra el resumen; los bloqueos sí se muestran). */
   silent?: boolean;
+  /**
+   * Al terminar sin errores: mensaje propio en lugar del "✅ … en N repositorios" y un botón (p. ej.
+   * "Ver actualizaciones" del Update Project).
+   */
+  finish?: () => { message?: string; action?: { label: string; run: () => void } };
   /** Se llama justo antes de ejecutar en cada repo. */
   onStart?: (repo: Repo) => void;
   /** Se llama con el resultado de cada repo (también los omitidos y los no ejecutados). */
@@ -140,15 +145,19 @@ export async function runInRepos(manager: RepoManager, op: MultiRepoOperation): 
       .then((choice) => {
         if (choice === RESOLVE && conflictRepo) void resolveConflicts(conflictRepo, failed!.conflicts!);
       });
-  } else if (counts.skipped > 0) {
-    void vscode.window.showInformationMessage(
-      t('MultiGit: "{0}" — {1} ok, {2} skipped', op.title, counts.ok, counts.skipped),
-      t('Show Details'),
-    ).then((choice) => {
-      if (choice) void vscode.window.showInformationMessage(op.title, { modal: true, detail: summary });
-    });
   } else {
-    void vscode.window.showInformationMessage(t('✅ MultiGit: "{0}" in {1} repositories', op.title, counts.ok));
+    const end = op.finish?.() ?? {};
+    const DETAILS = t('Show Details');
+    const buttons = [...(end.action ? [end.action.label] : []), ...(counts.skipped > 0 ? [DETAILS] : [])];
+    const text =
+      end.message ??
+      (counts.skipped > 0
+        ? t('MultiGit: "{0}" — {1} ok, {2} skipped', op.title, counts.ok, counts.skipped)
+        : t('✅ MultiGit: "{0}" in {1} repositories', op.title, counts.ok));
+    void vscode.window.showInformationMessage(text, ...buttons).then((choice) => {
+      if (choice === DETAILS) void vscode.window.showInformationMessage(op.title, { modal: true, detail: summary });
+      else if (choice && choice === end.action?.label) end.action.run();
+    });
   }
   return results;
 }

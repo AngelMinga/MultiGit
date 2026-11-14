@@ -54,6 +54,10 @@ export function registerChanges(
     }),
     view.onDidChangeCheckboxState((e) => tree.onCheckboxChange(e)),
     vscode.commands.registerCommand('multigit.commitFocus', () => commitView.focus()),
+    // Interno (Git Log: Undo Commit, Fixup…, Squash Into…): pone un mensaje en la caja de commit.
+    vscode.commands.registerCommand('multigit.commit.prefill', (message: string, target?: { repoRoot: string; hash: string }) =>
+      commitView.prefill(message, target),
+    ),
     vscode.commands.registerCommand('multigit.commit.history', () => popup.safely(() => commitView.requestHistory())),
     vscode.commands.registerCommand('multigit.changes.refresh', () => tree.refresh()),
     vscode.commands.registerCommand('multigit.changes.toggleGroupByRepo', () => tree.toggleGrouping('repo')),

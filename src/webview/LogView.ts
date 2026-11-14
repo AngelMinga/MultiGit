@@ -19,6 +19,8 @@ import type { BranchActions, BranchRef } from '../views/branchActions';
 import type { LogAction, LogBranchAction, LogRepoInfo, LogRow, WebviewMessage } from './protocol';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from './webviewHtml';
 import { RebasePanel } from './RebasePanel';
+import { editMessage } from './MessagePanel';
+import { autosquashMessage, editPlan, historyBlocker, type HistoryAction, type HistoryInfo } from '../git/historyEdit';
 import { t } from '../i18n';
 
 const PAGE_SIZE = 300;
@@ -443,6 +445,16 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
       case 'reset':
         if (!(await this.reset(repo, hash))) return;
         break;
+      case 'undoCommit':
+      case 'editMessage':
+      case 'drop':
+      case 'pushUpTo':
+        if (!(await this.editHistory(action, repo, hash))) return;
+        break;
+      case 'fixup':
+      case 'squashInto':
+        await this.prepareAutosquash(action === 'fixup' ? 'fixup' : 'squash', repo, hash);
+        return;
       case 'newBranch':
         await this.branchActions.newBranch(scope, { type: 'local', name: hash });
         break;
@@ -500,6 +512,9 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         return a.newWorktree(scope, ref);
       case 'update':
         return a.update(scope, ref);
+      case 'pullMerge':
+      case 'pullRebase':
+        return ref.type === 'remote' ? a.pullInto(scope, ref, action === 'pullMerge' ? 'merge' : 'rebase') : undefined;
       case 'push':
         return local ? a.push(scope, branch) : undefined;
       case 'pullRequests':
@@ -539,6 +554,149 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
       default:
         return undefined;
     }
+  }
+
+  /** Datos del commit en su repo, o un aviso (y undefined) si la acción no se puede hacer ahí. */
+  private async historyCheck(action: HistoryAction, repo: Repo, hash: string): Promise<(HistoryInfo & { pushed: boolean; upstream: string | null }) | undefined> {
+    const info = await repo.git.historyInfo(hash);
+    const blocker = historyBlocker(action, info);
+    if (!blocker) return info;
+    const short = hash.slice(0, 7);
+    const reasons: Record<NonNullable<ReturnType<typeof historyBlocker>>, string> = {
+      detached: t('{0} has a detached HEAD: check out a branch first.', repo.name),
+      'not-in-branch': t("{0} is not in the current branch of {1} ('{2}').", short, repo.name, info.branch ?? ''),
+      merge: t('{0} is a merge commit: use "Interactively rebase from here…" or Reset.', short),
+      root: t('{0} is the first commit of the repository.', short),
+      'merges-after': t('There are merge commits after {0}: rewriting the history would flatten them. Use "Interactively rebase from here…".', short),
+    };
+    void vscode.window.showWarningMessage(t('MultiGit: this cannot be done on {0}', short), { modal: true, detail: reasons[blocker] });
+    return undefined;
+  }
+
+  /** Aviso de que se reescriben commits ya subidos: hará falta un force push. */
+  private pushedNote(info: { pushed: boolean }): string {
+    return info.pushed ? t('⚠ This commit is already pushed: after the change you will have to force push (with lease).') : '';
+  }
+
+  /** Undo Commit, Edit Commit Message, Drop Commit y Push All up to Here (como IntelliJ). */
+  private async editHistory(action: 'undoCommit' | 'editMessage' | 'drop' | 'pushUpTo', repo: Repo, hash: string): Promise<boolean> {
+    const kind: HistoryAction = action === 'undoCommit' ? 'undo' : action === 'editMessage' ? 'reword' : action === 'drop' ? 'drop' : 'pushUpTo';
+    const info = await this.historyCheck(kind, repo, hash);
+    if (!info) return false;
+    const short = hash.slice(0, 7);
+    const branch = info.branch!;
+    const later = await repo.git.logOneline(`${hash}..HEAD`, 20);
+    const laterCount = await repo.git.countCommits(`${hash}..HEAD`);
+    const listLater = [...later.map((l) => `  • ${l}`), ...(laterCount > later.length ? [t('  … and {0} more', laterCount - later.length)] : [])];
+    const subject = `${short} ${(await repo.git.commitInfo(hash).then((c) => c.body.split('\n')[0]!.trim(), () => ''))}`.trim();
+    const note = this.pushedNote(info);
+
+    if (action === 'undoCommit') {
+      const lines = [
+        t("Branch '{0}' of {1} goes back to the parent of {2}.", branch, repo.name, short),
+        t('The changes of the commit stay in your working tree (staged), ready to commit again.'),
+        ...(laterCount ? ['', t('The {0} later commit(s) are also undone:', laterCount), ...listLater] : []),
+        ...(note ? ['', note] : []),
+      ];
+      const OK = t('Undo Commit');
+      if ((await vscode.window.showWarningMessage(t('Undo commit {0}?', subject), { modal: true, detail: lines.join('\n') }, OK)) !== OK) return false;
+      const message = await repo.git.commitInfo(hash).then((c) => c.body, () => '');
+      const results = await runInRepos(this.manager, {
+        title: t('Undo Commit {0} in {1}', short, repo.name),
+        repos: [repo],
+        run: async (r) => {
+          await r.git.undoCommit(hash);
+        },
+      });
+      // Como IntelliJ, el mensaje vuelve a la caja de commit.
+      if (results?.every((r) => r.state === 'ok') && message.trim()) await vscode.commands.executeCommand('multigit.commit.prefill', message.trim());
+      return true;
+    }
+
+    if (action === 'editMessage') {
+      const current = (await repo.git.commitInfo(hash)).body.trim();
+      const message = await editMessage(this.extensionUri, {
+        title: t('Edit Commit Message — {0} {1}', repo.name, short),
+        message: current,
+        okLabel: t('OK'),
+        note: note || (info.isHead ? undefined : t('The {0} later commit(s) will be recreated (rebase).', laterCount)),
+      });
+      if (!message?.trim() || message.trim() === current) return false;
+      await runInRepos(this.manager, {
+        title: t('Edit message of {0} in {1}', short, repo.name),
+        repos: [repo],
+        continueAfterConflict: true,
+        run: async (r) => {
+          if (info.isHead) {
+            await r.git.amendMessage(message);
+            return;
+          }
+          const { base, commits } = await r.git.rebaseCommits(hash);
+          await r.git.interactiveRebase(base, editPlan(commits, hash, { action: 'reword', message }), { autostash: true });
+        },
+      });
+      return true;
+    }
+
+    if (action === 'drop') {
+      const lines = [
+        t('{0} is removed from branch \'{1}\' of {2}; its changes are lost.', subject, branch, repo.name),
+        ...(laterCount ? ['', t('The {0} later commit(s) will be recreated (rebase):', laterCount), ...listLater] : []),
+        ...(note ? ['', note] : []),
+      ];
+      const OK = t('Drop Commit');
+      if ((await vscode.window.showWarningMessage(t('Drop commit {0}?', short), { modal: true, detail: lines.join('\n') }, OK)) !== OK) return false;
+      await runInRepos(this.manager, {
+        title: t('Drop {0} in {1}', short, repo.name),
+        repos: [repo],
+        continueAfterConflict: true,
+        run: async (r) => {
+          const { base, commits } = await r.git.rebaseCommits(hash);
+          await r.git.interactiveRebase(base, editPlan(commits, hash, { action: 'drop' }), { autostash: true });
+        },
+      });
+      return true;
+    }
+
+    // Push All up to Here: al upstream de la rama (o a origin/<rama> si no tiene).
+    const current = (await repo.git.getBranches()).local.find((b) => b.current);
+    const remote = (info.upstream && current?.upstreamRemote) || 'origin';
+    const remoteBranch = (info.upstream && current?.upstreamBranch) || branch;
+    const pending = await repo.git.logCommits(info.upstream ? [`${info.upstream}..${hash}`] : [hash, '--not', '--remotes'], 500);
+    const toPush = pending.slice(0, 20).map((c) => `${c.shortHash} ${c.subject}`);
+    const total = pending.length;
+    if (!toPush.length) {
+      void vscode.window.showInformationMessage(t('MultiGit: {0} is already pushed to {1}.', short, `${remote}/${remoteBranch}`));
+      return false;
+    }
+    const OK = t('Push');
+    const detail = [
+      t('{0} commit(s) of \'{1}\' up to {2} go to {3}:', total, branch, short, `${remote}/${remoteBranch}`),
+      ...toPush.map((l) => `  • ${l}`),
+      ...(total > toPush.length ? [t('  … and {0} more', total - toPush.length)] : []),
+      ...(laterCount ? ['', t('The {0} later commit(s) stay local.', laterCount)] : []),
+    ];
+    if ((await vscode.window.showInformationMessage(t('Push up to {0}?', short), { modal: true, detail: detail.join('\n') }, OK)) !== OK) return false;
+    await runInRepos(this.manager, {
+      title: t('Push up to {0} in {1}', short, repo.name),
+      repos: [repo],
+      run: async (r) => {
+        await r.git.pushRevision(remote, hash, remoteBranch);
+      },
+    });
+    return true;
+  }
+
+  /**
+   * Fixup… / Squash Into… (como IntelliJ): la caja de commit se llena con "fixup! <asunto>" (o "squash!")
+   * y, al hacer ese commit, se ofrece integrarlo en el commit elegido (rebase con autosquash).
+   */
+  private async prepareAutosquash(kind: 'fixup' | 'squash', repo: Repo, hash: string): Promise<void> {
+    const info = await this.historyCheck(kind, repo, hash);
+    if (!info) return;
+    const subject = (await repo.git.commitInfo(hash)).body.split('\n')[0]!.trim();
+    await vscode.commands.executeCommand('multigit.commit.prefill', autosquashMessage(kind, subject), { repoRoot: repo.root, hash });
+    vscode.window.setStatusBarMessage(t('$(git-commit) Check the changes to put into {0} and commit them', hash.slice(0, 7)), 8000);
   }
 
   /** Reset current branch to here (soft / mixed / hard) con confirmación de lo que se pierde. */

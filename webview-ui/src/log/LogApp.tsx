@@ -31,7 +31,15 @@ const MENU: Array<{ action: LogAction; label: string } | 'sep'> = [
   { action: 'cherryPick', label: 'Cherry-pick' },
   { action: 'revert', label: 'Revert commit' },
   { action: 'reset', label: 'Reset current branch to here…' },
+  'sep',
+  { action: 'undoCommit', label: 'Undo Commit…' },
+  { action: 'editMessage', label: 'Edit Commit Message…' },
+  { action: 'fixup', label: 'Fixup…' },
+  { action: 'squashInto', label: 'Squash Into…' },
+  { action: 'drop', label: 'Drop Commit…' },
   { action: 'interactiveRebase', label: 'Interactively rebase from here…' },
+  'sep',
+  { action: 'pushUpTo', label: 'Push All up to Here…' },
   'sep',
   { action: 'newBranch', label: 'New branch here…' },
   { action: 'newTag', label: 'New tag…' },
@@ -52,6 +60,8 @@ const BRANCH_MENU: BranchMenuItem[] = [
   'sep',
   { action: 'rebaseOnto', label: 'Rebase Current onto Selected', when: (b) => !b.current },
   { action: 'merge', label: 'Merge Selected into Current', when: (b) => !b.current },
+  { action: 'pullMerge', label: 'Pull into Current Using Merge', when: (b) => b.kind === 'remote' },
+  { action: 'pullRebase', label: 'Pull into Current Using Rebase', when: (b) => b.kind === 'remote' },
   'sep',
   { action: 'newWorktree', label: 'New Worktree from Selected…', when: (b) => b.kind !== 'tag' && !b.current },
   'sep',
@@ -519,7 +529,7 @@ export function LogApp() {
 
       {/* ---------------------------------------------------- menú contextual */}
       {menu && (
-        <div className="menu context" style={{ left: Math.min(menu.x, window.innerWidth - 240), top: Math.min(menu.y, window.innerHeight - 260) }} role="menu">
+        <div className="menu context" style={{ left: Math.min(menu.x, window.innerWidth - 240), top: Math.max(4, Math.min(menu.y, window.innerHeight - 500)) }} role="menu">
           <div className="menu-title muted small">
             {repoMap.get(menu.row.repoId)?.name} · {menu.row.shortHash}
           </div>

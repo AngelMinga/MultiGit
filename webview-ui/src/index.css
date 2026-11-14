@@ -814,6 +814,9 @@ button.icon-btn.on {
   bottom: auto;
   right: auto;
   min-width: 230px;
+  /* El Git Log suele ser bajo: el menú no se sale, se desplaza. */
+  max-height: calc(100vh - 8px);
+  overflow-y: auto;
 }
 .menu-title {
   padding: 2px 12px 4px;
@@ -1818,4 +1821,25 @@ body.vscode-light .mg-word {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 0;
+}
+
+/* ------------------------------------------------------------------ Edit Commit Message */
+.msgedit {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.msgedit-text {
+  flex: 1;
+  margin: 8px 12px;
+  resize: none;
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  padding: 6px 8px;
+}
+.msgedit-text:focus {
+  outline: 1px solid var(--vscode-focusBorder);
 }

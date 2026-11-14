@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.16.2",
+  "version": "0.17.0",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -321,6 +321,16 @@
       {
         "command": "multigit.branch.update",
         "title": "%command.branch.update%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branch.pullMerge",
+        "title": "%command.branch.pullMerge%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.branch.pullRebase",
+        "title": "%command.branch.pullRebase%",
         "category": "MultiGit"
       },
       {
@@ -700,6 +710,16 @@
       {
         "command": "multigit.createPullRequests.forRepos",
         "title": "%command.createPullRequests%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.log.navigate",
+        "title": "%command.log.navigate%",
+        "category": "MultiGit"
+      },
+      {
+        "command": "multigit.commit.prefill",
+        "title": "%command.commit.prefill%",
         "category": "MultiGit"
       },
       {
@@ -1125,6 +1145,16 @@
           "command": "multigit.branch.mergeWithOptions",
           "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\.(local|remote)$/",
           "group": "3_merge@3"
+        },
+        {
+          "command": "multigit.branch.pullMerge",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\.remote/",
+          "group": "3_merge@4"
+        },
+        {
+          "command": "multigit.branch.pullRebase",
+          "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\.remote/",
+          "group": "3_merge@5"
         },
         {
           "command": "multigit.branch.newWorktree",
@@ -1632,6 +1662,22 @@
         },
         {
           "command": "multigit.createPullRequests.forRepos",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branch.pullMerge",
+          "when": "false"
+        },
+        {
+          "command": "multigit.branch.pullRebase",
+          "when": "false"
+        },
+        {
+          "command": "multigit.log.navigate",
+          "when": "false"
+        },
+        {
+          "command": "multigit.commit.prefill",
           "when": "false"
         },
         {
@@ -2303,6 +2349,22 @@
           "default": "multigit",
           "order": 34,
           "markdownDescription": "%setting.mergeTool%"
+        },
+        "multigit.update.method": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "merge",
+            "rebase"
+          ],
+          "enumDescriptions": [
+            "%setting.updateMethod.ask%",
+            "%setting.updateMethod.merge%",
+            "%setting.updateMethod.rebase%"
+          ],
+          "default": "ask",
+          "order": 35,
+          "markdownDescription": "%setting.updateMethod%"
         },
         "multigit.dialogs": {
           "type": "string",

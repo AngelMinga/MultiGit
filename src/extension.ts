@@ -23,6 +23,7 @@ import { startCredentials } from './views/credentials';
 import { RepoIcons } from './views/repoIcons';
 import type { RepositoriesView } from './views/RepositoriesView';
 import type { StashesTree } from './views/StashesTree';
+import { UpdateInfoPanel } from './webview/UpdateInfoPanel';
 import { PushPanel } from './webview/PushPanel';
 import { ConflictsPanel, setConflictsHost } from './webview/ConflictsPanel';
 import { setConflictsOpener, setMergeOpener } from './views/conflicts';
@@ -51,7 +52,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
   const manager = new RepoManager(log, context.workspaceState);
   const compareView = new CompareView();
   const openPush = (repos?: readonly Repo[], branch?: string) => PushPanel.open(context.extensionUri, manager, { repos, branch });
-  const actions = new BranchActions(manager, compareView, (scope, branch) => openPush(scope.repos, branch));
+  const actions = new BranchActions(
+    manager,
+    compareView,
+    (scope, branch) => openPush(scope.repos, branch),
+    (updated) => UpdateInfoPanel.open(context.extensionUri, updated),
+  );
   const repoIcons = new RepoIcons(context.globalStorageUri, context.extension.packageJSON);
   void repoIcons.init();
   const popup = new BranchPopup(manager, actions, repoIcons);

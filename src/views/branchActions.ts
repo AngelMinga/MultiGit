@@ -10,6 +10,7 @@ import type { Repo, RepoManager } from '../git/RepoManager';
 import { GitContentProvider } from '../git/GitContentProvider';
 import type { CompareView } from './compareView';
 import { resolveConflicts } from './conflicts';
+import type { PullMode } from '../git/pull';
 import { t } from '../i18n';
 
 /** Repos sobre los que actúa una acción: todos, o uno elegido en "Repositorios". */
@@ -33,6 +34,16 @@ export function currentLabel(scope: Scope): string {
   return s.kind === 'single' ? s.branch : t('current branch');
 }
 
+/** Repo que recibió commits en un Update (para la ventana Update Info). */
+export interface UpdatedRepo {
+  repo: Repo;
+  /** HEAD antes del update. */
+  before: string;
+  /** Hasta dónde llegó lo nuevo (HEAD tras el merge; el upstream tras un rebase). */
+  after: string;
+  branch: string;
+}
+
 /** Cómo se cambia de rama en cada repo (ver planSwitch). */
 interface SwitchPlan {
   mode: 'normal' | 'smart' | 'force';
@@ -48,14 +59,21 @@ export class BranchActions {
     private readonly manager: RepoManager,
     private readonly compareView: CompareView,
     private readonly openPush: (scope: Scope, branch?: string) => Promise<void>,
+    private readonly openUpdateInfo: (updated: readonly UpdatedRepo[]) => Promise<void> = async () => undefined,
   ) {}
 
   // ------------------------------------------------------------------ acciones generales
 
-  /** Update Project: fetch + pull (merge) del upstream en cada repo. */
+  /**
+   * Update Project (como IntelliJ): pregunta Merge o Rebase (salvo que se haya elegido "no volver a
+   * preguntar"), hace fetch + pull del upstream en cada repo y al final ofrece ver lo que llegó (Update Info).
+   */
   async updateProject(scope: Scope): Promise<void> {
+    const method = await askUpdateMethod();
+    if (!method) return;
+    const updated: UpdatedRepo[] = [];
     await runInRepos(this.manager, {
-      title: 'Update Project',
+      title: method === 'rebase' ? t('Update Project (rebase)') : t('Update Project (merge)'),
       repos: scope.repos,
       continueAfterConflict: true,
       check: (_repo, status) => {
@@ -64,14 +82,23 @@ export class BranchActions {
         if (status.ahead === null) return { skip: t('upstream {0} no longer exists', status.upstream) };
         return undefined;
       },
-      run: async (repo) => {
-        await repo.git.fetchAll();
-        const after = await repo.git.getStatus();
-        if (!after.behind) return t('already up to date');
-        await repo.git.pull();
-        return t('updated (↓{0})', after.behind);
-      },
+      run: (repo) => this.updateRepo(repo, method, updated),
+      finish: () => updateFinish(updated, this.openUpdateInfo),
     });
+  }
+
+  /** Fetch + pull (merge o rebase) del upstream de un repo; si llegó algo, lo apunta en `updated`. */
+  private async updateRepo(repo: Repo, method: PullMode, updated: UpdatedRepo[]): Promise<string> {
+    await repo.git.fetchAll();
+    const after = await repo.git.getStatus();
+    if (!after.behind) return t('already up to date');
+    const before = await repo.git.headSha();
+    const upstream = after.upstream ? (await repo.git.resolveCommit(after.upstream)) ?? undefined : undefined;
+    await repo.git.pullWith(method);
+    const head = await repo.git.headSha();
+    // Con rebase los commits locales se rehacen: lo que llegó es lo del upstream, no before..HEAD.
+    if (before && head && before !== head) updated.push({ repo, before, after: method === 'rebase' && upstream ? upstream : head, branch: after.branch ?? '' });
+    return t('updated (↓{0})', after.behind);
   }
 
   /** Pull…: diálogo como IntelliJ (con el repo ya elegido si el alcance es uno). */
@@ -405,6 +432,35 @@ export class BranchActions {
     await this.merge(scope, target, chosen);
   }
 
+  /**
+   * Pull into '<actual>' Using Merge / Using Rebase (menú de una rama remota, como IntelliJ): fetch de esa
+   * rama y merge o rebase de la actual sobre ella. Los cambios sin commit se apartan (`--autostash`).
+   */
+  async pullInto(scope: Scope, ref: BranchRef & { type: 'remote' }, mode: 'merge' | 'rebase'): Promise<void> {
+    const updated: UpdatedRepo[] = [];
+    await runInRepos(this.manager, {
+      title: mode === 'rebase' ? t("Pull '{0}' into '{1}' (rebase)", ref.full, currentLabel(scope)) : t("Pull '{0}' into '{1}' (merge)", ref.full, currentLabel(scope)),
+      repos: scope.repos,
+      continueAfterConflict: true,
+      check: async (repo, status) => {
+        if (!status.branch) return { block: 'HEAD detached' };
+        if (!(await repo.git.revisionExists(ref.full))) return { skip: t("'{0}' does not exist", ref.full) };
+        return undefined;
+      },
+      run: async (repo) => {
+        const before = await repo.git.headSha();
+        await repo.git.pullWith(mode, ref.remote, ref.name);
+        const head = await repo.git.headSha();
+        if (!before || !head || before === head) return t('already up to date');
+        const after = mode === 'rebase' ? ((await repo.git.resolveCommit(ref.full)) ?? head) : head;
+        updated.push({ repo, before, after, branch: repo.status?.branch ?? '' });
+        const count = await repo.git.countCommits(`${before}..${after}`);
+        return count ? t('updated (+{0} commit(s))', count) : t('updated');
+      },
+      finish: () => updateFinish(updated, this.openUpdateInfo),
+    });
+  }
+
   /** Compare with '<actual>': commits que tiene cada lado y el otro no, por repo. */
   async compare(scope: Scope, ref: BranchRef): Promise<void> {
     const other = refName(ref);
@@ -556,6 +612,10 @@ export class BranchActions {
       return;
     }
 
+    // La rama actual se actualiza como Update Project (merge o rebase); las demás solo avanzan (fast-forward).
+    const method = scope.repos.some((r) => r.status?.branch === ref.name) ? await askUpdateMethod() : 'merge';
+    if (!method) return;
+    const updated: UpdatedRepo[] = [];
     const info = new Map<Repo, LocalBranch>();
     await runInRepos(this.manager, {
       title: t('Update of \'{0}\'', ref.name),
@@ -571,9 +631,11 @@ export class BranchActions {
       },
       run: async (repo) => {
         const lb = info.get(repo)!;
-        if (lb.current) await repo.git.pull();
-        else await repo.git.fetchIntoBranch(lb.upstreamRemote!, lb.upstreamBranch!, lb.name);
+        if (lb.current) return this.updateRepo(repo, method!, updated);
+        await repo.git.fetchIntoBranch(lb.upstreamRemote!, lb.upstreamBranch!, lb.name);
+        return undefined;
       },
+      finish: () => updateFinish(updated, this.openUpdateInfo),
     });
   }
 
@@ -844,4 +906,40 @@ async function askMergeOptions(source: string, current: string): Promise<{ optio
     }
     return { options: values.filter((v) => v !== MESSAGE), message };
   }
+}
+
+/** Último método elegido (preseleccionado la próxima vez). */
+let lastUpdateMethod: PullMode = 'merge';
+
+/**
+ * Método del Update Project: el del ajuste `multigit.update.method`, o lo que elija el usuario (Merge /
+ * Rebase, como el diálogo de IntelliJ). "No volver a preguntar" lo guarda en el ajuste.
+ */
+export async function askUpdateMethod(): Promise<PullMode | undefined> {
+  const config = vscode.workspace.getConfiguration('multigit.update');
+  const saved = config.get<string>('method', 'ask');
+  if (saved === 'merge' || saved === 'rebase') return saved;
+  type Item = vscode.QuickPickItem & { method?: PullMode; remember?: boolean };
+  const merge: Item = { label: '$(git-merge) Merge', description: t('integrates the incoming commits with a merge commit'), method: 'merge' };
+  const rebase: Item = { label: '$(git-pull-request) Rebase', description: t('puts your local commits on top of the incoming ones'), method: 'rebase' };
+  const items: Item[] = [
+    ...(lastUpdateMethod === 'rebase' ? [rebase, merge] : [merge, rebase]),
+    { label: t("Don't ask again"), kind: vscode.QuickPickItemKind.Separator },
+    { label: t('Always Merge'), description: t('saved in the setting multigit.update.method'), method: 'merge', remember: true },
+    { label: t('Always Rebase'), description: t('saved in the setting multigit.update.method'), method: 'rebase', remember: true },
+  ];
+  const picked = await vscode.window.showQuickPick(items, { title: t('Update Project'), placeHolder: t('Update type') });
+  if (!picked?.method) return undefined;
+  lastUpdateMethod = picked.method;
+  if (picked.remember) await config.update('method', picked.method, vscode.ConfigurationTarget.Global);
+  return picked.method;
+}
+
+/** Mensaje final del update como IntelliJ ("N commits en M repositorios") y el botón para ver lo que llegó. */
+function updateFinish(updated: readonly UpdatedRepo[], open: (updated: readonly UpdatedRepo[]) => Promise<void>) {
+  if (!updated.length) return {};
+  return {
+    message: t('✅ MultiGit: project updated in {0} repositories — View Updates to see the incoming commits and files', updated.length),
+    action: { label: t('View Updates'), run: () => void open(updated) },
+  };
 }

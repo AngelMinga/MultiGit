@@ -75,10 +75,15 @@ Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
 abre el popup de ramas, como el de IntelliJ:
 
 - **Acciones**: Update Project, Commit…, Pull…, Push…, New Branch…, Checkout Tag or Revision…
+- **Update Project** (como IntelliJ): pregunta **Merge** o **Rebase** (con *Siempre Merge / Siempre
+  Rebase* no vuelve a preguntar; ajuste `multigit.update.method`). Al terminar, **Ver actualizaciones**
+  abre la ventana *Update Info*: los repos que recibieron commits, esos commits y los archivos que
+  cambiaron (de todo lo que llegó o de un commit), con doble clic → diff.
 - **Repositorios**: entra a las ramas de un solo repo.
 - **Common Local / Remote Branches**: ramas que existen en todos los repos; favoritas arriba con ★.
 - Por rama: Checkout, New Branch from…, Checkout and Rebase, Compare, Show in Git Log, Rebase,
-  Merge, New Worktree, Update, Push…, Rename… (F2) y Delete.
+  Merge, New Worktree, Update, Push…, Rename… (F2) y Delete. En una rama remota, además, **Pull into
+  Current Using Merge / Using Rebase**.
 
 ### Historial y acciones por archivo
 
@@ -116,6 +121,17 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
   y debajo mensaje, autor, refs y en qué ramas está; doble clic → diff.
 - Clic derecho: Copy hash, Checkout revision, Cherry-pick, Revert, Reset current branch to here,
   New branch here y New tag.
+- Como IntelliJ, sobre un commit de la rama actual:
+  - **Undo Commit…**: la rama vuelve al commit anterior y sus cambios quedan para volver a hacer
+    commit (el mensaje vuelve a la caja de commit).
+  - **Edit Commit Message…**: ventana con el mensaje completo; en HEAD es un amend solo del mensaje y en
+    uno anterior, un rebase que rehace los posteriores.
+  - **Fixup… / Squash Into…**: la caja de commit se llena con `fixup! <asunto>` (o `squash!`); al hacer
+    ese commit, **Integrar ahora** lo mete en el commit elegido (rebase con autosquash).
+  - **Drop Commit…**: quita el commit de la rama (con confirmación).
+  - **Push All up to Here…**: sube hasta ese commit; los posteriores se quedan en local.
+  - Avisa si el commit ya está subido (hará falta force push) y los cambios sin commit se apartan y se
+    restauran solos (`--autostash`).
 - **Interactively rebase from here…** (clic derecho en un commit de la rama actual): los commits desde
   ese hasta HEAD, del más viejo al más nuevo, con **Pick**, **Reword** (mensaje nuevo ahí mismo),
   **Squash**, **Fixup** y **Drop**, y ↑/↓ para reordenar (teclas P R S F D y Alt+↑/↓). Pide el working

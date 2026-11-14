@@ -11,6 +11,8 @@ import { PullDialog } from './pull/PullDialog';
 import { ConflictsDialog } from './conflicts/ConflictsDialog';
 import { MergeDialog } from './merge/MergeDialog';
 import { RemotesDialog } from './remotes/RemotesDialog';
+import { UpdateInfoDialog } from './update/UpdateInfoDialog';
+import { MessageDialog } from './message/MessageDialog';
 import { onHostMessage, post } from './vscode';
 import { t } from './i18n';
 
@@ -39,7 +41,7 @@ export function App() {
           </button>
         </div>
       )}
-      {kind === 'push' ? <PushDialog /> : kind === 'commit' ? <CommitBox /> : kind === 'log' ? <LogApp /> : kind === 'toolbar' ? <Toolbar /> : kind === 'rollback' ? <RollbackDialog /> : kind === 'hunks' ? <HunksDialog /> : kind === 'rebase' ? <RebaseDialog /> : kind === 'pull' ? <PullDialog /> : kind === 'conflicts' ? <ConflictsDialog /> : kind === 'merge' ? <MergeDialog /> : kind === 'remotes' ? <RemotesDialog /> : <p className="muted pad">{t('Loading…')}</p>}
+      {kind === 'push' ? <PushDialog /> : kind === 'commit' ? <CommitBox /> : kind === 'log' ? <LogApp /> : kind === 'toolbar' ? <Toolbar /> : kind === 'rollback' ? <RollbackDialog /> : kind === 'hunks' ? <HunksDialog /> : kind === 'rebase' ? <RebaseDialog /> : kind === 'pull' ? <PullDialog /> : kind === 'conflicts' ? <ConflictsDialog /> : kind === 'merge' ? <MergeDialog /> : kind === 'remotes' ? <RemotesDialog /> : kind === 'updateInfo' ? <UpdateInfoDialog /> : kind === 'message' ? <MessageDialog /> : <p className="muted pad">{t('Loading…')}</p>}
     </>
   );
 }

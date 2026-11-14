@@ -12,6 +12,8 @@ export function registerLog(core: Core): LogView {
     vscode.commands.registerCommand('multigit.log.showBranch', (branch?: string | null, repoIds?: string[]) =>
       logView.showBranch(branch ?? null, repoIds ?? []),
     ),
+    // Interno (Update Info → "Show in Git Log"): selecciona un commit en el log.
+    vscode.commands.registerCommand('multigit.log.navigate', (ref: string, repoIds?: string[]) => logView.navigateTo(ref, repoIds ?? [])),
   );
   return logView;
 }
