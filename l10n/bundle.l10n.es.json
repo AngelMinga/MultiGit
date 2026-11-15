@@ -771,5 +771,8 @@
   "Use \"Name <email>\"": "Usa \"Nombre <email>\"",
   "Commit on behalf of someone else (git commit --author)": "Commit en nombre de otra persona (git commit --author)",
   "Adds \"Signed-off-by: <you>\" at the end of the message (git commit --signoff)": "Añade \"Signed-off-by: <tú>\" al final del mensaje (git commit --signoff)",
-  "Unchecked: the pre-commit and commit-msg hooks are skipped (git commit --no-verify)": "Desmarcado: no se ejecutan los hooks pre-commit y commit-msg (git commit --no-verify)"
+  "Unchecked: the pre-commit and commit-msg hooks are skipped (git commit --no-verify)": "Desmarcado: no se ejecutan los hooks pre-commit y commit-msg (git commit --no-verify)",
+  "Add or remove": "Añadir o quitar",
+  "Only this repository": "Solo este repositorio",
+  "Box: add or remove · Name: only that one": "Casilla: añadir o quitar · Nombre: solo ese"
 }

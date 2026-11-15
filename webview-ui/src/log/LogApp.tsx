@@ -7,6 +7,7 @@ import { BranchTree, type BranchTarget } from './BranchTree';
 import { FileTree } from './FileTree';
 import { MessageBody } from '../MessageBody';
 import { CommitList, key } from './CommitList';
+import { RepoFilter } from './RepoFilter';
 import { t } from '../i18n';
 
 const EMPTY: LogFilters = {
@@ -351,20 +352,10 @@ export function LogApp() {
             onBlur={() => paths !== filters.paths.join(', ') && apply({ paths: splitPaths(paths) })}
           />
         </label>
-        <label className="filter">
+        <div className="filter">
           <span className="muted">Repo</span>
-          <select
-            value={filters.repoIds.length === 1 ? filters.repoIds[0] : ''}
-            onChange={(e) => apply({ repoIds: e.target.value ? [e.target.value] : [] })}
-          >
-            <option value="">{t('All')}</option>
-            {repos.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-        </label>
+          <RepoFilter repos={repos} value={filters.repoIds} onChange={(repoIds) => apply({ repoIds })} />
+        </div>
         <span className="spacer" />
         {loading && <span className="muted small">{t('Loading…')}</span>}
         <span className="muted small">{t('{0} commits', `${rows.length}${hasMore ? '+' : ''}`)}</span>
