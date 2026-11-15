@@ -40,6 +40,8 @@ export interface MultiGitTestApi {
   changesActions: ChangesActions;
   stashes: StashesTree;
   compareFiles: CompareFilesTree;
+  /** Acciones de ramas (checkout, merge…) de todos los repos. */
+  branchActions: BranchActions;
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<MultiGitTestApi> {
@@ -150,6 +152,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
     branches: branches?.tree as BranchesTree,
     changes: changes?.tree as ChangesTree,
     changesActions: changes?.actions as ChangesActions,
+    branchActions: actions,
     stashes: stashes?.tree as StashesTree,
     compareFiles: compareFiles as CompareFilesTree,
   };

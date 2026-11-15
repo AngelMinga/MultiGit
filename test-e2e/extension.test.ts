@@ -208,6 +208,42 @@ describe('Commit parcial', () => {
   });
 });
 
+describe('Checkout en todos los repos', () => {
+  it('una rama local común: el checkout cambia todos los repos y conserva los cambios sin commit', async () => {
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    const repos = api.manager.all;
+    assert.ok(repos.length > 1);
+    const git = (root: string, ...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
+    const original = new Map(repos.map((r) => [r, git(r.root, 'branch', '--show-current')]));
+    for (const r of repos) git(r.root, 'branch', 'e2e-comun');
+    // Un cambio sin commit en un repo (como mftheme en el workspace real): git lo lleva a la otra rama.
+    const dirty = repos[0]!;
+    const file = path.join(dirty.root, 'e2e-checkout.txt');
+    writeFileSync(file, 'base\n');
+    git(dirty.root, 'add', 'e2e-checkout.txt');
+    execFileSync('git', ['-c', 'user.name=E2E', '-c', 'user.email=e2e@example.com', 'commit', '-q', '-m', 'e2e checkout'], { cwd: dirty.root });
+    git(dirty.root, 'branch', '-f', 'e2e-comun');
+    writeFileSync(file, 'cambio sin commit\n');
+    const config = vscode.workspace.getConfiguration('multigit');
+    await config.update('confirmCheckoutWithChanges', false, vscode.ConfigurationTarget.Global);
+    try {
+      await api.manager.refresh();
+      await api.branchActions.checkout({ repos, label: 'all' }, { type: 'local', name: 'e2e-comun' });
+      for (const r of repos) assert.equal(git(r.root, 'branch', '--show-current'), 'e2e-comun', r.name);
+      assert.equal(readFileSync(file, 'utf8'), 'cambio sin commit\n');
+    } finally {
+      await config.update('confirmCheckoutWithChanges', undefined, vscode.ConfigurationTarget.Global);
+      git(dirty.root, 'checkout', '-q', '--', 'e2e-checkout.txt');
+      for (const [r, branch] of original) {
+        git(r.root, 'checkout', '-q', branch);
+        git(r.root, 'branch', '-D', 'e2e-comun');
+      }
+      git(dirty.root, 'reset', '-q', '--hard', 'HEAD~1');
+      await api.manager.refresh();
+    }
+  });
+});
+
 describe('Changelists', () => {
   let api: MultiGitTestApi;
   before(async () => {
