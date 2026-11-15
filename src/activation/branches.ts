@@ -83,7 +83,7 @@ export function registerBranches(core: Core, logView: LogView): { tree: Branches
     vscode.commands.registerCommand('multigit.branchesTree.refresh', () => tree.refresh()),
     vscode.commands.registerCommand('multigit.branchesTree.showInLog', (node?: BranchNode) => {
       const target = logTarget(node);
-      if (target) return logView.showBranch(target.ref, target.repoIds);
+      if (target) return logView.showBranch(target.ref);
     }),
     vscode.commands.registerCommand('multigit.branchesTree.navigateLog', (node?: BranchNode) => {
       const target = logTarget(node);
@@ -107,7 +107,7 @@ export function registerBranches(core: Core, logView: LogView): { tree: Branches
       if (!picked) return;
       const scope = { repos, label: scopeLabel };
       if (picked.id === 'checkout') await popup.safely(() => actions.checkoutRef(scope, target.ref));
-      if (picked.id === 'log') await logView.showBranch(target.ref, target.repoIds);
+      if (picked.id === 'log') await logView.showBranch(target.ref);
       if (picked.id === 'navigate') await logView.navigateTo(target.ref, target.repoIds);
       if (picked.id === 'compare') await popup.safely(() => actions.compare(scope, { type: 'local', name: target.ref }));
     }),

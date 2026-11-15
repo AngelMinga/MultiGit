@@ -246,8 +246,7 @@ export class BranchPopup {
       );
     }
     add(true, '$(history) Show in Git Log', async () => {
-      const ids = scope.repos.length === this.manager.all.length ? [] : scope.repos.map((r) => r.root);
-      await vscode.commands.executeCommand('multigit.log.showBranch', name, ids);
+      await vscode.commands.executeCommand('multigit.log.showBranch', name);
     });
     items.push({ label: '', kind: vscode.QuickPickItemKind.Separator });
     add(!isCurrentEverywhere, `$(git-pull-request) Rebase '${cur}' onto '${name}'`, () => a.rebaseOnto(scope, ref));

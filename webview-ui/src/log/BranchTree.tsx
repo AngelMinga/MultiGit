@@ -83,7 +83,12 @@ export function BranchTree(props: {
     const full = buildTree(props.repos, props.favorites, byRepo, byDir, showTags);
     return query.trim() ? filterTree(full, query.trim().toLowerCase()) : full;
   }, [props.repos, props.favorites, byRepo, byDir, showTags, query]);
-  const select = (selection: BranchSelection) => props.onSelect(selection, options.clickMode);
+  // Nodo pulsado: la selección ya no lleva el repo, así que se recuerda cuál se pulsó para resaltarlo.
+  const [clicked, setClicked] = useState<string | null>(null);
+  const select = (selection: BranchSelection, key: string | null = null) => {
+    setClicked(key);
+    props.onSelect(selection, options.clickMode);
+  };
 
   const toggle = (key: string) =>
     setCollapsed((prev) => {
@@ -96,7 +101,7 @@ export function BranchTree(props: {
   const isSelected = (n: Node) =>
     n.branch !== undefined &&
     n.branch === (props.selected.branch ?? '') &&
-    sameIds(n.repoIds ?? [], props.selected.repoIds);
+    (clicked ? n.key === clicked : (n.repoIds ?? []).length === 0);
 
   const render = (nodes: Node[], depth: number): ReactElement[] =>
     nodes.flatMap((n) => {
@@ -108,7 +113,7 @@ export function BranchTree(props: {
           className={`tree-row${isSelected(n) ? ' selected' : ''}`}
           style={{ paddingLeft: 6 + depth * 12 }}
           onClick={() =>
-            n.children ? toggle(n.key) : select({ branch: n.branch ?? null, repoIds: n.repoIds ?? [] })
+            n.children ? toggle(n.key) : select({ branch: n.branch ?? null, repoIds: n.repoIds ?? [] }, n.key)
           }
           onContextMenu={(e) => {
             e.preventDefault();
@@ -325,10 +330,6 @@ function leaves(prefix: string, items: LeafInput[], favorites: string[], byDir: 
     level.push(leaf(i, parts[parts.length - 1]!));
   }
   return root;
-}
-
-function sameIds(a: string[], b: string[]): boolean {
-  return a.length === b.length && a.every((x) => b.includes(x));
 }
 
 /** Deja solo las ramas que contienen `q` (y las carpetas/repos que las contienen). */

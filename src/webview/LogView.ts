@@ -108,9 +108,12 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
     }
   }
 
-  /** Muestra el log filtrado por una rama (desde la vista Ramas o el popup). */
-  async showBranch(branch: string | null, repoIds: string[] = []): Promise<void> {
-    this.filters = { ...this.filters, branch, repoIds };
+  /**
+   * Muestra el log filtrado por una rama (desde la vista Ramas o el popup). Como IntelliJ, el filtro de
+   * repos no cambia salvo que se pida (`repoIds`): la rama se ve en todos los repos que la tienen.
+   */
+  async showBranch(branch: string | null, repoIds?: string[]): Promise<void> {
+    this.filters = { ...this.filters, branch, ...(repoIds ? { repoIds } : {}) };
     await vscode.commands.executeCommand(`${LogView.viewId}.focus`);
     if (this.ready) {
       this.post({ type: 'log/filters', payload: this.filters });

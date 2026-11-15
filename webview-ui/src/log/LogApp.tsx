@@ -276,7 +276,7 @@ export function LogApp() {
           <span className="muted">Branch</span>
           <select
             value={filters.branch ?? ''}
-            onChange={(e) => apply({ branch: e.target.value || null, repoIds: [] })}
+            onChange={(e) => apply({ branch: e.target.value || null })}
           >
             <option value="">{t('All')}</option>
             <option value="HEAD">{t('HEAD (current)')}</option>
@@ -394,7 +394,8 @@ export function LogApp() {
               if (mode === 'navigate' && s.branch) {
                 post({ type: 'log/resolveRef', payload: { ref: s.branch, repoIds: s.repoIds } });
               } else {
-                apply({ branch: s.branch, repoIds: s.repoIds });
+                // Como IntelliJ: solo cambia la rama; el filtro Repo lo decide el usuario.
+                apply({ branch: s.branch });
               }
             }}
           />
