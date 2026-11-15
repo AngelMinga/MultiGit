@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.19.0
+
+- **Git Log con varios commits** (Ctrl/Cmd+clic y Mayús+clic): Copy hashes, Create Patch…, Cherry-pick
+  y Revert de todos, **Compare Versions** y **Squash Commits…**, como IntelliJ.
+- Commit: **Show Repository at Revision…**, **Open on GitHub / GitLab** y **Go to Parent / Child Commit**.
+- Archivo del detalle (clic derecho): **Compare with Local**, **Open Repository Version**, **Get from
+  Revision…**, Show History y Open on GitHub / GitLab.
+- Tags: **Push Tag…** y **Delete Tag…** (local, o local y remoto) desde el Git Log y la vista Ramas.
+- Filtro **Repo** con el color de cada proyecto y varios repos a la vez; elegir una rama ya no cambia
+  ese filtro.
+
 ## 0.18.0
 
 - **Changelists** como IntelliJ: listas con nombre dentro de Changes (New, Move to Another Changelist…

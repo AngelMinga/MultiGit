@@ -51,3 +51,25 @@ export function parseAutosquash(message: string): { kind: 'fixup' | 'squash'; su
   const m = /^(fixup|squash)! (.+)$/.exec(message.split('\n')[0]?.trim() ?? '');
   return m ? { kind: m[1] as 'fixup' | 'squash', subject: m[2]!.trim() } : undefined;
 }
+
+/**
+ * Todo del rebase de "Squash Commits…" (como IntelliJ): los commits elegidos se juntan en el lugar del
+ * más viejo, con `message`; el resto queda en su orden. `commits` va del más viejo al más nuevo y empieza
+ * por el más viejo de los elegidos. Devuelve undefined si alguno no está en `commits` o hay menos de dos.
+ */
+export function squashPlan(commits: readonly RebaseCommit[], selected: readonly string[], message: string): RebaseEntry[] | undefined {
+  const chosen = new Set(selected);
+  const group = commits.filter((c) => chosen.has(c.hash));
+  if (group.length < 2 || group.length !== chosen.size || group[0] !== commits[0]) return undefined;
+  const last = group[group.length - 1]!;
+  return [
+    { hash: group[0]!.hash, action: 'pick' },
+    ...group.slice(1).map((c): RebaseEntry => (c === last ? { hash: c.hash, action: 'fixup', message } : { hash: c.hash, action: 'fixup' })),
+    ...commits.filter((c) => !chosen.has(c.hash)).map((c): RebaseEntry => ({ hash: c.hash, action: 'pick' })),
+  ];
+}
+
+/** Mensaje propuesto al juntar commits: los mensajes del más viejo al más nuevo, sin repetir. */
+export function squashMessage(messages: readonly string[]): string {
+  return [...new Set(messages.map((m) => m.trim()).filter(Boolean))].join('\n\n');
+}

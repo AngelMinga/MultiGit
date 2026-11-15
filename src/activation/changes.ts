@@ -146,6 +146,14 @@ export function registerChanges(
       if (repo) return popup.safely(() => patches.createFromCommit(repo, hash));
       return undefined;
     }),
+    // Interno (Git Log con varios commits elegidos): [{ repoRoot, hashes }] del más viejo al más nuevo.
+    vscode.commands.registerCommand('multigit.patch.createFromCommits', (groups: Array<{ repoRoot: string; hashes: string[] }>) => {
+      const resolved = groups.flatMap((g) => {
+        const repo = manager.allRepos.find((r) => r.root === g.repoRoot);
+        return repo ? [{ repo, hashes: g.hashes }] : [];
+      });
+      return resolved.length ? popup.safely(() => patches.createFromCommits(resolved)) : undefined;
+    }),
     vscode.commands.registerCommand('multigit.changes.selectHunks', (node?: ChangeNode) => {
       const ref = fileNode(node ?? view.selection[0]);
       if (ref) return popup.safely(() => HunksPanel.open(context.extensionUri, tree, ref, (r) => actions.openDiff(r)));

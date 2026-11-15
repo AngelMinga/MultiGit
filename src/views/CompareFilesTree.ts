@@ -25,14 +25,17 @@ export class CompareFilesTree implements vscode.TreeDataProvider<CompareNode>, v
   private readonly emitter = new vscode.EventEmitter<CompareNode | undefined>();
   readonly onDidChangeTreeData = this.emitter.event;
   private other = '';
+  /** Lado derecho: HEAD (la rama actual) o una revisión concreta (Compare Versions del log). */
+  private against: { ref: string; label: string } | undefined;
   private repos: readonly Repo[] = [];
   private results: RepoResult[] = [];
   /** Se llama cuando cambia el título ('develop' ↔ 'feature/x'). */
   onDidChangeTitle?: (description: string | undefined) => void;
 
   /** Compara `other` con la rama actual de cada repo y muestra la vista. */
-  async compare(repos: readonly Repo[], other: string): Promise<void> {
+  async compare(repos: readonly Repo[], other: string, against?: { ref: string; label: string }): Promise<void> {
     this.other = other;
+    this.against = against;
     this.repos = repos;
     await vscode.window.withProgress(
       { location: { viewId: 'multigit.compareFiles' }, title: t("Comparing '{0}'…", other) },
@@ -45,18 +48,23 @@ export class CompareFilesTree implements vscode.TreeDataProvider<CompareNode>, v
   async load(): Promise<void> {
     this.results = await Promise.all(
       this.repos.map(async (repo): Promise<RepoResult> => {
-        const current = repo.status?.branch ?? 'HEAD';
+        const current = this.against?.label ?? repo.status?.branch ?? 'HEAD';
         try {
           if (!(await repo.git.revisionExists(this.other))) return { repo, current, files: [], error: t("'{0}' does not exist in this repository", this.other) };
-          return { repo, current, files: await repo.git.diffRefs(this.other, 'HEAD') };
+          return { repo, current, files: await repo.git.diffRefs(this.other, this.against?.ref ?? 'HEAD') };
         } catch (error) {
           return { repo, current, files: [], error: errorText(error) };
         }
       }),
     );
     const currents = [...new Set(this.results.map((r) => r.current))];
-    this.onDidChangeTitle?.(`${this.other} ↔ ${currents.length === 1 ? currents[0] : t('current branch')}`);
+    this.onDidChangeTitle?.(`${this.otherLabel} ↔ ${currents.length === 1 ? currents[0] : t('current branch')}`);
     this.emitter.fire(undefined);
+  }
+
+  /** Nombre corto del lado izquierdo (un hash se abrevia). */
+  private get otherLabel(): string {
+    return /^[0-9a-f]{40}$/.test(this.other) ? this.other.slice(0, 7) : this.other;
   }
 
   async close(): Promise<void> {
@@ -112,8 +120,8 @@ export class CompareFilesTree implements vscode.TreeDataProvider<CompareNode>, v
     if (node.kind !== 'file') return;
     const { result, file } = node;
     const left = GitContentProvider.uri(result.repo.root, file.status === 'A' ? '' : this.other, file.oldPath ?? file.path);
-    const right = GitContentProvider.uri(result.repo.root, file.status === 'D' ? '' : 'HEAD', file.path);
-    const title = `${path.posix.basename(file.path)} (${this.other} ↔ ${result.current})`;
+    const right = GitContentProvider.uri(result.repo.root, file.status === 'D' ? '' : (this.against?.ref ?? 'HEAD'), file.path);
+    const title = `${path.posix.basename(file.path)} (${this.otherLabel} ↔ ${result.current})`;
     await vscode.commands.executeCommand('vscode.diff', left, right, title, { preview: true });
   }
 

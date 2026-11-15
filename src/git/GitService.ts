@@ -531,6 +531,60 @@ export class GitService {
     return this.exec(['revert', '--no-edit', hash]);
   }
 
+  /** Cherry-pick de varios commits, en el orden dado (del más viejo al más nuevo). */
+  cherryPickMany(hashes: readonly string[]): Promise<string> {
+    return this.exec(['cherry-pick', ...hashes]);
+  }
+
+  /** Revert de varios commits, en el orden dado (del más nuevo al más viejo). */
+  revertMany(hashes: readonly string[]): Promise<string> {
+    return this.exec(['revert', '--no-edit', ...hashes]);
+  }
+
+  /** Padres de un commit. */
+  async parentsOf(hash: string): Promise<string[]> {
+    return (await this.exec(['rev-list', '--parents', '-n', '1', hash])).trim().split(/\s+/).slice(1);
+  }
+
+  /** Hijos de un commit entre todas las ramas y tags (Go to Child Commit). */
+  async childrenOf(hash: string): Promise<string[]> {
+    const out = await this.exec(['rev-list', '--all', '--parents']);
+    return out
+      .split('\n')
+      .map((l) => l.trim().split(' '))
+      .filter((parts) => parts.slice(1).includes(hash))
+      .map((parts) => parts[0]!);
+  }
+
+  /** Archivos del repo en una revisión (Show Repository at Revision). */
+  async filesAt(hash: string): Promise<string[]> {
+    return (await this.exec(['-c', 'core.quotepath=false', 'ls-tree', '-r', '-z', '--name-only', hash])).split('\0').filter(Boolean);
+  }
+
+  /**
+   * Get from Revision: deja `filePath` como estaba en `hash` (índice y disco). Si no existía en esa
+   * revisión (`deleted`), se borra.
+   */
+  async restoreFromRevision(hash: string, filePath: string, deleted: boolean): Promise<void> {
+    if (deleted) await this.exec(['rm', '-f', '--quiet', '--ignore-unmatch', '--', filePath]);
+    else await this.exec(['checkout', hash, '--', filePath]);
+  }
+
+  /** Sube un tag al remoto. */
+  pushTag(remote: string, name: string): Promise<string> {
+    return this.exec(['push', remote, `refs/tags/${name}`], { timeoutMs: NETWORK_TIMEOUT_MS });
+  }
+
+  /** Borra un tag local. */
+  deleteTag(name: string): Promise<string> {
+    return this.exec(['tag', '-d', name]);
+  }
+
+  /** Borra un tag del remoto. */
+  deleteRemoteTag(remote: string, name: string): Promise<string> {
+    return this.exec(['push', remote, '--delete', `refs/tags/${name}`], { timeoutMs: NETWORK_TIMEOUT_MS });
+  }
+
   /** `git reset --soft|--mixed|--hard <hash>` sobre la rama actual. */
   reset(mode: 'soft' | 'mixed' | 'hard', hash: string): Promise<string> {
     return this.exec(['reset', `--${mode}`, hash]);
@@ -642,7 +696,7 @@ export class GitService {
     await fs.rm(dir, { recursive: true, force: true });
     await fs.mkdir(dir, { recursive: true });
     const messageFile = (hash: string) => path.join(dir, `msg-${hash}.txt`);
-    for (const e of entries) if (e.action === 'reword') await fs.writeFile(messageFile(e.hash), `${e.message!.trim()}\n`);
+    for (const e of entries) if (e.action !== 'drop' && e.message?.trim()) await fs.writeFile(messageFile(e.hash), `${e.message.trim()}\n`);
     const todo = path.join(dir, 'todo.txt');
     await fs.writeFile(todo, buildTodo(entries, messageFile));
     // Git llama a `$GIT_SEQUENCE_EDITOR <archivo-todo>`: copiamos el nuestro encima.
@@ -874,6 +928,13 @@ export class GitService {
   /** Patch de un commit (`git format-patch -1 --stdout`): con autor, fecha y mensaje, como "Create Patch" del log. */
   commitPatch(hash: string): Promise<string> {
     return this.exec(['-c', 'core.quotepath=false', 'format-patch', '-1', '--stdout', '--binary', '--no-color', hash]);
+  }
+
+  /** Patch de varios commits: uno tras otro, del más viejo al más nuevo (`git apply` los aplica en orden). */
+  async commitsPatch(hashes: readonly string[]): Promise<string> {
+    let out = '';
+    for (const h of hashes) out += await this.commitPatch(h);
+    return out;
   }
 
   /**

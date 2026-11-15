@@ -16,18 +16,26 @@ interface RowData {
   graph: GraphRow[];
   graphWidth: number;
   repos: Map<string, LogRepoInfo>;
-  selected: string | null;
-  onSelect: (row: LogRow) => void;
+  /** Commits elegidos (con Ctrl/Cmd+clic y Mayús+clic puede haber varios). */
+  selection: Set<string>;
+  onSelect: (row: LogRow, mode: SelectMode) => void;
   onContextMenu: (row: LogRow, x: number, y: number) => void;
 }
+
+/** Clic normal, Ctrl/Cmd+clic (añadir o quitar) o Mayús+clic (rango). */
+export type SelectMode = 'single' | 'toggle' | 'range';
+
+const modeOf = (e: React.MouseEvent | React.KeyboardEvent): SelectMode => (e.shiftKey ? 'range' : e.metaKey || e.ctrlKey ? 'toggle' : 'single');
 
 export function CommitList(props: {
   rows: LogRow[];
   repos: Map<string, LogRepoInfo>;
   hasMore: boolean;
   loading: boolean;
+  /** Commit principal (el del detalle y el de las flechas). */
   selected: string | null;
-  onSelect: (row: LogRow) => void;
+  selection: Set<string>;
+  onSelect: (row: LogRow, mode: SelectMode) => void;
   onLoadMore: () => void;
   onContextMenu: (row: LogRow, x: number, y: number) => void;
   /** Desplazar la lista hasta esta fila (token distinto en cada pedido). */
@@ -49,7 +57,7 @@ export function CommitList(props: {
     const next = Math.max(0, Math.min(props.rows.length - 1, index + (e.key === 'ArrowDown' ? 1 : -1)));
     const row = props.rows[next];
     if (row) {
-      props.onSelect(row);
+      props.onSelect(row, e.shiftKey ? 'range' : 'single');
       list.current?.scrollToItem(next);
     }
   };
@@ -71,7 +79,7 @@ export function CommitList(props: {
     graph: graph.rows,
     graphWidth: graphWidth(graph.maxLanes),
     repos: props.repos,
-    selected: props.selected,
+    selection: props.selection,
     onSelect: props.onSelect,
     onContextMenu: props.onContextMenu,
   };
@@ -107,16 +115,18 @@ export function key(row: LogRow): string {
 const Row = memo(function Row({ index, style, data }: ListChildComponentProps<RowData>) {
   const row = data.rows[index]!;
   const repo = data.repos.get(row.repoId);
-  const selected = data.selected === key(row);
+  const selected = data.selection.has(key(row));
   const dim = !data.onHead.has(key(row));
   return (
     <div
       className={`log-row${selected ? ' selected' : ''}${dim ? ' dim' : ''}`}
       style={style as CSSProperties}
-      onClick={() => data.onSelect(row)}
+      onClick={(e) => data.onSelect(row, modeOf(e))}
+      onMouseDown={(e) => e.shiftKey && e.preventDefault()}
       onContextMenu={(e) => {
         e.preventDefault();
-        data.onSelect(row);
+        // Clic derecho sobre uno de los elegidos: se mantiene la selección (menú de varios commits).
+        if (!selected) data.onSelect(row, 'single');
         data.onContextMenu(row, e.clientX, e.clientY);
       }}
       title={`${repo?.name ?? ''} · ${row.shortHash}`}

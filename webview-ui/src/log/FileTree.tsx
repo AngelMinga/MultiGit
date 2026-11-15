@@ -41,7 +41,7 @@ function buildTree(files: readonly PushFile[]): Dir {
   return compact(root);
 }
 
-export function FileTree(props: { files: readonly PushFile[]; onOpen: (file: PushFile) => void; depth?: number; /** Carpetas plegadas al empezar. */ collapsed?: boolean }) {
+export function FileTree(props: { files: readonly PushFile[]; onOpen: (file: PushFile) => void; onContextMenu?: (file: PushFile, x: number, y: number) => void; depth?: number; /** Carpetas plegadas al empezar. */ collapsed?: boolean }) {
   const tree = useMemo(() => buildTree(props.files), [props.files]);
   // Plegadas si se pide (grupos de un merge) o si hay muchos archivos (como IntelliJ).
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(props.collapsed || props.files.length > 25 ? allDirs(tree) : []));
@@ -74,6 +74,12 @@ export function FileTree(props: { files: readonly PushFile[]; onOpen: (file: Pus
         style={{ paddingLeft: 8 + depth * 14 + 14 }}
         title={f.oldPath ? `${f.oldPath} → ${f.path}` : f.path}
         onDoubleClick={() => props.onOpen(f)}
+        onContextMenu={(e) => {
+          if (!props.onContextMenu) return;
+          e.preventDefault();
+          e.stopPropagation();
+          props.onContextMenu(f, e.clientX, e.clientY);
+        }}
       >
         <span className={`status status-${f.status}`}>{f.status}</span>
         <span className="file-name">{f.path.slice(f.path.lastIndexOf('/') + 1)}</span>

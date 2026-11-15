@@ -266,6 +266,8 @@ export interface LogRepoInfo {
   /** Ramas remotas completas (`origin/develop`). */
   remote: string[];
   tags: string[];
+  /** Web del remoto para "Open on …" (GitHub, GitLab…), o null si no tiene remoto reconocible. */
+  web: string | null;
 }
 
 export interface LogRow {
@@ -322,6 +324,8 @@ export type LogBranchAction =
   | 'pullRequests'
   | 'rename'
   | 'delete'
+  | 'pushTag'
+  | 'deleteTag'
   | 'navigate';
 
 export type LogAction =
@@ -339,7 +343,17 @@ export type LogAction =
   | 'createPatch'
   | 'newBranch'
   | 'newTag'
-  | 'interactiveRebase';
+  | 'interactiveRebase'
+  | 'goParent'
+  | 'goChild'
+  | 'showRepoAtRevision'
+  | 'openOnRemote';
+
+/** Acciones con varios commits elegidos en el Git Log (Ctrl/Cmd+clic, Mayús+clic). */
+export type LogMultiAction = 'copyHashes' | 'cherryPick' | 'revert' | 'createPatch' | 'compareVersions' | 'squash';
+
+/** Acciones de un archivo del detalle de un commit (menú contextual). */
+export type LogFileAction = 'showDiff' | 'compareWithLocal' | 'openRevision' | 'getFromRevision' | 'showHistory' | 'openOnRemote';
 
 // ------------------------------------------------------------------ Toolbar (Proyecto)
 
@@ -449,6 +463,9 @@ export type WebviewMessage =
   | { type: 'log/openDiff'; payload: { repoId: string; hash: string; file: PushFile; /** Comparar contra esta revisión (otro padre de un merge). */ base?: string | null } }
   | { type: 'log/action'; payload: { action: LogAction; repoId: string; hash: string } }
   | { type: 'log/branchAction'; payload: { action: LogBranchAction; branch: string; repoIds: string[] } }
+  /** `commits` en el orden del log (del más nuevo al más viejo). */
+  | { type: 'log/multiAction'; payload: { action: LogMultiAction; commits: Array<{ repoId: string; hash: string }> } }
+  | { type: 'log/fileAction'; payload: { action: LogFileAction; repoId: string; hash: string; file: PushFile; base?: string | null } }
   | { type: 'log/refresh'; payload: Record<string, never> }
   | { type: 'log/resolveRef'; payload: { ref: string; repoIds: string[] } }
   | { type: 'toolbar/action'; payload: { action: ToolbarAction } }

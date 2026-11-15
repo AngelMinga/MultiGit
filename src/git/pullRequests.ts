@@ -83,6 +83,30 @@ export function newPullRequestUrl(remote: RemoteInfo, source: string, target: st
   }
 }
 
+// ------------------------------------------------------------------ Open on GitHub / GitLab
+
+export const PROVIDER_NAMES: Record<Provider, string> = { github: 'GitHub', gitlab: 'GitLab', bitbucket: 'Bitbucket', azure: 'Azure DevOps' };
+
+/**
+ * Página web de un commit, o de un archivo en esa revisión si se pasa `filePath` (Open on GitHub /
+ * GitLab de IntelliJ). Un host sin proveedor conocido se trata como GitLab (lo habitual en servidores
+ * propios); se puede fijar en `multigit.pullRequests.providers`.
+ */
+export function revisionWebUrl(remote: RemoteInfo, hash: string, filePath?: string): string {
+  const base = `${remote.scheme}://${remote.host}/${remote.path}`;
+  const file = filePath ? enc(filePath) : '';
+  switch (remote.provider) {
+    case 'github':
+      return filePath ? `${base}/blob/${hash}/${file}` : `${base}/commit/${hash}`;
+    case 'bitbucket':
+      return filePath ? `${base}/src/${hash}/${file}` : `${base}/commits/${hash}`;
+    case 'azure':
+      return filePath ? `${base}?path=${encodeURIComponent(`/${filePath}`)}&version=GC${hash}` : `${base}/commit/${hash}`;
+    default:
+      return filePath ? `${base}/-/blob/${hash}/${file}` : `${base}/-/commit/${hash}`;
+  }
+}
+
 // ------------------------------------------------------------------ API de GitHub
 
 export type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body?: string }) => Promise<{

@@ -6,7 +6,7 @@ export type RebaseAction = 'pick' | 'reword' | 'squash' | 'fixup' | 'drop';
 export interface RebaseEntry {
   hash: string;
   action: RebaseAction;
-  /** Mensaje nuevo (reword). */
+  /** Mensaje nuevo (reword; en fixup/squash, el mensaje del commit ya combinado). */
   message?: string;
 }
 
@@ -57,6 +57,10 @@ export function buildTodo(entries: readonly RebaseEntry[], messageFile: (hash: s
       lines.push(`exec git commit --amend --allow-empty --no-verify --quiet -F "${messageFile(e.hash).replace(/\\/g, '/')}"`);
     } else {
       lines.push(`${e.action} ${e.hash}`);
+      // Squash Commits: tras el último fixup del grupo se pone el mensaje elegido.
+      if (e.message?.trim() && (e.action === 'fixup' || e.action === 'squash')) {
+        lines.push(`exec git commit --amend --allow-empty --no-verify --quiet -F "${messageFile(e.hash).replace(/\\/g, '/')}"`);
+      }
     }
   }
   return `${lines.join('\n')}\n`;

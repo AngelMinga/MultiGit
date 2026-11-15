@@ -16,11 +16,13 @@ import { errorText, runInRepos } from '../git/MultiRepoRunner';
 import type { RepoBranches } from '../git/branches';
 import type { Repo, RepoManager } from '../git/RepoManager';
 import type { BranchActions, BranchRef } from '../views/branchActions';
-import type { LogAction, LogBranchAction, LogRepoInfo, LogRow, WebviewMessage } from './protocol';
+import type { LogAction, LogBranchAction, LogFileAction, LogMultiAction, LogRepoInfo, LogRow, PushFile, WebviewMessage } from './protocol';
+import * as path from 'node:path';
+import { parseRemoteUrl, PROVIDER_NAMES, revisionWebUrl, type RemoteInfo } from '../git/pullRequests';
 import { onWebviewMessage, postToWebview, renderWebviewHtml, webviewOptions } from './webviewHtml';
 import { RebasePanel } from './RebasePanel';
 import { editMessage } from './MessagePanel';
-import { autosquashMessage, editPlan, historyBlocker, type HistoryAction, type HistoryInfo } from '../git/historyEdit';
+import { autosquashMessage, editPlan, historyBlocker, squashMessage, squashPlan, type HistoryAction, type HistoryInfo } from '../git/historyEdit';
 import { t } from '../i18n';
 
 const PAGE_SIZE = 300;
@@ -36,6 +38,8 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
   private loading = false;
   private branches = new Map<Repo, RepoBranches>();
   private tags = new Map<Repo, string[]>();
+  /** Remoto de cada repo (el del upstream, origin o el primero) para "Open on GitHub / GitLab". */
+  private remotes = new Map<Repo, { name: string; info: RemoteInfo | undefined }>();
   /** Rama/HEAD de cada repo en la última carga: si cambia, se recarga el log. */
   private signature = '';
   /** Ramas (locales, remotas y sus ↑/↓) de la última carga: cambia tras un fetch aunque HEAD no cambie. */
@@ -183,6 +187,14 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         case 'log/branchAction':
           await this.runBranchAction(message.payload.action, message.payload.branch, message.payload.repoIds);
           break;
+        case 'log/multiAction':
+          await this.runMultiAction(message.payload.action, message.payload.commits);
+          break;
+        case 'log/fileAction': {
+          const { action, repoId, hash, file, base } = message.payload;
+          await this.runFileAction(action, repoId, hash, file, base);
+          break;
+        }
         default:
           break;
       }
@@ -206,6 +218,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
     );
     this.branches = new Map(entries);
     this.tags = new Map(await Promise.all(repos.map(async (r) => [r, await r.git.listTags().catch(() => [])] as const)));
+    this.remotes = new Map(await Promise.all(repos.map(async (r) => [r, await this.remoteOf(r)] as const)));
     this.signature = this.computeSignature();
     this.refsSignature = refsSignatureOf(repos.map((r) => this.branches.get(r)!));
     const first = repos[0];
@@ -228,6 +241,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         ),
         remote: b.remote.map((x) => x.full),
         tags: this.tags.get(r) ?? [],
+        web: this.webName(r),
       };
     });
     this.post({
@@ -467,6 +481,18 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
       case 'newTag':
         if (!(await this.newTag(repo, hash))) return;
         break;
+      case 'goParent':
+        await this.goParent(repo, hash);
+        return;
+      case 'goChild':
+        await this.goChild(repo, hash);
+        return;
+      case 'showRepoAtRevision':
+        await this.showRepoAtRevision(repo, hash);
+        return;
+      case 'openOnRemote':
+        await this.openOnRemote(repo, hash);
+        return;
       case 'interactiveRebase':
         await RebasePanel.open(this.extensionUri, this.manager, repo, hash, async () => {
           await this.manager.refreshStatusesNow([repo]);
@@ -485,7 +511,8 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
     const branchesOf = (r: Repo) => this.branches.get(r);
     const exists = (r: Repo) => {
       const b = branchesOf(r);
-      return !!b && (isTag || b.local.some((l) => l.name === branch) || b.remote.some((x) => x.full === branch));
+      if (isTag) return (this.tags.get(r) ?? []).includes(branch.slice('refs/tags/'.length));
+      return !!b && (b.local.some((l) => l.name === branch) || b.remote.some((x) => x.full === branch));
     };
     const repos = repoIds.length ? this.manager.all.filter((r) => repoIds.includes(r.root)) : this.manager.all.filter(exists);
     if (repos.length === 0) return;
@@ -532,6 +559,10 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         if (local) return a.deleteLocal(scope, local);
         if (ref.type === 'remote') return a.deleteRemote(scope, ref);
         return undefined;
+      case 'pushTag':
+        return isTag ? this.pushTag(repos, branch.slice('refs/tags/'.length)) : undefined;
+      case 'deleteTag':
+        return isTag ? this.deleteTag(repos, branch.slice('refs/tags/'.length)) : undefined;
       case 'navigate':
         return this.navigateTo(branch, repoIds);
     }
@@ -776,6 +807,315 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
       },
     });
     return true;
+  }
+
+  // ------------------------------------------------------------------ remoto web
+
+  private async remoteOf(repo: Repo): Promise<{ name: string; info: RemoteInfo | undefined }> {
+    const remotes = await repo.git.listRemotes().catch(() => []);
+    const upstream = repo.status?.upstream?.split('/')[0];
+    const remote = remotes.find((r) => r.name === upstream) ?? remotes.find((r) => r.name === 'origin') ?? remotes[0];
+    if (!remote) return { name: '', info: undefined };
+    const providers = vscode.workspace.getConfiguration('multigit.pullRequests').get<Record<string, string>>('providers', {});
+    return { name: remote.name, info: parseRemoteUrl(remote.url, providers) };
+  }
+
+  /** "GitHub", "GitLab"… (un host propio sin configurar cuenta como GitLab), o null sin remoto web. */
+  private webName(repo: Repo): string | null {
+    const info = this.remotes.get(repo)?.info;
+    return info ? PROVIDER_NAMES[info.provider ?? 'gitlab'] : null;
+  }
+
+  private async openOnRemote(repo: Repo, hash: string, filePath?: string): Promise<void> {
+    const info = this.remotes.get(repo)?.info ?? (await this.remoteOf(repo)).info;
+    if (!info) {
+      void vscode.window.showWarningMessage(t('MultiGit: {0} has no remote with a web page.', repo.name));
+      return;
+    }
+    await vscode.env.openExternal(vscode.Uri.parse(revisionWebUrl(info, hash, filePath), true));
+  }
+
+  // ------------------------------------------------------------------ navegación
+
+  /** Go to Parent Commit: en un merge se elige el padre. */
+  private async goParent(repo: Repo, hash: string): Promise<void> {
+    const parents = await repo.git.parentsOf(hash);
+    if (!parents.length) {
+      void vscode.window.showInformationMessage(t('MultiGit: {0} is the first commit of the repository.', hash.slice(0, 7)));
+      return;
+    }
+    let target = parents[0]!;
+    if (parents.length > 1) {
+      const items = await Promise.all(
+        parents.map(async (p, i) => ({
+          label: `${p.slice(0, 7)} ${(await repo.git.commitInfo(p).catch(() => undefined))?.body.split('\n')[0] ?? ''}`,
+          description: i === 0 ? t('first parent') : undefined,
+          hash: p,
+        })),
+      );
+      const picked = await vscode.window.showQuickPick(items, { title: t('Parent of merge {0}', hash.slice(0, 7)) });
+      if (!picked) return;
+      target = picked.hash;
+    }
+    this.post({ type: 'log/reveal', payload: { repoId: repo.root, hash: target } });
+  }
+
+  /** Go to Child Commit: si hay varios (ramas que salen de ahí), se elige. */
+  private async goChild(repo: Repo, hash: string): Promise<void> {
+    const children = await repo.git.childrenOf(hash);
+    if (!children.length) {
+      void vscode.window.showInformationMessage(t('MultiGit: {0} has no child commits.', hash.slice(0, 7)));
+      return;
+    }
+    let target = children[0]!;
+    if (children.length > 1) {
+      const items = await Promise.all(
+        children.map(async (c) => ({ label: `${c.slice(0, 7)} ${(await repo.git.commitInfo(c).catch(() => undefined))?.body.split('\n')[0] ?? ''}`, hash: c })),
+      );
+      const picked = await vscode.window.showQuickPick(items, { title: t('Children of {0}', hash.slice(0, 7)) });
+      if (!picked) return;
+      target = picked.hash;
+    }
+    this.post({ type: 'log/reveal', payload: { repoId: repo.root, hash: target } });
+  }
+
+  /** Show Repository at Revision: todos los archivos del repo en ese commit; el elegido se abre (solo lectura). */
+  private async showRepoAtRevision(repo: Repo, hash: string): Promise<void> {
+    const files = await repo.git.filesAt(hash);
+    const picked = await vscode.window.showQuickPick(
+      files.map((f) => ({ label: path.posix.basename(f), description: path.posix.dirname(f) === '.' ? '' : path.posix.dirname(f), path: f })),
+      { title: t('{0} at {1} — {2} file(s)', repo.name, hash.slice(0, 7), files.length), placeHolder: t('File to open'), matchOnDescription: true },
+    );
+    if (picked) await this.openRevision(repo, hash, picked.path);
+  }
+
+  private async openRevision(repo: Repo, hash: string, filePath: string): Promise<void> {
+    const uri = GitContentProvider.uri(repo.root, hash, filePath);
+    await vscode.window.showTextDocument(uri, { preview: true });
+  }
+
+  // ------------------------------------------------------------------ archivo de un commit
+
+  private async runFileAction(action: LogFileAction, repoId: string, hash: string, file: PushFile, base?: string | null): Promise<void> {
+    const repo = this.repoById(repoId);
+    if (!repo) return;
+    const short = hash.slice(0, 7);
+    const name = path.posix.basename(file.path);
+    const local = vscode.Uri.file(path.join(repo.root, file.path));
+    switch (action) {
+      case 'showDiff':
+        if (base === undefined) await openCommitFileDiff(repoId, hash, file);
+        else {
+          const left = GitContentProvider.uri(repoId, file.status === 'A' || !base ? '' : base, file.oldPath ?? file.path);
+          const right = GitContentProvider.uri(repoId, file.status === 'D' ? '' : hash, file.path);
+          await vscode.commands.executeCommand('vscode.diff', left, right, `${name} (${base ? base.slice(0, 7) : '∅'} ↔ ${short})`, { preview: true });
+        }
+        return;
+      case 'compareWithLocal': {
+        // Versión del commit ↔ archivo en disco (como "Compare with Local" de IntelliJ).
+        const left = GitContentProvider.uri(repoId, file.status === 'D' ? '' : hash, file.path);
+        const exists = await vscode.workspace.fs.stat(local).then(() => true, () => false);
+        const right = exists ? local : GitContentProvider.uri(repoId, '', file.path);
+        await vscode.commands.executeCommand('vscode.diff', left, right, `${name} (${short} ↔ ${t('Local')})`, { preview: true });
+        return;
+      }
+      case 'openRevision':
+        if (file.status === 'D') {
+          void vscode.window.showInformationMessage(t('MultiGit: {0} was deleted in {1}.', name, short));
+          return;
+        }
+        await this.openRevision(repo, hash, file.path);
+        return;
+      case 'getFromRevision': {
+        const deleted = file.status === 'D';
+        const OK = t('Get');
+        const detail = deleted
+          ? t('{0} did not exist after {1}: it will be deleted from your working tree.', file.path, short)
+          : t('{0} is replaced with its version of {1}. Your uncommitted changes to that file are lost.', file.path, short);
+        if ((await vscode.window.showWarningMessage(t('Get {0} from revision {1}?', name, short), { modal: true, detail }, OK)) !== OK) return;
+        await runInRepos(this.manager, {
+          title: t('Get from Revision {0} in {1}', short, repo.name),
+          repos: [repo],
+          run: async (r) => {
+            await r.git.restoreFromRevision(hash, file.path, deleted);
+            return file.path;
+          },
+        });
+        await this.manager.refreshStatusesNow([repo]);
+        return;
+      }
+      case 'showHistory':
+        await this.showFileHistory(repoId, file.path);
+        return;
+      case 'openOnRemote':
+        await this.openOnRemote(repo, file.status === 'D' && base ? base : hash, file.status === 'D' ? (file.oldPath ?? file.path) : file.path);
+        return;
+    }
+  }
+
+  // ------------------------------------------------------------------ varios commits
+
+  private async runMultiAction(action: LogMultiAction, commits: ReadonlyArray<{ repoId: string; hash: string }>): Promise<void> {
+    // Por repo, en el orden del log (del más nuevo al más viejo).
+    const groups: Array<{ repo: Repo; hashes: string[] }> = [];
+    for (const c of commits) {
+      const repo = this.repoById(c.repoId);
+      if (!repo) continue;
+      const g = groups.find((x) => x.repo === repo) ?? (groups.push({ repo, hashes: [] }), groups[groups.length - 1]!);
+      if (!g.hashes.includes(c.hash)) g.hashes.push(c.hash);
+    }
+    if (!groups.length) return;
+    const total = groups.reduce((n, g) => n + g.hashes.length, 0);
+    const oldestFirst = (g: { hashes: string[] }) => [...g.hashes].reverse();
+    const touched = groups.map((g) => g.repo);
+    switch (action) {
+      case 'copyHashes':
+        await vscode.env.clipboard.writeText(commits.map((c) => c.hash).join(' '));
+        vscode.window.setStatusBarMessage(t('$(copy) {0} hashes copied', commits.length), 3000);
+        return;
+      case 'createPatch':
+        await vscode.commands.executeCommand(
+          'multigit.patch.createFromCommits',
+          groups.map((g) => ({ repoRoot: g.repo.root, hashes: oldestFirst(g) })),
+        );
+        return;
+      case 'cherryPick':
+        await runInRepos(this.manager, {
+          title: t('Cherry-pick of {0} commit(s)', total),
+          repos: touched,
+          requireClean: true,
+          continueAfterConflict: true,
+          run: async (r) => {
+            const g = groups.find((x) => x.repo === r)!;
+            await r.git.cherryPickMany(oldestFirst(g));
+            return t('{0} commit(s)', g.hashes.length);
+          },
+        });
+        break;
+      case 'revert':
+        await runInRepos(this.manager, {
+          title: t('Revert of {0} commit(s)', total),
+          repos: touched,
+          requireClean: true,
+          continueAfterConflict: true,
+          run: async (r) => {
+            const g = groups.find((x) => x.repo === r)!;
+            await r.git.revertMany(g.hashes);
+            return t('{0} commit(s)', g.hashes.length);
+          },
+        });
+        break;
+      case 'compareVersions': {
+        if (groups.length !== 1 || total !== 2) return;
+        const [newer, older] = groups[0]!.hashes as [string, string];
+        await vscode.commands.executeCommand('multigit.compareFiles.show', [groups[0]!.repo], older, { ref: newer, label: newer.slice(0, 7) });
+        return;
+      }
+      case 'squash':
+        if (groups.length !== 1) return;
+        if (!(await this.squash(groups[0]!.repo, oldestFirst(groups[0]!)))) return;
+        break;
+    }
+    await this.manager.refreshStatusesNow(touched);
+    await this.init();
+  }
+
+  /** Squash Commits… (como IntelliJ): junta los commits elegidos en uno, en el lugar del más viejo. */
+  private async squash(repo: Repo, hashes: string[]): Promise<boolean> {
+    const oldest = hashes[0]!;
+    const info = await this.historyCheck('squash', repo, oldest);
+    if (!info) return false;
+    const { base, commits, merges } = await repo.git.rebaseCommits(oldest);
+    const chosen = commits.filter((c) => hashes.includes(c.hash));
+    if (merges > 0 || chosen.length !== hashes.length) {
+      void vscode.window.showWarningMessage(t('MultiGit: these commits cannot be squashed'), {
+        modal: true,
+        detail: merges > 0 ? t('There are merge commits between them: use "Interactively rebase from here…".') : t("All of them must be in the current branch of {0} ('{1}').", repo.name, info.branch ?? ''),
+      });
+      return false;
+    }
+    const later = commits.length - chosen.length;
+    const note = this.pushedNote(info);
+    const message = await editMessage(this.extensionUri, {
+      title: t('Squash {0} Commits — {1}', hashes.length, repo.name),
+      message: squashMessage(chosen.map((c) => c.message)),
+      okLabel: t('Squash'),
+      note: [later ? t('The {0} later commit(s) will be recreated (rebase).', later) : '', note].filter(Boolean).join('\n') || undefined,
+    });
+    if (!message?.trim()) return false;
+    const plan = squashPlan(commits, hashes, message);
+    if (!plan) return false;
+    await runInRepos(this.manager, {
+      title: t('Squash {0} commits in {1}', hashes.length, repo.name),
+      repos: [repo],
+      continueAfterConflict: true,
+      run: async (r) => {
+        await r.git.interactiveRebase(base, plan, { autostash: true });
+      },
+    });
+    return true;
+  }
+
+  // ------------------------------------------------------------------ tags
+
+  /** Push Tag: sube el tag al remoto de cada repo (se elige si hay varios). */
+  async pushTag(repos: readonly Repo[], name: string): Promise<void> {
+    const remote = await this.pickRemote(repos, t("Push tag '{0}' to", name));
+    if (!remote) return;
+    await runInRepos(this.manager, {
+      title: t("Push tag '{0}' to {1}", name, remote),
+      repos,
+      run: async (r) => {
+        await r.git.pushTag(remote, name);
+        return `${remote}/${name}`;
+      },
+    });
+    await this.init();
+  }
+
+  /** Delete Tag: en local, o en local y en el remoto. */
+  async deleteTag(repos: readonly Repo[], name: string): Promise<void> {
+    const LOCAL = t('Delete Locally');
+    const BOTH = t('Delete Locally and on Remote');
+    const where = repos.length === 1 ? repos[0]!.name : t('{0} repositories', repos.length);
+    const choice = await vscode.window.showWarningMessage(
+      t("Delete tag '{0}' in {1}?", name, where),
+      { modal: true, detail: repos.map((r) => `  • ${r.name}`).join('\n') },
+      LOCAL,
+      BOTH,
+    );
+    if (!choice) return;
+    let remote: string | undefined;
+    if (choice === BOTH) {
+      remote = await this.pickRemote(repos, t("Delete tag '{0}' from", name));
+      if (!remote) return;
+    }
+    await runInRepos(this.manager, {
+      title: t("Delete tag '{0}'", name),
+      repos,
+      continueAfterConflict: true,
+      run: async (r) => {
+        if (remote) await r.git.deleteRemoteTag(remote, name).catch((error) => {
+          // Si en el remoto ya no está, se sigue con el local.
+          if (!/remote ref does not exist|unable to delete/i.test(errorText(error))) throw error;
+        });
+        await r.git.deleteTag(name);
+        return remote ? t('local and {0}', remote) : t('local');
+      },
+    });
+    await this.init();
+  }
+
+  /** Remoto común (si solo hay uno, sin preguntar). */
+  private async pickRemote(repos: readonly Repo[], title: string): Promise<string | undefined> {
+    const names = [...new Set((await Promise.all(repos.map((r) => r.git.listRemotes().catch(() => [])))).flat().map((r) => r.name))];
+    if (!names.length) {
+      void vscode.window.showWarningMessage(t('MultiGit: there is no remote configured.'));
+      return undefined;
+    }
+    if (names.length === 1) return names[0];
+    const preferred = names.includes('origin') ? ['origin', ...names.filter((n) => n !== 'origin')] : names;
+    return vscode.window.showQuickPick(preferred, { title });
   }
 
   dispose(): void {

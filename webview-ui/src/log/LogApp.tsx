@@ -1,12 +1,12 @@
 // Panel Git Log: filtros arriba, ramas a la izquierda, commits al centro y detalle a la derecha.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { LogBranchAction, LogAction, LogDetails, LogFilters, LogRepoInfo, LogRow } from '../../../src/webview/protocol';
+import type { LogBranchAction, LogAction, LogDetails, LogFileAction, LogFilters, LogMultiAction, LogRepoInfo, LogRow, PushFile } from '../../../src/webview/protocol';
 import { fullDate, isoDaysAgo } from '../format';
 import { onHostMessage, post } from '../vscode';
 import { BranchTree, type BranchTarget } from './BranchTree';
 import { FileTree } from './FileTree';
 import { MessageBody } from '../MessageBody';
-import { CommitList, key } from './CommitList';
+import { CommitList, key, type SelectMode } from './CommitList';
 import { RepoFilter } from './RepoFilter';
 import { t } from '../i18n';
 
@@ -28,6 +28,8 @@ type DatePreset = 'all' | 'today' | '7' | '30' | 'custom';
 const MENU: Array<{ action: LogAction; label: string } | 'sep'> = [
   { action: 'copyHash', label: 'Copy hash' },
   { action: 'createPatch', label: 'Create Patch…' },
+  { action: 'showRepoAtRevision', label: 'Show Repository at Revision…' },
+  { action: 'openOnRemote', label: 'Open on {web}' },
   'sep',
   { action: 'checkout', label: 'Checkout revision' },
   { action: 'cherryPick', label: 'Cherry-pick' },
@@ -45,7 +47,43 @@ const MENU: Array<{ action: LogAction; label: string } | 'sep'> = [
   'sep',
   { action: 'newBranch', label: 'New branch here…' },
   { action: 'newTag', label: 'New tag…' },
+  'sep',
+  { action: 'goParent', label: 'Go to Parent Commit' },
+  { action: 'goChild', label: 'Go to Child Commit' },
 ];
+
+type MultiItem = { action: LogMultiAction; label: string; when?: (s: { repos: number; count: number }) => boolean } | 'sep';
+
+/** Menú con varios commits elegidos (como IntelliJ): lo que no aplica a la selección se oculta. */
+const MULTI_MENU: MultiItem[] = [
+  { action: 'copyHashes', label: 'Copy hashes' },
+  { action: 'createPatch', label: 'Create Patch…' },
+  { action: 'compareVersions', label: 'Compare Versions', when: (s) => s.repos === 1 && s.count === 2 },
+  'sep',
+  { action: 'cherryPick', label: 'Cherry-pick' },
+  { action: 'revert', label: 'Revert commits' },
+  'sep',
+  { action: 'squash', label: 'Squash Commits…', when: (s) => s.repos === 1 },
+];
+
+type FileItem = { action: LogFileAction; label: string; when?: (f: PushFile, web: string | null) => boolean } | 'sep';
+
+/** Menú de un archivo del detalle del commit. */
+const FILE_MENU: FileItem[] = [
+  { action: 'showDiff', label: 'Show Diff' },
+  { action: 'compareWithLocal', label: 'Compare with Local' },
+  { action: 'openRevision', label: 'Open Repository Version', when: (f) => f.status !== 'D' },
+  'sep',
+  { action: 'getFromRevision', label: 'Get from Revision…' },
+  'sep',
+  { action: 'showHistory', label: 'Show History', when: (f) => f.status !== 'D' },
+  { action: 'openOnRemote', label: 'Open on {web}', when: (_f, web) => !!web },
+];
+
+/** Quita separadores repetidos o en los extremos. */
+function tidy<T>(items: Array<T | 'sep'>): Array<T | 'sep'> {
+  return items.filter((i, k) => i !== 'sep' || (k > 0 && k < items.length - 1 && items[k - 1] !== 'sep'));
+}
 
 type BranchMenuItem = { action: LogBranchAction; label: string; when?: (b: BranchTarget) => boolean } | 'sep';
 
@@ -73,6 +111,8 @@ const BRANCH_MENU: BranchMenuItem[] = [
   'sep',
   { action: 'rename', label: 'Rename Branch…', when: (b) => b.kind === 'local' && b.branch !== 'HEAD' },
   { action: 'delete', label: 'Delete', when: (b) => b.kind !== 'tag' && !b.current },
+  { action: 'pushTag', label: 'Push Tag…', when: (b) => b.kind === 'tag' },
+  { action: 'deleteTag', label: 'Delete Tag…', when: (b) => b.kind === 'tag' },
   'sep',
   { action: 'navigate', label: 'Navigate Log to Branch Head' },
 ];
@@ -93,6 +133,9 @@ export function LogApp() {
   const [loading, setLoading] = useState(false);
   const generation = useRef(0);
   const [selected, setSelected] = useState<LogRow | null>(null);
+  /** Commits elegidos (claves `repo@hash`); `selected` es el principal (el del detalle). */
+  const [selection, setSelection] = useState<Set<string>>(new Set());
+  const anchor = useRef<string | null>(null);
   const [details, setDetails] = useState<LogDetails | null>(null);
   /** Grupos de archivos abiertos en el detalle de un merge (`hash:índice`): empiezan plegados. */
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
@@ -104,14 +147,16 @@ export function LogApp() {
       return next;
     });
   const [menu, setMenu] = useState<{ row: LogRow; x: number; y: number } | null>(null);
+  const [fileMenu, setFileMenu] = useState<{ file: PushFile; base: string | null | undefined; x: number; y: number } | null>(null);
   const [branchMenu, setBranchMenu] = useState<{ target: BranchTarget; x: number; y: number } | null>(null);
   // Los menús contextuales se cierran al pulsar fuera (también fuera del panel: el webview pierde el
   // foco), con Escape, al desplazar o al cambiar el tamaño.
   useEffect(() => {
-    if (!menu && !branchMenu) return;
+    if (!menu && !branchMenu && !fileMenu) return;
     const close = () => {
       setMenu(null);
       setBranchMenu(null);
+      setFileMenu(null);
     };
     const onMouseDown = (e: MouseEvent) => {
       if (!(e.target as HTMLElement).closest('.menu.context')) close();
@@ -131,7 +176,7 @@ export function LogApp() {
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('wheel', close);
     };
-  }, [menu, branchMenu]);
+  }, [menu, branchMenu, fileMenu]);
   const [showBranches, setShowBranches] = useState(true);
   /** Navigate Log to Branch Head: commit a mostrar cuando aparezca en la lista. */
   const [pendingReveal, setPendingReveal] = useState<{ key: string; pages: number } | null>(null);
@@ -164,6 +209,8 @@ export function LogApp() {
             if (m.payload.reset) {
               setSelected(null);
               setDetails(null);
+              setSelection(new Set());
+              anchor.current = null;
             }
             break;
           case 'log/loading':
@@ -232,9 +279,50 @@ export function LogApp() {
 
   const select = (row: LogRow) => {
     setSelected(row);
+    setSelection(new Set([key(row)]));
+    anchor.current = key(row);
     setDetails(null);
     post({ type: 'log/select', payload: { repoId: row.repoId, hash: row.hash } });
   };
+
+  /** Clic en un commit: normal, Ctrl/Cmd (añadir o quitar) o Mayús (rango desde el último clic). */
+  const onSelect = (row: LogRow, mode: SelectMode) => {
+    const k = key(row);
+    if (mode === 'single' || !anchor.current) return select(row);
+    if (mode === 'toggle') {
+      const next = new Set(selection);
+      if (next.has(k) && next.size > 1) {
+        next.delete(k);
+        setSelection(next);
+        if (selected && key(selected) === k) {
+          const other = rows.find((r) => next.has(key(r)));
+          if (other) openDetails(other);
+        }
+        return;
+      }
+      next.add(k);
+      setSelection(next);
+      anchor.current = k;
+      openDetails(row);
+      return;
+    }
+    const from = rows.findIndex((r) => key(r) === anchor.current);
+    const to = rows.findIndex((r) => key(r) === k);
+    if (from < 0 || to < 0) return select(row);
+    const [a, b] = from < to ? [from, to] : [to, from];
+    setSelection(new Set(rows.slice(a, b + 1).map(key)));
+    openDetails(row);
+  };
+
+  /** Cambia el commit del detalle sin tocar la selección. */
+  const openDetails = (row: LogRow) => {
+    setSelected(row);
+    setDetails(null);
+    post({ type: 'log/select', payload: { repoId: row.repoId, hash: row.hash } });
+  };
+
+  /** Commits elegidos en el orden del log (del más nuevo al más viejo). */
+  const chosen = useMemo(() => rows.filter((r) => selection.has(key(r))), [rows, selection]);
 
   const setDate = (preset: DatePreset) => {
     setDatePreset(preset);
@@ -252,6 +340,7 @@ export function LogApp() {
       onClick={() => {
         setMenu(null);
         setBranchMenu(null);
+        setFileMenu(null);
       }}
     >
       {/* ---------------------------------------------------- filtros */}
@@ -397,10 +486,12 @@ export function LogApp() {
           hasMore={hasMore}
           loading={loading}
           selected={selectedKey}
-          onSelect={select}
+          selection={selection}
+          onSelect={onSelect}
           onLoadMore={() => post({ type: 'log/loadMore', payload: { generation: generation.current } })}
           onContextMenu={(row, x, y) => {
             setBranchMenu(null);
+            setFileMenu(null);
             setMenu({ row, x, y });
           }}
           scrollTo={scrollTo}
@@ -443,6 +534,12 @@ export function LogApp() {
                             depth={g.title ? 1 : 0}
                             collapsed={!!g.title}
                             onOpen={(f) => post({ type: 'log/openDiff', payload: { repoId: selected.repoId, hash: selected.hash, file: f, base: g.base } })}
+                            onContextMenu={(f, x, y) => {
+                              setMenu(null);
+                              setBranchMenu(null);
+                              // En un commit normal el diff es contra su padre (sin base explícita).
+                              setFileMenu({ file: f, base: details!.groups.length > 1 ? g.base : undefined, x, y });
+                            }}
                           />
                         ) : null,
                       ];
@@ -520,30 +617,92 @@ export function LogApp() {
         </div>
       )}
 
-      {/* ---------------------------------------------------- menú contextual */}
-      {menu && (
-        <div className="menu context" style={{ left: Math.min(menu.x, window.innerWidth - 240), top: Math.max(4, Math.min(menu.y, window.innerHeight - 500)) }} role="menu">
-          <div className="menu-title muted small">
-            {repoMap.get(menu.row.repoId)?.name} · {menu.row.shortHash}
+      {/* ---------------------------------------------------- menú contextual de varios commits */}
+      {menu && chosen.length > 1 && selection.has(key(menu.row)) && (() => {
+        const info = { repos: new Set(chosen.map((r) => r.repoId)).size, count: chosen.length };
+        return (
+          <div className="menu context" style={{ left: Math.min(menu.x, window.innerWidth - 240), top: Math.max(4, Math.min(menu.y, window.innerHeight - 260)) }} role="menu">
+            <div className="menu-title muted small">
+              {info.repos === 1 ? t('{0} commits in {1}', info.count, repoMap.get(chosen[0]!.repoId)?.name ?? '') : t('{0} commits in {1} repositories', info.count, info.repos)}
+            </div>
+            {tidy(MULTI_MENU.filter((i) => i === 'sep' || !i.when || i.when(info))).map((item, i) =>
+              item === 'sep' ? (
+                <div key={`sep${i}`} className="menu-sep" />
+              ) : (
+                <button
+                  key={item.action}
+                  role="menuitem"
+                  onClick={() => {
+                    setMenu(null);
+                    post({ type: 'log/multiAction', payload: { action: item.action, commits: chosen.map((r) => ({ repoId: r.repoId, hash: r.hash })) } });
+                  }}
+                >
+                  {item.label}
+                </button>
+              ),
+            )}
           </div>
-          {MENU.map((item, i) =>
-            item === 'sep' ? (
-              <div key={`sep${i}`} className="menu-sep" />
-            ) : (
-              <button
-                key={item.action}
-                role="menuitem"
-                onClick={() => {
-                  setMenu(null);
-                  post({ type: 'log/action', payload: { action: item.action, repoId: menu.row.repoId, hash: menu.row.hash } });
-                }}
-              >
-                {item.label}
-              </button>
-            ),
-          )}
-        </div>
-      )}
+        );
+      })()}
+
+      {/* ---------------------------------------------------- menú contextual de un commit */}
+      {menu && !(chosen.length > 1 && selection.has(key(menu.row))) && (() => {
+        const web = repoMap.get(menu.row.repoId)?.web ?? null;
+        const items = tidy(MENU.filter((i) => i === 'sep' || i.action !== 'openOnRemote' || web));
+        return (
+          <div className="menu context" style={{ left: Math.min(menu.x, window.innerWidth - 240), top: Math.max(4, Math.min(menu.y, window.innerHeight - 580)) }} role="menu">
+            <div className="menu-title muted small">
+              {repoMap.get(menu.row.repoId)?.name} · {menu.row.shortHash}
+            </div>
+            {items.map((item, i) =>
+              item === 'sep' ? (
+                <div key={`sep${i}`} className="menu-sep" />
+              ) : (
+                <button
+                  key={item.action}
+                  role="menuitem"
+                  onClick={() => {
+                    setMenu(null);
+                    post({ type: 'log/action', payload: { action: item.action, repoId: menu.row.repoId, hash: menu.row.hash } });
+                  }}
+                >
+                  {item.label.replace('{web}', web ?? '')}
+                </button>
+              ),
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ---------------------------------------------------- menú contextual de un archivo del commit */}
+      {fileMenu && selected && (() => {
+        const web = repoMap.get(selected.repoId)?.web ?? null;
+        const items = tidy(FILE_MENU.filter((i) => i === 'sep' || !i.when || i.when(fileMenu.file, web)));
+        return (
+          <div className="menu context" style={{ left: Math.min(fileMenu.x, window.innerWidth - 240), top: Math.max(4, Math.min(fileMenu.y, window.innerHeight - 240)) }} role="menu">
+            <div className="menu-title muted small">{fileMenu.file.path.split('/').pop()}</div>
+            {items.map((item, i) =>
+              item === 'sep' ? (
+                <div key={`sep${i}`} className="menu-sep" />
+              ) : (
+                <button
+                  key={item.action}
+                  role="menuitem"
+                  onClick={() => {
+                    setFileMenu(null);
+                    post({
+                      type: 'log/fileAction',
+                      payload: { action: item.action, repoId: selected.repoId, hash: selected.hash, file: fileMenu.file, ...(fileMenu.base !== undefined ? { base: fileMenu.base } : {}) },
+                    });
+                  }}
+                >
+                  {item.label.replace('{web}', web ?? '')}
+                </button>
+              ),
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

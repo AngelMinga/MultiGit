@@ -14,8 +14,8 @@ export function registerCompare(core: Core): CompareFilesTree {
   core.track(
     tree,
     view,
-    vscode.commands.registerCommand('multigit.compareFiles.show', (repos: readonly Repo[], other: string) =>
-      popup.safely(() => tree.compare(repos, other)),
+    vscode.commands.registerCommand('multigit.compareFiles.show', (repos: readonly Repo[], other: string, against?: { ref: string; label: string }) =>
+      popup.safely(() => tree.compare(repos, other, against)),
     ),
     vscode.commands.registerCommand('multigit.compareFiles.openDiff', (node?: CompareNode) => {
       const target = node ?? view.selection[0];

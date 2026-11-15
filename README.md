@@ -134,11 +134,22 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
   ramas** (las aristas largas se cortan con flechas, como IntelliJ), etiquetas, autor y fecha.
 - Ramas a la izquierda (HEAD / Local / Remote, con buscador); clic → filtra el log; clic derecho → el
   mismo menú que la vista Ramas.
-- Filtros: texto o hash (regex y mayúsculas), Branch, User (botón **Yo**), Date, Paths y Repo.
+- Filtros: texto o hash (regex y mayúsculas), Branch, User (botón **Yo**), Date, Paths y Repo (cada
+  repo con su color y una casilla, como *Roots* de IntelliJ: se pueden ver varios). Elegir una rama no
+  cambia el filtro Repo.
 - Detalle del commit como IntelliJ: archivos en árbol de carpetas (en un merge, agrupados por padre)
   y debajo mensaje, autor, refs y en qué ramas está; doble clic → diff.
-- Clic derecho: Copy hash, Create Patch…, Checkout revision, Cherry-pick, Revert, Reset current branch to here,
-  New branch here y New tag.
+- Clic derecho: Copy hash, Create Patch…, **Show Repository at Revision…**, **Open on GitHub / GitLab**,
+  Checkout revision, Cherry-pick, Revert, Reset current branch to here, New branch here, New tag y
+  **Go to Parent / Child Commit**.
+- **Varios commits** (Ctrl/Cmd+clic, Mayús+clic para un rango, también de repos distintos): Copy hashes,
+  Create Patch…, Cherry-pick y Revert de todos (cada repo los suyos, en orden), **Compare Versions** (dos
+  commits del mismo repo, en la vista Compare) y **Squash Commits…** (los junta en uno con el mensaje
+  que elijas, aunque no sean seguidos).
+- Clic derecho en un archivo del detalle: Show Diff, **Compare with Local**, **Open Repository Version**,
+  **Get from Revision…** (deja el archivo como estaba en ese commit), Show History y Open on GitHub / GitLab.
+- Tags (árbol de ramas del log y vista Ramas): **Push Tag…** y **Delete Tag…** (en local, o en local y
+  en el remoto), en todos los repos que lo tienen.
 - Como IntelliJ, sobre un commit de la rama actual:
   - **Undo Commit…**: la rama vuelve al commit anterior y sus cambios quedan para volver a hacer
     commit (el mensaje vuelve a la caja de commit).

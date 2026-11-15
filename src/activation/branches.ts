@@ -101,6 +101,9 @@ export function registerBranches(core: Core, logView: LogView): { tree: Branches
           { label: '$(history) Show in Git Log', id: 'log' },
           { label: '$(arrow-right) Navigate Log to Tag', id: 'navigate' },
           { label: '$(git-compare) Compare with Current', id: 'compare' },
+          { label: '', id: '', kind: vscode.QuickPickItemKind.Separator },
+          { label: '$(cloud-upload) Push Tag…', id: 'push' },
+          { label: '$(trash) Delete Tag…', id: 'delete' },
         ],
         { title: `Tag '${node.name}' — ${scopeLabel}` },
       );
@@ -110,6 +113,11 @@ export function registerBranches(core: Core, logView: LogView): { tree: Branches
       if (picked.id === 'log') await logView.showBranch(target.ref);
       if (picked.id === 'navigate') await logView.navigateTo(target.ref, target.repoIds);
       if (picked.id === 'compare') await popup.safely(() => actions.compare(scope, { type: 'local', name: target.ref }));
+      if (picked.id === 'push') await popup.safely(() => logView.pushTag(repos, node.name));
+      if (picked.id === 'delete') {
+        await popup.safely(() => logView.deleteTag(repos, node.name));
+        tree.refresh();
+      }
     }),
   );
   return { tree, view };

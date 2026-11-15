@@ -52,6 +52,19 @@ export class PatchActions {
     await this.output(text, `${hash.slice(0, 7)}-${subject}`, 1);
   }
 
+  /**
+   * Create Patch… de varios commits elegidos en el Git Log: por repo, del más viejo al más nuevo; con
+   * varios repos, las rutas van relativas a la carpeta común (como el de Changes).
+   */
+  async createFromCommits(groups: ReadonlyArray<{ repo: Repo; hashes: readonly string[] }>): Promise<void> {
+    if (groups.length === 1 && groups[0]!.hashes.length === 1) return this.createFromCommit(groups[0]!.repo, groups[0]!.hashes[0]!);
+    const parts = await Promise.all(groups.map(async ({ repo, hashes }) => ({ repo, patch: await repo.git.commitsPatch(hashes) })));
+    const text = parts.length === 1 ? parts[0]!.patch : combinePatches(parts.map((p) => ({ dir: this.dirOf(p.repo), patch: p.patch })));
+    const total = groups.reduce((n, g) => n + g.hashes.length, 0);
+    const first = groups[0]!.hashes[0]!.slice(0, 7);
+    await this.output(text, `${total}-commits-${first}`, parts.length);
+  }
+
   /** Guardar en un archivo o copiar al portapapeles (como las dos opciones del diálogo de IntelliJ). */
   private async output(text: string, name: string, repos: number): Promise<void> {
     const count = parsePatch(text).length;
