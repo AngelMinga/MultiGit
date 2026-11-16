@@ -411,14 +411,34 @@ input[type='checkbox'] {
   box-sizing: border-box;
   min-height: 0;
 }
-/* Con poca altura solo encoge la caja del mensaje: los botones siempre se ven. */
+/*
+ * Con poca altura (sección Commit baja) encoge la caja del mensaje y, si aun así no cabe, se ocultan
+ * enteras las filas menos importantes: primero Amend y el resumen, después la barra de arriba. Los
+ * botones Commit siempre se ven.
+ */
 .commit > * {
   flex: none;
 }
 .commit > .commit-message {
   flex: 1 1 auto;
-  min-height: 28px;
+  min-height: 24px;
   resize: none;
+}
+body:has(.commit) {
+  overflow: auto;
+}
+@media (max-height: 175px) {
+  .commit > .commit-options,
+  .commit > .commit-summary,
+  .commit > .commit-option-summary,
+  .commit > .commit-advanced {
+    display: none;
+  }
+}
+@media (max-height: 115px) {
+  .commit > .commit-toolbar {
+    display: none;
+  }
 }
 body:has(.commit) {
   background: var(--vscode-sideBar-background);

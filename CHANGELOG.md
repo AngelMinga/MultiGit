@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.3
+
+- Sección **Commit** baja: además de encoger la caja del mensaje, se ocultan enteras las filas menos
+  importantes (primero Amend y el resumen, después la barra de arriba). Los botones Commit y Commit and
+  Push… siempre se ven.
+
 ## 0.20.2
 
 - Sección **Commit**: al hacerla más baja solo encoge la caja del mensaje; los botones Commit y Commit
