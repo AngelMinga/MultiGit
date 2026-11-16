@@ -307,7 +307,9 @@ Para usarlos en todas partes, cámbialos en *Preferences → Keyboard Shortcuts*
 | `multigit.claude.*` | — | Modelo, esfuerzo, idioma, modo rápido, estilo del repo, scope, instrucciones, timeout y ruta de `claude` para *Generar con Claude*. |
 
 Los colores de los repos (`multigit.repo0` … `multigit.repo11`) se pueden cambiar en
-`workbench.colorCustomizations`.
+`workbench.colorCustomizations`. Para casillas azules como IntelliJ en Changes, añade ahí
+`"checkbox.background": "#3574F0"`, `"checkbox.border": "#3574F0"` y `"checkbox.foreground": "#FFFFFF"`
+(VS Code los aplica a todas las casillas, marcadas o no).
 
 MultiGit cambia además el valor por defecto de dos ajustes de VS Code para que los diffs se abran
 siempre en dos paneles (original | cambios), como IntelliJ, aunque el editor sea angosto:
