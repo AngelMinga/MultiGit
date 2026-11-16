@@ -408,6 +408,17 @@ input[type='checkbox'] {
   gap: 8px;
   padding: 8px 12px 12px;
   height: 100%;
+  box-sizing: border-box;
+  min-height: 0;
+}
+/* Con poca altura solo encoge la caja del mensaje: los botones siempre se ven. */
+.commit > * {
+  flex: none;
+}
+.commit > .commit-message {
+  flex: 1 1 auto;
+  min-height: 28px;
+  resize: none;
 }
 body:has(.commit) {
   background: var(--vscode-sideBar-background);

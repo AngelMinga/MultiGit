@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.20.2
+
+- Sección **Commit**: al hacerla más baja solo encoge la caja del mensaje; los botones Commit y Commit
+  and Push… quedan siempre a la vista.
+
 ## 0.20.1
 
 - El botón **Generar con Claude** indica quién genera el mensaje: con la extensión *Commit Messages for
