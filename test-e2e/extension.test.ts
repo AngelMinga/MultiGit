@@ -59,7 +59,7 @@ describe('MultiGit en VS Code', () => {
   let api: MultiGitTestApi;
 
   before(async () => {
-    const ext = vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit');
+    const ext = vscode.extensions.getExtension<MultiGitTestApi>('angelminga-multigit.multigit');
     assert.ok(ext, 'la extensión está instalada en la instancia de prueba');
     api = await ext.activate();
     // initialize() ya terminó dentro de activate; por si la API de git abrió repos después:
@@ -79,7 +79,7 @@ describe('MultiGit en VS Code', () => {
   });
 
   it('cada comando de package.json está registrado', async () => {
-    const declared = (vscode.extensions.getExtension('angelminga.multigit')!.packageJSON.contributes.commands as Array<{ command: string }>).map(
+    const declared = (vscode.extensions.getExtension('angelminga-multigit.multigit')!.packageJSON.contributes.commands as Array<{ command: string }>).map(
       (c) => c.command,
     );
     const registered = new Set(await vscode.commands.getCommands(true));
@@ -160,7 +160,7 @@ describe('MultiGit en VS Code', () => {
 describe('Commit parcial', () => {
   let api: MultiGitTestApi;
   before(async () => {
-    api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga-multigit.multigit')!.activate();
   });
 
   it('elige el primer hunk de un archivo y solo ese entra en el commit', async () => {
@@ -210,7 +210,7 @@ describe('Commit parcial', () => {
 
 describe('Checkout en todos los repos', () => {
   it('una rama local común: el checkout cambia todos los repos y conserva los cambios sin commit', async () => {
-    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga-multigit.multigit')!.activate();
     const repos = api.manager.all;
     assert.ok(repos.length > 1);
     const git = (root: string, ...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
@@ -247,7 +247,7 @@ describe('Checkout en todos los repos', () => {
 describe('Changelists', () => {
   let api: MultiGitTestApi;
   before(async () => {
-    api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga-multigit.multigit')!.activate();
   });
 
   it('una lista nueva, mover un archivo, solo la activa entra marcada y commit con autor y sign-off', async () => {
@@ -293,7 +293,7 @@ describe('Changelists', () => {
 
 describe('Comprobaciones antes del commit', () => {
   it('encuentra TODO, marcas de conflicto y secretos en un archivo nuevo', async () => {
-    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga-multigit.multigit')!.activate();
     const repo = api.manager.all.find((r) => r.name === 'shell')!;
     writeFileSync(path.join(repo.root, 'checks.js'), '// TODO: revisar\n<<<<<<< HEAD\nconst k = "AKIAABCDEFGHIJKLMNOP";\n');
     const file = { path: 'checks.js', index: '?', worktree: '?', kind: 'untracked', status: '?' } as const;
@@ -307,7 +307,7 @@ describe('Comprobaciones antes del commit', () => {
 
 describe('Grupos de repos', () => {
   it('con un grupo activo, MultiGit trabaja solo con sus repos', async () => {
-    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga-multigit.multigit')!.activate();
     await vscode.workspace.getConfiguration('multigit').update('repoGroups', { front: ['mf*'] }, vscode.ConfigurationTarget.Workspace);
     try {
       await api.manager.setActiveGroup('front');
@@ -325,7 +325,7 @@ describe('Grupos de repos', () => {
 
 describe('Comparar ramas por archivos', () => {
   it('lista los archivos distintos por repo y abre su diff', async () => {
-    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga-multigit.multigit')!.activate();
     const repo = api.manager.all.find((r) => r.name === 'shell')!;
     const env = { ...process.env, GIT_AUTHOR_NAME: 'E2E', GIT_AUTHOR_EMAIL: 'e2e@example.com', GIT_COMMITTER_NAME: 'E2E', GIT_COMMITTER_EMAIL: 'e2e@example.com' };
     writeFileSync(path.join(repo.root, 'cmp.js'), 'export const cmp = 1;\n');
@@ -353,7 +353,7 @@ describe('Comparar ramas por archivos', () => {
 
 describe('Rebase interactivo', () => {
   it('abre el diálogo desde un commit de la rama actual y rechaza uno que no está en ella', async () => {
-    const ext = vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!;
+    const ext = vscode.extensions.getExtension<MultiGitTestApi>('angelminga-multigit.multigit')!;
     const api = await ext.activate();
     const repo = api.manager.all.find((r) => r.name === 'shell')!;
     const first = (await repo.git.exec(['rev-list', '--max-parents=0', 'HEAD'])).trim();
@@ -391,7 +391,7 @@ describe('Pull', () => {
 
 describe('Conflictos', () => {
   it('un merge con conflicto abre el diálogo Conflicts y Accept lo resuelve', async () => {
-    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga-multigit.multigit')!.activate();
     const repo = api.manager.all.find((r) => r.name === 'mftheme')!;
     const env = { ...process.env, GIT_AUTHOR_NAME: 'E2E', GIT_AUTHOR_EMAIL: 'e2e@example.com', GIT_COMMITTER_NAME: 'E2E', GIT_COMMITTER_EMAIL: 'e2e@example.com' };
     const git = (...args: string[]) => execFileSync('git', args, { cwd: repo.root, env, encoding: 'utf8' });
@@ -418,7 +418,7 @@ describe('Conflictos', () => {
     }
     assert.ok(tab, 'pestaña Conflicts');
     // La ventana de merge propia se abre para ese archivo.
-    const ext = vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!;
+    const ext = vscode.extensions.getExtension<MultiGitTestApi>('angelminga-multigit.multigit')!;
     assert.equal(await MergePanel.open(ext.extensionUri, api.manager, repo, 'conf.js'), true);
     let mergeTab: vscode.Tab | undefined;
     for (let i = 0; i < 40 && !mergeTab; i++) {
@@ -440,7 +440,7 @@ describe('Conflictos', () => {
 
 describe('Merge en varios repos', () => {
   it('si un repo queda con conflictos, sigue con los demás', async () => {
-    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga-multigit.multigit')!.activate();
     const env = { ...process.env, GIT_AUTHOR_NAME: 'E2E', GIT_AUTHOR_EMAIL: 'e2e@example.com', GIT_COMMITTER_NAME: 'E2E', GIT_COMMITTER_EMAIL: 'e2e@example.com' };
     const repos = api.manager.all.filter((r) => r.name === 'mflogin' || r.name === 'shell');
     for (const repo of repos) {
@@ -495,7 +495,7 @@ describe('Administrar remotos', () => {
 
 describe('package.json', () => {
   it('ningún submenú aparece dos veces en el mismo menú (VS Code descarta el segundo)', () => {
-    const menus = vscode.extensions.getExtension('angelminga.multigit')!.packageJSON.contributes.menus as Record<
+    const menus = vscode.extensions.getExtension('angelminga-multigit.multigit')!.packageJSON.contributes.menus as Record<
       string,
       Array<{ submenu?: string }>
     >;
@@ -509,7 +509,7 @@ describe('package.json', () => {
 
 describe('Annotate with Git Blame', () => {
   it('anota el archivo con el autor de cada línea, se actualiza al editar y se cierra', async () => {
-    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga-multigit.multigit')!.activate();
     const repo = api.manager.all.find((r) => r.name === 'shell')!;
     const file = vscode.Uri.file(path.join(repo.root, 'package.json'));
     await vscode.commands.executeCommand('multigit.file.blame', file);

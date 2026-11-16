@@ -3,7 +3,7 @@
   "displayName": "MultiGit",
   "description": "%extension.description%",
   "version": "0.22.1",
-  "publisher": "angelminga",
+  "publisher": "angelminga-multigit",
   "license": "MIT",
   "repository": {
     "type": "git",

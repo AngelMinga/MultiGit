@@ -279,7 +279,7 @@ MultiGit also changes the default of two VS Code settings so diffs always open i
 ## Installation
 
 ```bash
-code --install-extension angelminga.multigit
+code --install-extension angelminga-multigit.multigit
 ```
 
 Requirements: VS Code 1.100 or later and Git 2.24 or later on the `PATH` (or the one used by VS Code's

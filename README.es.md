@@ -285,7 +285,7 @@ tienes un valor propio en tu `settings.json`, ese manda.
 ## Instalación
 
 ```bash
-code --install-extension angelminga.multigit
+code --install-extension angelminga-multigit.multigit
 ```
 
 Requisitos: VS Code 1.100 o superior y Git 2.24 o superior en el `PATH` (o el que use la extensión
