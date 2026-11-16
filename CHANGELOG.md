@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.24.1
+
+- Conflictos sin operación de git en curso (al volver a aplicar cambios con Smart Checkout, Unshelve o un
+  stash): ahora también salen en la barra de estado (*Conflicts in …*) con el botón » *Resolve Conflicts…*.
+  Al resolverlos, MultiGit ofrece borrar la copia que guardó el Smart Checkout en el stash.
+
 ## 0.24.0
 
 - **Ventana de merge** más parecida a IntelliJ: bloques con fondo suave (rojo en conflictos, azul en

@@ -38,9 +38,37 @@ export class OperationsBar implements vscode.Disposable {
     return this.manager.all.filter((r): r is Repo & { operation: Operation } => !!r.operation);
   }
 
+  /**
+   * Repos con archivos en conflicto sin una operación de git en curso: al reaplicar cambios guardados
+   * (Smart Checkout, Unshelve, Apply/Pop de un stash). No hay "Continue": se resuelven y listo.
+   */
+  get conflictsOnly(): Repo[] {
+    return this.manager.all.filter((r) => !r.operation && (r.status?.changes.conflicted ?? 0) > 0);
+  }
+
+  /** Repos que tenían conflictos sin operación en la última actualización. */
+  private looseBefore = new Set<Repo>();
+
   private update(): void {
     const repos = this.inProgress;
-    void vscode.commands.executeCommand('setContext', 'multigit.operationInProgress', repos.length > 0);
+    const loose = this.conflictsOnly;
+    // Los que acaban de quedar sin conflictos: ofrecer borrar la copia del Smart Checkout.
+    for (const repo of this.looseBefore) if (!loose.includes(repo) && !repo.operation) void this.offerDropCopy(repo);
+    this.looseBefore = new Set(loose);
+    void vscode.commands.executeCommand('setContext', 'multigit.operationInProgress', repos.length + loose.length > 0);
+    if (!repos.length && loose.length) {
+      const conflicts = loose.reduce((n, r) => n + (r.status?.changes.conflicted ?? 0), 0);
+      this.item.text =
+        loose.length === 1
+          ? t('$(warning) Conflicts in {0}{1}', loose[0]!.name, conflictsText(conflicts))
+          : t('$(warning) Conflicts in {0} repos{1}', loose.length, conflictsText(conflicts));
+      this.item.tooltip = t('Applying saved changes (Smart Checkout, Unshelve or a stash) left conflicts:\n{0}\nClick: resolve them', loose.map((r) => r.name).join(', '));
+      this.item.show();
+      this.primaryItem.tooltip = t('Resolve Conflicts…');
+      this.primaryItem.show();
+      this.abortItem.hide();
+      return;
+    }
     if (!repos.length) {
       this.item.hide();
       this.primaryItem.hide();
@@ -66,7 +94,10 @@ export class OperationsBar implements vscode.Disposable {
   /** Botón »: con conflictos abre la ventana Conflicts; sin conflictos continúa la operación en todos. */
   async primary(): Promise<void> {
     const repos = this.inProgress;
-    if (!repos.length) return;
+    if (!repos.length) {
+      if (this.conflictsOnly.length) await vscode.commands.executeCommand('multigit.resolveConflicts');
+      return;
+    }
     if (repos.some((r) => (r.status?.changes.conflicted ?? 0) > 0)) {
       await vscode.commands.executeCommand('multigit.resolveConflicts');
       return;
@@ -84,12 +115,17 @@ export class OperationsBar implements vscode.Disposable {
   /** Menú con las acciones de cada repo y para todos. */
   async showMenu(): Promise<void> {
     const repos = this.inProgress;
-    if (!repos.length) {
+    const loose = this.conflictsOnly;
+    if (!repos.length && !loose.length) {
       void vscode.window.showInformationMessage(t('MultiGit: there are no operations in progress.'));
       return;
     }
     type Item = vscode.QuickPickItem & { run?: () => Promise<unknown> };
     const items: Item[] = [];
+    for (const repo of loose) {
+      items.push({ label: `${repo.name} — ${t('conflicts when applying saved changes')}${conflictsText(repo.status?.changes.conflicted ?? 0)}`, kind: vscode.QuickPickItemKind.Separator });
+      items.push({ label: '$(git-merge) Resolve Conflicts…', description: t('when they are resolved, the files are marked as resolved; nothing else is needed'), run: () => this.resolve(repo) });
+    }
     for (const repo of repos) {
       const op = repo.operation;
       const conflicts = repo.status?.changes.conflicted ?? 0;
@@ -106,6 +142,26 @@ export class OperationsBar implements vscode.Disposable {
     }
     const picked = await vscode.window.showQuickPick(items, { title: t('MultiGit: operations in progress') });
     await picked?.run?.();
+  }
+
+  /** Tras resolver los conflictos de un Smart Checkout: la copia de tus cambios en el stash ya no hace falta. */
+  private async offerDropCopy(repo: Repo): Promise<void> {
+    const copy = (await repo.git.listStashes().catch(() => [])).find((s) => s.message.startsWith('MultiGit smart checkout'));
+    if (!copy) return;
+    const DROP = t('Delete the Copy');
+    const choice = await vscode.window.showInformationMessage(
+      t('MultiGit: conflicts resolved in {0}. Your changes are in the working tree; delete the copy kept in the stash ({1})?', repo.name, copy.ref),
+      DROP,
+      t('Keep It'),
+    );
+    if (choice !== DROP) return;
+    try {
+      const ref = (await repo.git.listStashes()).find((s) => s.hash === copy.hash)?.ref;
+      if (ref) await repo.git.stashDrop(ref);
+      vscode.window.setStatusBarMessage(t('$(check) MultiGit: copy deleted in {0}', repo.name), 4000);
+    } catch (error) {
+      void vscode.window.showErrorMessage(`MultiGit: ${errorText(error)}`);
+    }
   }
 
   async resolve(repo: Repo): Promise<void> {

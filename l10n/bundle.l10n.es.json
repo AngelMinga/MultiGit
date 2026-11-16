@@ -841,5 +841,14 @@
   "Drag to resize · double-click to reset": "Arrastra para cambiar el ancho · doble clic para restablecerlo",
   "File has unresolved merge conflicts": "El archivo tiene conflictos de merge sin resolver",
   "Open Conflicts Window": "Abrir la ventana Conflicts",
-  "Merge Revisions for {0}": "Merge Revisions de {0}"
+  "Merge Revisions for {0}": "Merge Revisions de {0}",
+  "$(warning) Conflicts in {0}{1}": "$(warning) Conflictos en {0}{1}",
+  "$(warning) Conflicts in {0} repos{1}": "$(warning) Conflictos en {0} repos{1}",
+  "Applying saved changes (Smart Checkout, Unshelve or a stash) left conflicts:\n{0}\nClick: resolve them": "Al volver a aplicar cambios guardados (Smart Checkout, Unshelve o un stash) quedaron conflictos:\n{0}\nClic: resolverlos",
+  "conflicts when applying saved changes": "conflictos al aplicar cambios guardados",
+  "when they are resolved, the files are marked as resolved; nothing else is needed": "al resolverlos, los archivos quedan marcados como resueltos; no hace falta nada más",
+  "Delete the Copy": "Borrar la copia",
+  "Keep It": "Conservarla",
+  "MultiGit: conflicts resolved in {0}. Your changes are in the working tree; delete the copy kept in the stash ({1})?": "MultiGit: conflictos resueltos en {0}. Tus cambios están en el working tree; ¿borrar la copia guardada en el stash ({1})?",
+  "$(check) MultiGit: copy deleted in {0}": "$(check) MultiGit: copia borrada en {0}"
 }
