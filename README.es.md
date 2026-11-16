@@ -10,19 +10,51 @@ todos los repos juntos y haces checkout, commit, push, pull o un merge en todos 
 Language*) en menús, mensajes, diálogos y paneles. Los nombres de acciones heredados de IntelliJ
 (*Checkout*, *Rollback*, *Show Diff*…) se mantienen en inglés.
 
+## Capturas
+
+### Git Log de todos los repositorios
+
+Todos los repos en un solo log, mezclados por fecha: cada commit lleva la franja de color de su repo, el
+grafo muestra las ramas y a la izquierda se recorren las ramas locales y remotas de cada repo. El filtro
+**Repo** muestra u oculta repos por color.
+
 ![Git Log de todos los repos: grafo, ramas locales y remotas por repo y filtro Repo con sus colores](images/git-log-branches.png)
 
-<p>
-  <img src="images/panel.png" alt="Panel MultiGit: Repositorios, Changes de varios repos, Commit con Generate with Claude y Ramas" width="260" align="top">
-  <img src="images/push.png" alt="Push Commits: los commits por subir de cada repo y sus archivos" width="560" align="top">
-</p>
+### Panel MultiGit: repositorios, cambios y commit
 
-![Git Log de todos los repos mezclados por fecha, con la franja de color de cada uno](images/git-log.png)
+En la barra lateral: cada repo con su rama actual y sus cambios pendientes, los archivos cambiados de
+todos los repos agrupados por repo y una sola caja de commit que hace commit de los archivos marcados en
+cada repo con el mismo mensaje (o escribe el mensaje con **Generate with Claude**).
 
-<p>
-  <img src="images/repo-menu.png" alt="Menú de un repositorio: ramas, Pull, Push, remotos y pull requests" width="320" align="top">
-  <img src="images/pull.png" alt="Pull con Merge, Rebase o --ff-only en uno o todos los repos" width="500" align="top">
-</p>
+<img src="images/panel.png" alt="Panel MultiGit: Repositorios, Changes de varios repos, Commit con Generate with Claude y Ramas" width="300">
+
+### Push Commits en varios repositorios
+
+Como el diálogo de push de IntelliJ: cada repo con su casilla y rama destino (**New** si todavía no existe
+en el remoto), sus commits por subir y los archivos de cada commit.
+
+![Push Commits: los commits por subir de cada repo y sus archivos](images/push.png)
+
+### Ramas de cada repositorio
+
+En el árbol de ramas del Git Log, despliega un repo para ver sus ramas locales: la actual marcada y las
+favoritas con ★. Clic en una rama para filtrar el log por ella; clic derecho para las mismas acciones que
+la vista Ramas.
+
+![Git Log con el árbol de ramas de un repo desplegado](images/git-log.png)
+
+### Menú de un repositorio
+
+Clic derecho en un repo: sus ramas, Pull, Push Commits, Manage Remotes y Create Pull Requests.
+
+<img src="images/repo-menu.png" alt="Menú de un repositorio: ramas, Pull, Push, remotos y pull requests" width="420">
+
+### Pull
+
+Como IntelliJ: `[repositorio] git pull [remoto] [rama]` con Merge, Rebase o `--ff-only`, en un repo o en
+todos a la vez.
+
+![Pull con Merge, Rebase o --ff-only en uno o todos los repos](images/pull.png)
 
 ## Funciones
 

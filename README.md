@@ -10,19 +10,50 @@ together and check out, commit, push, pull or merge in all of them at once.
 (*Configure Display Language*) in menus, messages, dialogs and panels. Action names inherited from
 IntelliJ (*Checkout*, *Rollback*, *Show Diff*…) stay in English.
 
+## Screenshots
+
+### Git Log of every repository
+
+All the repos in one log, merged by date: each commit carries the color stripe of its repo, the graph
+shows the branches, and on the left you browse the local and remote branches of each repo. The **Repo**
+filter shows or hides repos by color.
+
 ![Git Log of every repo: graph, local and remote branches per repo, and the Repo filter with its colors](images/git-log-branches.png)
 
-<p>
-  <img src="images/panel.png" alt="MultiGit panel: Repositories, Changes from several repos, Commit with Generate with Claude, and Branches" width="260" align="top">
-  <img src="images/push.png" alt="Push Commits: the commits to push in each repo and their files" width="560" align="top">
-</p>
+### MultiGit panel: repositories, changes and commit
 
-![Git Log with the commits of every repo merged by date, each with its color stripe](images/git-log.png)
+In the sidebar: every repo with its current branch and pending changes, the changed files of all the
+repos grouped by repo, and one commit box that commits the checked files in each repo with the same
+message (or writes the message with **Generate with Claude**).
 
-<p>
-  <img src="images/repo-menu.png" alt="Repository menu: branches, Pull, Push, remotes and pull requests" width="320" align="top">
-  <img src="images/pull.png" alt="Pull with Merge, Rebase or --ff-only in one or all repos" width="500" align="top">
-</p>
+<img src="images/panel.png" alt="MultiGit panel: Repositories, Changes from several repos, Commit with Generate with Claude, and Branches" width="300">
+
+### Push Commits in several repositories
+
+Like IntelliJ's push dialog: each repo with its checkbox and target branch (**New** if it does not exist
+on the remote yet), its commits to push and the files of each commit.
+
+![Push Commits: the commits to push in each repo and their files](images/push.png)
+
+### Branches of each repository
+
+In the Git Log's branch tree, expand a repo to see its local branches: the current one marked, favorites
+with ★. Click a branch to filter the log by it; right-click for the same actions as the Branches view.
+
+![Git Log with the branch tree of a repo expanded](images/git-log.png)
+
+### Repository menu
+
+Right-click a repo: its branches, Pull, Push Commits, Manage Remotes and Create Pull Requests.
+
+<img src="images/repo-menu.png" alt="Repository menu: branches, Pull, Push, remotes and pull requests" width="420">
+
+### Pull
+
+Like IntelliJ: `[repository] git pull [remote] [branch]` with Merge, Rebase or `--ff-only`, in one repo or
+in all of them at once.
+
+![Pull with Merge, Rebase or --ff-only in one or all repos](images/pull.png)
 
 ## Features
 
