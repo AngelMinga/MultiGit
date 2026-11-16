@@ -220,6 +220,8 @@ change, also annotated) and Copy hash. *Close Annotations* is in the same menu.
   and **Drop**, and ↑/↓ to reorder (keys P R S F D and Alt+↑/↓). It needs a clean working tree; on
   conflicts the rebase stays in progress and continues from the operations bar. Ranges with merge
   commits are not supported.
+- Resizable like IntelliJ: drag the edges of the branches and details panels, and the Author / Date column
+  borders in the header (double-click an edge to reset). Widths are remembered.
 - Virtualized list: loads 300 at a time and stays smooth with thousands of commits.
 
 ## Credentials, conflicts and misaligned branches

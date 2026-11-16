@@ -2136,3 +2136,98 @@ body.vscode-light .changes {
 .changes-empty {
   padding: 8px 20px;
 }
+
+/* Git Log: paneles y columnas con ancho ajustable (como IntelliJ) */
+.log-body {
+  position: relative;
+  grid-template-columns: var(--branches-w, 230px) minmax(0, 1fr) var(--details-w, 340px);
+}
+.log-body.no-branches {
+  grid-template-columns: minmax(0, 1fr) var(--details-w, 340px);
+}
+.log-body.no-details {
+  grid-template-columns: var(--branches-w, 230px) minmax(0, 1fr);
+}
+.splitter {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  z-index: 5;
+  cursor: col-resize;
+}
+.splitter-left {
+  left: calc(var(--branches-w, 230px) - 3px);
+}
+.splitter-right {
+  right: calc(var(--details-w, 340px) - 3px);
+}
+.splitter:hover,
+body.resizing .splitter {
+  background: var(--vscode-sash-hoverBorder, var(--vscode-focusBorder));
+  opacity: 0.6;
+}
+body.resizing,
+body.resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+.commit-list-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.commit-list-wrap .commit-list {
+  flex: 1;
+}
+.log-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 20px;
+  padding-right: 8px;
+  flex: none;
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground);
+  border-bottom: 1px solid var(--vscode-panel-border);
+  white-space: nowrap;
+}
+.log-header-subject {
+  flex: 1;
+  min-width: 0;
+}
+.log-header-col {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  padding-left: 2px;
+}
+.log-author-col,
+.log-author {
+  width: var(--author-w, 150px);
+}
+.log-date-col,
+.log-date {
+  width: var(--date-w, 120px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.col-grip {
+  position: absolute;
+  left: -6px;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  border-left: 1px solid var(--vscode-panel-border);
+  margin-left: 3px;
+}
+.col-grip:hover {
+  border-left-color: var(--vscode-focusBorder);
+}
+@media (max-width: 760px) {
+  .splitter {
+    display: none;
+  }
+}

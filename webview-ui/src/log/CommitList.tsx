@@ -38,6 +38,9 @@ export function CommitList(props: {
   onSelect: (row: LogRow, mode: SelectMode) => void;
   onLoadMore: () => void;
   onContextMenu: (row: LogRow, x: number, y: number) => void;
+  /** Anchos de las columnas Author y Date, y cómo cambiarlos (arrastrando su borde en la cabecera). */
+  columns: { author: number; date: number };
+  onResizeColumn: (column: 'author' | 'date', width: number) => void;
   /** Desplazar la lista hasta esta fila (token distinto en cada pedido). */
   scrollTo?: { index: number; token: number } | null;
 }) {
@@ -84,7 +87,35 @@ export function CommitList(props: {
     onContextMenu: props.onContextMenu,
   };
 
+  /** Arrastrar el borde izquierdo de una columna: hacia la izquierda la ensancha. */
+  const startResize = (column: 'author' | 'date') => (e: React.MouseEvent) => {
+    e.preventDefault();
+    const x0 = e.clientX;
+    const w0 = props.columns[column];
+    const move = (ev: MouseEvent) => props.onResizeColumn(column, w0 - (ev.clientX - x0));
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      document.body.classList.remove('resizing');
+    };
+    document.body.classList.add('resizing');
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
   return (
+    <div className="commit-list-wrap">
+    <div className="log-header" style={{ paddingLeft: 4 + graphWidth(graph.maxLanes) + 8 }}>
+      <span className="log-header-subject">{t('Subject')}</span>
+      <span className="log-header-col log-author-col">
+        <span className="col-grip" onMouseDown={startResize('author')} />
+        {t('Author')}
+      </span>
+      <span className="log-header-col log-date-col">
+        <span className="col-grip" onMouseDown={startResize('date')} />
+        {t('Date')}
+      </span>
+    </div>
     <div className="commit-list" ref={container} tabIndex={0} onKeyDown={onKeyDown}>
       {props.rows.length === 0 && !props.loading && <div className="muted pad">{t('There are no commits with these filters.')}</div>}
       {size.height > 0 && (
@@ -104,6 +135,7 @@ export function CommitList(props: {
           {Row}
         </FixedSizeList>
       )}
+    </div>
     </div>
   );
 }

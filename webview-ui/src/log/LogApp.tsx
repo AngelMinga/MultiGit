@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LogBranchAction, LogAction, LogDetails, LogFileAction, LogFilters, LogMultiAction, LogRepoInfo, LogRow, PushFile } from '../../../src/webview/protocol';
 import { fullDate, isoDaysAgo } from '../format';
-import { onHostMessage, post } from '../vscode';
+import { getState, onHostMessage, post, setState } from '../vscode';
 import { BranchTree, type BranchTarget } from './BranchTree';
 import { FileTree } from './FileTree';
 import { MessageBody } from '../MessageBody';
@@ -183,6 +183,10 @@ export function LogApp() {
     };
   }, [menu, branchMenu, fileMenu]);
   const [showBranches, setShowBranches] = useState(true);
+  /** Anchos ajustables (paneles y columnas), como IntelliJ; se recuerdan. */
+  const [layout, setLayout] = useState<Layout>(() => ({ ...DEFAULT_LAYOUT, ...getState<Partial<Layout>>('logLayout', {}) }));
+  useEffect(() => setState('logLayout', layout), [layout]);
+  const resize = (key: keyof Layout, width: number) => setLayout((l) => ({ ...l, [key]: clampWidth(key, width) }));
   /** Navigate Log to Branch Head: commit a mostrar cuando aparezca en la lista. */
   const [pendingReveal, setPendingReveal] = useState<{ key: string; pages: number } | null>(null);
   const [scrollTo, setScrollTo] = useState<{ index: number; token: number } | null>(null);
@@ -465,7 +469,12 @@ export function LogApp() {
       </div>
 
       {/* ---------------------------------------------------- paneles */}
-      <div className={`log-body${showBranches ? '' : ' no-branches'}${showDetails ? '' : ' no-details'}`}>
+      <div
+        className={`log-body${showBranches ? '' : ' no-branches'}${showDetails ? '' : ' no-details'}`}
+        style={{ '--branches-w': `${layout.branches}px`, '--details-w': `${layout.details}px`, '--author-w': `${layout.author}px`, '--date-w': `${layout.date}px` } as React.CSSProperties}
+      >
+        {showBranches && <Splitter side="left" width={layout.branches} onResize={(w) => resize('branches', w)} onReset={() => resize('branches', DEFAULT_LAYOUT.branches)} />}
+        {showDetails && <Splitter side="right" width={layout.details} onResize={(w) => resize('details', w)} onReset={() => resize('details', DEFAULT_LAYOUT.details)} />}
         {showBranches && (
           <BranchTree
             onContextMenu={(target, x, y) => {
@@ -486,6 +495,8 @@ export function LogApp() {
           />
         )}
         <CommitList
+          columns={{ author: layout.author, date: layout.date }}
+          onResizeColumn={(column, width) => resize(column, width)}
           rows={rows}
           repos={repoMap}
           hasMore={hasMore}
@@ -729,6 +740,42 @@ export function LogApp() {
       })()}
     </div>
   );
+}
+
+interface Layout {
+  branches: number;
+  details: number;
+  author: number;
+  date: number;
+}
+
+const DEFAULT_LAYOUT: Layout = { branches: 230, details: 340, author: 150, date: 120 };
+const LIMITS: Record<keyof Layout, [number, number]> = { branches: [120, 600], details: [180, 900], author: [50, 400], date: [60, 260] };
+
+function clampWidth(key: keyof Layout, width: number): number {
+  const [min, max] = LIMITS[key];
+  return Math.round(Math.max(min, Math.min(max, width)));
+}
+
+/**
+ * Borde arrastrable de un panel (ramas a la izquierda, detalle a la derecha). Doble clic: ancho por defecto.
+ */
+export function Splitter(props: { side: 'left' | 'right'; width: number; onResize: (width: number) => void; onReset: () => void }) {
+  const start = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const x0 = e.clientX;
+    const w0 = props.width;
+    const move = (ev: MouseEvent) => props.onResize(props.side === 'left' ? w0 + ev.clientX - x0 : w0 - (ev.clientX - x0));
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      document.body.classList.remove('resizing');
+    };
+    document.body.classList.add('resizing');
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+  return <div className={`splitter splitter-${props.side}`} onMouseDown={start} onDoubleClick={props.onReset} title={t('Drag to resize · double-click to reset')} />;
 }
 
 function splitPaths(text: string): string[] {

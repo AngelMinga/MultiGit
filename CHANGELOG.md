@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.23.1
+
+- Git Log con tamaño ajustable, como IntelliJ: bordes arrastrables de los paneles de ramas y de detalle, y
+  cabecera *Subject · Author · Date* para cambiar el ancho de las columnas (doble clic restablece). Los
+  anchos se recuerdan.
+
 ## 0.23.0
 
 - **Vista Changes nueva, como IntelliJ**: casillas grises sin marcar, azules marcadas y azules con "−"

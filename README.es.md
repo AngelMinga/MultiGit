@@ -223,6 +223,8 @@ cambio, también anotado) y Copy hash. *Close Annotations* en el mismo menú.
   **Squash**, **Fixup** y **Drop**, y ↑/↓ para reordenar (teclas P R S F D y Alt+↑/↓). Pide el working
   tree limpio; si hay conflictos, el rebase queda a medias y se sigue desde la barra de operaciones.
   No admite rangos con commits de merge.
+- Tamaño ajustable como IntelliJ: arrastra los bordes de los paneles de ramas y de detalle, y los de las
+  columnas Author / Date en la cabecera (doble clic en un borde lo restablece). Los anchos se recuerdan.
 - Lista virtualizada: carga de 300 en 300 y se mantiene fluida con miles de commits.
 
 ## Credenciales, conflictos y ramas desalineadas
