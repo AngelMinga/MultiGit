@@ -9,22 +9,18 @@ import type { Core } from './core';
 import { HunksPanel } from '../webview/HunksPanel';
 import { PatchActions } from '../views/patchActions';
 import { ChangelistActions } from '../views/changelistActions';
+import { ChangesPanel } from '../views/ChangesPanel';
 import { t } from '../i18n';
 
 export function registerChanges(
   core: Core,
   logView: LogView,
-): { tree: ChangesTree; view: vscode.TreeView<ChangeNode>; actions: ChangesActions } {
+): { tree: ChangesTree; view: ChangesPanel; actions: ChangesActions } {
   const { manager, context, popup } = core;
   const tree = new ChangesTree(manager, context.globalState, context.workspaceState);
   const changelists = new ChangelistActions(tree);
-  const view = vscode.window.createTreeView('multigit.changes', {
-    treeDataProvider: tree,
-    dragAndDropController: changelists,
-    canSelectMany: true,
-    manageCheckboxStateManually: true,
-    showCollapseAll: true,
-  });
+  // Vista propia (webview) como IntelliJ: casillas gris / azul / parcial. El modelo sigue siendo `tree`.
+  const view = new ChangesPanel(context, tree, changelists);
   const actions = new ChangesActions(manager, tree, context.extensionUri);
   const patches = new PatchActions(manager);
   const commitView = new CommitView(context.extensionUri, manager, tree, actions, (repos) => core.openPush(repos), context.workspaceState);
@@ -45,16 +41,31 @@ export function registerChanges(
    */
   const updateBadge = () => {
     const n = manager.all.reduce((sum, r) => sum + Math.max(0, (r.status?.changes.total ?? 0) - (r.status?.changes.untracked ?? 0)), 0);
-    view.badge = n ? { value: n, tooltip: t('{0} file(s) with changes', n) } : undefined;
+    core.setBadge(n ? { value: n, tooltip: t('{0} file(s) with changes', n) } : undefined);
   };
-  const fileNode = (node?: ChangeNode) => (node?.kind === 'file' ? node.ref : undefined);
-  /** Nodo del clic y, con selección múltiple, todos los elegidos (o la selección si es un atajo). */
-  const selected = (node?: ChangeNode, nodes?: ChangeNode[]) =>
-    refsOf(node ?? view.selection[0], nodes ?? (node ? undefined : [...view.selection]));
+  /**
+   * Nodo de un comando: el nodo (tests, otras vistas), el contexto de una fila del menú (`nodeId`) o, sin
+   * argumento (atajos, botones del título), el primero elegido.
+   */
+  const nodeOf = (arg?: unknown): ChangeNode | undefined => view.resolve(arg) ?? (arg === undefined ? view.selection[0] : undefined);
+  /** Todos los nodos de la acción: los elegidos si el clic fue sobre uno de ellos; si no, solo ese. */
+  const nodesOf = (arg?: unknown, nodes?: unknown): ChangeNode[] => {
+    if (Array.isArray(nodes) && nodes.length) return nodes as ChangeNode[];
+    const node = nodeOf(arg);
+    const sel = view.selection;
+    if (!node) return [];
+    return sel.includes(node) ? sel : [node];
+  };
+  const fileNode = (arg?: unknown) => {
+    const node = nodeOf(arg);
+    return node?.kind === 'file' ? node.ref : undefined;
+  };
+  const selected = (arg?: unknown, nodes?: unknown) => refsOf(undefined, nodesOf(arg, nodes));
 
   core.track(
     tree,
     view,
+    vscode.window.registerWebviewViewProvider(ChangesPanel.viewId, view, { webviewOptions: { retainContextWhenHidden: true } }),
     commitView,
     vscode.window.registerWebviewViewProvider(CommitView.viewId, commitView, { webviewOptions: { retainContextWhenHidden: true } }),
     manager.onDidChange(() => {
@@ -62,10 +73,9 @@ export function registerChanges(
       updateBadge();
     }),
     tree.onDidChangeChecked(updateBadge),
-    view.onDidChangeVisibility((e) => {
-      if (e.visible && stale) refresh();
+    view.onDidChangeVisibility((visible) => {
+      if (visible && stale) refresh();
     }),
-    view.onDidChangeCheckboxState((e) => tree.onCheckboxChange(e)),
     vscode.commands.registerCommand('multigit.commitFocus', () => commitView.focus()),
     // Interno (Git Log: Undo Commit, Fixup…, Squash Into…): pone un mensaje en la caja de commit.
     vscode.commands.registerCommand('multigit.commit.prefill', (message: string, target?: { repoRoot: string; hash: string }) =>
@@ -77,11 +87,12 @@ export function registerChanges(
     vscode.commands.registerCommand('multigit.changes.toggleGroupByDir', () => tree.toggleGrouping('directory')),
     vscode.commands.registerCommand('multigit.changes.toggleGroupByModule', () => tree.toggleGrouping('module')),
     vscode.commands.registerCommand('multigit.changes.toggleShowIgnored', () => tree.toggleGrouping('showIgnored')),
-    vscode.commands.registerCommand('multigit.changes.rollback', (node?: ChangeNode, nodes?: ChangeNode[]) =>
-      actions.rollback(node ? refsOf(node, nodes) : undefined),
+    // Desde el título de la vista (sin argumento): los marcados, como antes; desde una fila: esa o los elegidos.
+    vscode.commands.registerCommand('multigit.changes.rollback', (node?: unknown, nodes?: unknown) =>
+      actions.rollback(node ? selected(node, nodes) : undefined),
     ),
-    vscode.commands.registerCommand('multigit.changes.shelve', (node?: ChangeNode, nodes?: ChangeNode[]) =>
-      actions.shelve(node ? refsOf(node, nodes) : undefined),
+    vscode.commands.registerCommand('multigit.changes.shelve', (node?: unknown, nodes?: unknown) =>
+      actions.shelve(node ? selected(node, nodes) : undefined),
     ),
     // Menú contextual (como IntelliJ).
     ...(
@@ -99,7 +110,7 @@ export function registerChanges(
         ['createPatch', (refs) => patches.createFromChanges(refs)],
       ] as Array<[string, (refs: FileRef[]) => Promise<unknown>]>
     ).map(([id, run]) =>
-      vscode.commands.registerCommand(`multigit.changes.${id}`, (node?: ChangeNode, nodes?: ChangeNode[]) => {
+      vscode.commands.registerCommand(`multigit.changes.${id}`, (node?: unknown, nodes?: unknown) => {
         const refs = selected(node, nodes);
         if (refs.length) void popup.safely(() => run(refs));
       }),
@@ -115,32 +126,33 @@ export function registerChanges(
         ['log', (repo) => logView.showBranch(null, [repo.root])],
       ] as Array<[string, (repo: Repo) => unknown]>
     ).map(([id, run]) =>
-      vscode.commands.registerCommand(`multigit.changes.git.${id}`, (node?: ChangeNode) => {
-        const repo = repoOf(node ?? view.selection[0]);
+      vscode.commands.registerCommand(`multigit.changes.git.${id}`, (node?: unknown) => {
+        const repo = repoOf(nodeOf(node));
         if (repo) void popup.safely(async () => run(repo));
       }),
     ),
     vscode.commands.registerCommand('multigit.changes.unshelve', () => actions.unshelve()),
     // Changelists (como IntelliJ).
-    vscode.commands.registerCommand('multigit.changelist.new', (node?: ChangeNode, nodes?: ChangeNode[]) =>
-      popup.safely(() => changelists.create(node && node.kind !== 'section' ? selected(node, nodes) : [])),
-    ),
-    vscode.commands.registerCommand('multigit.changelist.move', (node?: ChangeNode, nodes?: ChangeNode[]) => {
+    vscode.commands.registerCommand('multigit.changelist.new', (arg?: unknown, nodes?: unknown) => {
+      const node = view.resolve(arg);
+      return popup.safely(() => changelists.create(node && node.kind !== 'section' ? selected(arg, nodes) : []));
+    }),
+    vscode.commands.registerCommand('multigit.changelist.move', (node?: unknown, nodes?: unknown) => {
       const refs = selected(node, nodes);
       if (refs.length) return popup.safely(() => changelists.move(refs));
       return undefined;
     }),
-    vscode.commands.registerCommand('multigit.changelist.setActive', (node?: ChangeNode) => {
-      const id = (node ?? view.selection[0])?.list;
+    vscode.commands.registerCommand('multigit.changelist.setActive', (node?: unknown) => {
+      const id = nodeOf(node)?.list;
       if (id) changelists.setActive(id);
     }),
-    vscode.commands.registerCommand('multigit.changelist.edit', (node?: ChangeNode) => {
-      const id = (node ?? view.selection[0])?.list;
+    vscode.commands.registerCommand('multigit.changelist.edit', (node?: unknown) => {
+      const id = nodeOf(node)?.list;
       if (id) return popup.safely(() => changelists.edit(id));
       return undefined;
     }),
-    vscode.commands.registerCommand('multigit.changelist.delete', (node?: ChangeNode) => {
-      const id = (node ?? view.selection[0])?.list;
+    vscode.commands.registerCommand('multigit.changelist.delete', (node?: unknown) => {
+      const id = nodeOf(node)?.list;
       if (id) return popup.safely(() => changelists.remove(id));
       return undefined;
     }),
@@ -162,17 +174,17 @@ export function registerChanges(
       });
       return resolved.length ? popup.safely(() => patches.createFromCommits(resolved)) : undefined;
     }),
-    vscode.commands.registerCommand('multigit.changes.selectHunks', (node?: ChangeNode) => {
-      const ref = fileNode(node ?? view.selection[0]);
+    vscode.commands.registerCommand('multigit.changes.selectHunks', (node?: unknown) => {
+      const ref = fileNode(node);
       if (ref) return popup.safely(() => HunksPanel.open(context.extensionUri, tree, ref, (r) => actions.openDiff(r)));
       return undefined;
     }),
-    vscode.commands.registerCommand('multigit.changes.openDiff', (node?: ChangeNode) => {
-      const ref = fileNode(node ?? view.selection[0]);
+    vscode.commands.registerCommand('multigit.changes.openDiff', (node?: unknown) => {
+      const ref = fileNode(node);
       if (ref) void actions.openDiff(ref);
     }),
-    vscode.commands.registerCommand('multigit.changes.openFile', (node?: ChangeNode) => {
-      const ref = fileNode(node ?? view.selection[0]);
+    vscode.commands.registerCommand('multigit.changes.openFile', (node?: unknown) => {
+      const ref = fileNode(node);
       if (ref) void actions.openFile(ref);
     }),
   );

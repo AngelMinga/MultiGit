@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.23.0
+
+- **Vista Changes nueva, como IntelliJ**: casillas grises sin marcar, azules marcadas y azules con "−"
+  cuando solo hay una parte marcada (repo, carpeta, changelist o archivo con commit parcial de líneas),
+  cuadrado del color de cada repo, iconos por tipo de archivo y nombre coloreado por estado. Mantiene todo
+  lo de antes: clic → diff, Ctrl/Cmd+clic y Mayús+clic, espacio para marcar, flechas, menú contextual
+  (con sus submenús), botones de fila, changelists y arrastrar archivos entre ellas.
+- El número del icono de MultiGit va en la vista Repositorios (así se ve desde que arranca VS Code).
+
 ## 0.22.3
 
 - El número del icono de MultiGit (archivos con cambios) se actualiza aunque el panel esté cerrado; antes

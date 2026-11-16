@@ -90,7 +90,6 @@
   "container.multigit": "MultiGit",
   "container.multigit_panel": "MultiGit",
   "welcome.repositories": "No Git repositories were found in the workspace.\n[Refresh Repositories](command:multigit.refresh)",
-  "welcome.changes": "There are no uncommitted changes in the repositories.\n[Refresh](command:multigit.changes.refresh)",
   "submenu.changes.groupBy": "Group By",
   "submenu.changes.git": "Git",
   "submenu.changes.ignoreMenu": "Add to .gitignore",

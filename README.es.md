@@ -62,7 +62,9 @@ todos a la vez.
 
 - **Proyecto** (en el Explorer): botones como la barra superior de IntelliJ, `[B] proyecto ⌄` (proyectos recientes)
   y `⎇ rama ⌄` (popup de ramas; `⎇ 3 ramas` si difieren), y un resumen que abre el Git Log.
-- **Changes**: archivos con cambios de todos los repos, con checkboxes, en *Changes* y
+- **Changes**: archivos con cambios de todos los repos, con casillas como IntelliJ (gris sin marcar, azul
+  marcada y azul con "−" cuando solo hay una parte marcada, también con commit parcial de líneas), el color
+  de cada repo e iconos por tipo de archivo, en *Changes* y
   *Unversioned Files* (y *Ignored Files* con *Show Ignored Files*). *Group By* Repository, Module y/o
   Directory, como IntelliJ. Clic → diff
   contra HEAD; los archivos en conflicto se abren en el merge editor.
@@ -307,9 +309,7 @@ Para usarlos en todas partes, cámbialos en *Preferences → Keyboard Shortcuts*
 | `multigit.claude.*` | — | Modelo, esfuerzo, idioma, modo rápido, estilo del repo, scope, instrucciones, timeout y ruta de `claude` para *Generar con Claude*. |
 
 Los colores de los repos (`multigit.repo0` … `multigit.repo11`) se pueden cambiar en
-`workbench.colorCustomizations`. Para casillas azules como IntelliJ en Changes, añade ahí
-`"checkbox.background": "#3574F0"`, `"checkbox.border": "#3574F0"` y `"checkbox.foreground": "#FFFFFF"`
-(VS Code los aplica a todas las casillas, marcadas o no).
+`workbench.colorCustomizations`.
 
 MultiGit cambia además el valor por defecto de dos ajustes de VS Code para que los diffs se abran
 siempre en dos paneles (original | cambios), como IntelliJ, aunque el editor sea angosto:

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { WebviewKind } from '../../src/webview/protocol';
 import { CommitBox } from './commit/CommitBox';
+import { ChangesApp } from './changes/ChangesApp';
 import { LogApp } from './log/LogApp';
 import { Toolbar } from './toolbar/Toolbar';
 import { PushDialog } from './push/PushDialog';
@@ -41,7 +42,7 @@ export function App() {
           </button>
         </div>
       )}
-      {kind === 'push' ? <PushDialog /> : kind === 'commit' ? <CommitBox /> : kind === 'log' ? <LogApp /> : kind === 'toolbar' ? <Toolbar /> : kind === 'rollback' ? <RollbackDialog /> : kind === 'hunks' ? <HunksDialog /> : kind === 'rebase' ? <RebaseDialog /> : kind === 'pull' ? <PullDialog /> : kind === 'conflicts' ? <ConflictsDialog /> : kind === 'merge' ? <MergeDialog /> : kind === 'remotes' ? <RemotesDialog /> : kind === 'updateInfo' ? <UpdateInfoDialog /> : kind === 'message' ? <MessageDialog /> : <p className="muted pad">{t('Loading…')}</p>}
+      {kind === 'changes' ? <ChangesApp /> : kind === 'push' ? <PushDialog /> : kind === 'commit' ? <CommitBox /> : kind === 'log' ? <LogApp /> : kind === 'toolbar' ? <Toolbar /> : kind === 'rollback' ? <RollbackDialog /> : kind === 'hunks' ? <HunksDialog /> : kind === 'rebase' ? <RebaseDialog /> : kind === 'pull' ? <PullDialog /> : kind === 'conflicts' ? <ConflictsDialog /> : kind === 'merge' ? <MergeDialog /> : kind === 'remotes' ? <RemotesDialog /> : kind === 'updateInfo' ? <UpdateInfoDialog /> : kind === 'message' ? <MessageDialog /> : <p className="muted pad">{t('Loading…')}</p>}
     </>
   );
 }

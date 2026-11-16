@@ -90,7 +90,6 @@
   "container.multigit": "MultiGit",
   "container.multigit_panel": "MultiGit",
   "welcome.repositories": "No se detectaron repositorios Git en el workspace.\n[Refrescar repositorios](command:multigit.refresh)",
-  "welcome.changes": "No hay cambios sin commit en los repositorios.\n[Refrescar](command:multigit.changes.refresh)",
   "submenu.changes.groupBy": "Group By",
   "submenu.changes.git": "Git",
   "submenu.changes.ignoreMenu": "Add to .gitignore",

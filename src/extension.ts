@@ -5,6 +5,7 @@ import { registerBranches } from './activation/branches';
 import { registerChanges } from './activation/changes';
 import { registerFileActions } from './activation/files';
 import type { BlameAnnotations } from './views/blameAnnotations';
+import type { ChangesPanel } from './views/ChangesPanel';
 import { registerLog } from './activation/log';
 import { registerOperations } from './activation/operations';
 import { registerRepositories } from './activation/repositories';
@@ -45,8 +46,10 @@ export interface MultiGitTestApi {
   branchActions: BranchActions;
   /** Annotate with Git Blame del editor. */
   blame: BlameAnnotations;
-  /** Vista Changes (su `badge` es el número del icono de MultiGit). */
-  changesView: vscode.TreeView<unknown>;
+  /** Vista Changes (webview propia). */
+  changesView: ChangesPanel;
+  /** Vista que lleva el número del icono de MultiGit (Repositorios). */
+  badgeView: vscode.TreeView<unknown>;
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<MultiGitTestApi> {
@@ -68,6 +71,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
   const repoIcons = new RepoIcons(context.globalStorageUri, context.extension.packageJSON);
   void repoIcons.init();
   const popup = new BranchPopup(manager, actions, repoIcons);
+  let badgeView: vscode.TreeView<unknown> | undefined;
+  let lastBadge: vscode.ViewBadge | undefined;
   const core: Core = {
     context,
     log,
@@ -76,6 +81,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
     popup,
     openPush,
     track: (...disposables) => context.subscriptions.push(...disposables),
+    setBadge: (badge) => {
+      lastBadge = badge;
+      if (badgeView) badgeView.badge = badge;
+    },
   };
   core.track(manager);
 
@@ -92,6 +101,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
     }
   };
   const repositories = area(t('Repositories'), () => registerRepositories(core, compareView));
+  badgeView = repositories?.treeView as vscode.TreeView<unknown> | undefined;
+  if (badgeView) badgeView.badge = lastBadge;
   const logView = area('Git Log', () => registerLog(core));
   const branches = logView && area(t('Branches'), () => registerBranches(core, logView));
   const changes = logView && area('Changes', () => registerChanges(core, logView));
@@ -161,7 +172,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
     stashes: stashes?.tree as StashesTree,
     compareFiles: compareFiles as CompareFilesTree,
     blame: fileArea?.blame as BlameAnnotations,
-    changesView: changes?.view as vscode.TreeView<unknown>,
+    changesView: changes?.view as ChangesPanel,
+    badgeView: badgeView as vscode.TreeView<unknown>,
   };
 }
 

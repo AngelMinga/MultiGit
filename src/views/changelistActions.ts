@@ -154,9 +154,13 @@ export class ChangelistActions implements vscode.TreeDragAndDropController<Chang
 
   async handleDrop(target: ChangeNode | undefined, data: vscode.DataTransfer): Promise<void> {
     const nodes = data.get(MIME)?.value as ChangeNode[] | undefined;
-    // Solo se suelta sobre una changelist o sobre algo que está dentro de una.
-    const id = target?.list;
-    if (!nodes?.length || !id) return;
+    if (target && nodes?.length) await this.dropOn(target, nodes);
+  }
+
+  /** Soltar archivos (o carpetas, repos…) sobre una changelist o algo que está dentro de una. */
+  async dropOn(target: ChangeNode, nodes: readonly ChangeNode[]): Promise<void> {
+    const id = target.list;
+    if (!nodes.length || !id) return;
     const seen = new Set<string>();
     const refs = nodes
       .flatMap((n) => (n.kind === 'file' ? [n.ref] : n.files))

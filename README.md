@@ -61,7 +61,9 @@ in all of them at once.
 
 - **Project** (in the Explorer): buttons like IntelliJ's top toolbar, `[B] project ⌄` (recent projects)
   and `⎇ branch ⌄` (branch popup; `⎇ 3 branches` when they differ), plus a summary that opens the Git Log.
-- **Changes**: changed files from every repo, with checkboxes, in *Changes* and *Unversioned Files*
+- **Changes**: changed files from every repo, with IntelliJ-style checkboxes (grey unchecked, blue
+  checked, blue with "−" when only part is checked, including partial commits of lines), the repo color and
+  file-type icons, in *Changes* and *Unversioned Files*
   (and *Ignored Files* with *Show Ignored Files*). *Group By* Repository, Module and/or Directory, like
   IntelliJ. Click → diff against HEAD; conflicted files open in the merge editor.
 - **Commit**: message, *Amend last commit*, a counter of checked files, **Commit** and
@@ -302,9 +304,6 @@ them everywhere, change them in *Preferences → Keyboard Shortcuts* (search for
 | `multigit.claude.*` | — | Model, effort, language, fast mode, repo style, scope, instructions, timeout and `claude` path for *Generate with Claude*. |
 
 The repo colors (`multigit.repo0` … `multigit.repo11`) can be changed in `workbench.colorCustomizations`.
-For IntelliJ-style blue checkboxes in Changes, add `"checkbox.background": "#3574F0"`,
-`"checkbox.border": "#3574F0"` and `"checkbox.foreground": "#FFFFFF"` there (VS Code applies them to all
-checkboxes, checked or not).
 
 MultiGit also changes the default of two VS Code settings so diffs always open in two panes
 (original | changes), like IntelliJ, even in a narrow editor: `diffEditor.renderSideBySide: true` and

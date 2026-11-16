@@ -6,7 +6,7 @@ import type { LogFilters, RefLabel } from '../git/log';
 export type { LogFilters, RefLabel };
 
 /** Paneles webview que existen (el log llega en la Fase 6). */
-export type WebviewKind = 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks' | 'rebase' | 'pull' | 'conflicts' | 'merge' | 'remotes' | 'updateInfo' | 'message';
+export type WebviewKind = 'changes' | 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks' | 'rebase' | 'pull' | 'conflicts' | 'merge' | 'remotes' | 'updateInfo' | 'message';
 
 // ------------------------------------------------------------------ Push
 
@@ -252,6 +252,44 @@ export interface CommitState {
   claudeEngine: string | null;
 }
 
+// ------------------------------------------------------------------ Changes (vista propia, como IntelliJ)
+
+export type ChangesCheck = 'checked' | 'unchecked' | 'mixed';
+
+/** Icono de una fila: codicon (con color opcional), cuadrado del color del repo o archivo por extensión. */
+export type ChangesIcon =
+  | { kind: 'codicon'; name: string; color?: string }
+  | { kind: 'repo'; color: string }
+  | { kind: 'file'; ext: string };
+
+/** Fila del árbol de Changes (con sus hijas). */
+export interface ChangesRow {
+  id: string;
+  label: string;
+  /** Resaltar el nombre (changelist activa). */
+  bold?: boolean;
+  description?: string;
+  tooltip?: string;
+  /** Para los menús (`viewItem`). */
+  contextValue: string;
+  /** null = sin casilla (ignorados). */
+  check: ChangesCheck | null;
+  icon?: ChangesIcon;
+  /** Archivo: estado (M, A, D…) y color del nombre (variable CSS). */
+  status?: string;
+  color?: string;
+  /** Al hacer clic se ejecuta su comando (diff, mostrar en el Explorer…). */
+  clickable: boolean;
+  /** Acciones al pasar el ratón (como las inline de un árbol). */
+  actions: Array<{ command: string; icon: string; title: string }>;
+  /** Se puede arrastrar (archivos, carpetas, repos) / soltar encima (dentro de una changelist). */
+  draggable: boolean;
+  droppable: boolean;
+  /** Empieza plegado. */
+  collapsed?: boolean;
+  children: ChangesRow[];
+}
+
 // ------------------------------------------------------------------ Log
 
 export interface LogRepoInfo {
@@ -425,7 +463,9 @@ export type HostMessage =
   | { type: 'log/loading'; payload: { generation: number; loading: boolean } }
   | { type: 'log/details'; payload: LogDetails }
   | { type: 'log/reveal'; payload: { repoId: string; hash: string } }
-  | { type: 'toolbar/state'; payload: ToolbarState };
+  | { type: 'toolbar/state'; payload: ToolbarState }
+  | { type: 'changes/state'; payload: { rows: ChangesRow[]; empty: string } }
+  | { type: 'changes/focus'; payload: Record<string, never> };
 
 /** Webview → host. */
 export type WebviewMessage =
@@ -483,5 +523,11 @@ export type WebviewMessage =
   | { type: 'update/openDiff'; payload: { repoId: string; hash: string; file: PushFile } }
   | { type: 'update/showInLog'; payload: { repoId: string; hash: string } }
   | { type: 'update/close'; payload: Record<string, never> }
+  | { type: 'changes/check'; payload: { ids: string[]; checked: boolean } }
+  | { type: 'changes/click'; payload: { id: string } }
+  | { type: 'changes/select'; payload: { ids: string[] } }
+  | { type: 'changes/action'; payload: { id: string; command: string } }
+  | { type: 'changes/drop'; payload: { target: string; ids: string[] } }
+  | { type: 'changes/runCommand'; payload: { command: string } }
   | { type: 'message/ok'; payload: { message: string } }
   | { type: 'message/cancel'; payload: Record<string, never> };

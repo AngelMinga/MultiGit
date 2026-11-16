@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.22.3",
+  "version": "0.23.0",
   "publisher": "angelminga-multigit",
   "license": "MIT",
   "repository": {
@@ -64,7 +64,8 @@
           "id": "multigit.changes",
           "name": "%view.changes%",
           "icon": "media/multigit-commit.svg",
-          "visibility": "visible"
+          "visibility": "visible",
+          "type": "webview"
         },
         {
           "id": "multigit.commit",
@@ -127,10 +128,6 @@
       {
         "view": "multigit.repositories",
         "contents": "%welcome.repositories%"
-      },
-      {
-        "view": "multigit.changes",
-        "contents": "%welcome.changes%"
       },
       {
         "view": "multigit.stashes",
@@ -1315,66 +1312,6 @@
           "group": "inline@2"
         },
         {
-          "command": "multigit.changes.commitOnly",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\./",
-          "group": "1_commit@1"
-        },
-        {
-          "command": "multigit.changes.rollback",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file\\.tracked|(repo|dir|section)\\.changes(\\.default)?(\\.active)?)$/",
-          "group": "1_commit@2"
-        },
-        {
-          "command": "multigit.changes.openDiff",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.file/",
-          "group": "2_diff@1"
-        },
-        {
-          "command": "multigit.changes.openFile",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.file/",
-          "group": "2_diff@2"
-        },
-        {
-          "command": "multigit.changes.delete",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file|dir)/",
-          "group": "3_edit@1"
-        },
-        {
-          "command": "multigit.changes.addToVcs",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file\\.untracked|(repo|dir|section)\\.unversioned)$/",
-          "group": "3_edit@2"
-        },
-        {
-          "submenu": "multigit.changes.ignoreMenu",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file\\.untracked|(repo|dir|section)\\.unversioned)$/",
-          "group": "3_edit@3"
-        },
-        {
-          "command": "multigit.changes.copyPatch",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\./",
-          "group": "4_patch@1"
-        },
-        {
-          "command": "multigit.changes.shelve",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\./",
-          "group": "4_patch@2"
-        },
-        {
-          "command": "multigit.changes.refresh",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\./",
-          "group": "5_refresh@1"
-        },
-        {
-          "submenu": "multigit.changes.git",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file|dir|repo)/",
-          "group": "6_git@1"
-        },
-        {
-          "submenu": "multigit.file.localHistoryMenu",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.file/",
-          "group": "6_git@2"
-        },
-        {
           "command": "multigit.branchesTree.navigateLog",
           "when": "view == multigit.branches && viewItem =~ /^multigit\\.(branch|tag)/",
           "group": "7_log@2"
@@ -1460,11 +1397,6 @@
           "group": "inline@0"
         },
         {
-          "command": "multigit.changes.selectHunks",
-          "when": "view == multigit.changes && viewItem == multigit.changes.file.tracked",
-          "group": "1_commit@3"
-        },
-        {
           "command": "multigit.branch.compareFiles",
           "when": "view == multigit.branches && viewItem =~ /^multigit\\.branch\\.(local|remote)$/",
           "group": "2_compare@2"
@@ -1483,36 +1415,6 @@
           "command": "multigit.manageRemotes",
           "when": "view == multigit.repositories",
           "group": "2_remote@8"
-        },
-        {
-          "command": "multigit.changes.createPatch",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\./",
-          "group": "4_patch@0"
-        },
-        {
-          "command": "multigit.changelist.move",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.(file\\.(tracked|conflict|untracked)|(repo|dir)\\.(changes|unversioned)|section\\.unversioned)/",
-          "group": "1_commit@4"
-        },
-        {
-          "command": "multigit.changelist.new",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.section\\.changes/",
-          "group": "0_changelist@1"
-        },
-        {
-          "command": "multigit.changelist.setActive",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.section\\.changes(\\.default)?$/",
-          "group": "0_changelist@2"
-        },
-        {
-          "command": "multigit.changelist.edit",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.section\\.changes/",
-          "group": "0_changelist@3"
-        },
-        {
-          "command": "multigit.changelist.delete",
-          "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.section\\.changes(\\.active)?$/",
-          "group": "0_changelist@4"
         },
         {
           "command": "multigit.shelf.unshelve",
@@ -2314,6 +2216,103 @@
           "when": "multigit.blameActive",
           "group": "multigit@1"
         }
+      ],
+      "webview/context": [
+        {
+          "command": "multigit.changes.commitOnly",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\./",
+          "group": "1_commit@1"
+        },
+        {
+          "command": "multigit.changes.rollback",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\.(file\\.tracked|(repo|dir|section)\\.changes(\\.default)?(\\.active)?)$/",
+          "group": "1_commit@2"
+        },
+        {
+          "command": "multigit.changes.openDiff",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\.file/",
+          "group": "2_diff@1"
+        },
+        {
+          "command": "multigit.changes.openFile",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\.file/",
+          "group": "2_diff@2"
+        },
+        {
+          "command": "multigit.changes.delete",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\.(file|dir)/",
+          "group": "3_edit@1"
+        },
+        {
+          "command": "multigit.changes.addToVcs",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\.(file\\.untracked|(repo|dir|section)\\.unversioned)$/",
+          "group": "3_edit@2"
+        },
+        {
+          "submenu": "multigit.changes.ignoreMenu",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\.(file\\.untracked|(repo|dir|section)\\.unversioned)$/",
+          "group": "3_edit@3"
+        },
+        {
+          "command": "multigit.changes.copyPatch",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\./",
+          "group": "4_patch@1"
+        },
+        {
+          "command": "multigit.changes.shelve",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\./",
+          "group": "4_patch@2"
+        },
+        {
+          "command": "multigit.changes.refresh",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\./",
+          "group": "5_refresh@1"
+        },
+        {
+          "submenu": "multigit.changes.git",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\.(file|dir|repo)/",
+          "group": "6_git@1"
+        },
+        {
+          "submenu": "multigit.file.localHistoryMenu",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\.file/",
+          "group": "6_git@2"
+        },
+        {
+          "command": "multigit.changes.selectHunks",
+          "when": "webviewId == 'multigit.changes' && viewItem == multigit.changes.file.tracked",
+          "group": "1_commit@3"
+        },
+        {
+          "command": "multigit.changes.createPatch",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\./",
+          "group": "4_patch@0"
+        },
+        {
+          "command": "multigit.changelist.move",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\.(file\\.(tracked|conflict|untracked)|(repo|dir)\\.(changes|unversioned)|section\\.unversioned)/",
+          "group": "1_commit@4"
+        },
+        {
+          "command": "multigit.changelist.new",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\.section\\.changes/",
+          "group": "0_changelist@1"
+        },
+        {
+          "command": "multigit.changelist.setActive",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\.section\\.changes(\\.default)?$/",
+          "group": "0_changelist@2"
+        },
+        {
+          "command": "multigit.changelist.edit",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\.section\\.changes/",
+          "group": "0_changelist@3"
+        },
+        {
+          "command": "multigit.changelist.delete",
+          "when": "webviewId == 'multigit.changes' && viewItem =~ /^multigit\\.changes\\.section\\.changes(\\.active)?$/",
+          "group": "0_changelist@4"
+        }
       ]
     },
     "configuration": {
@@ -2906,6 +2905,7 @@
     "@types/react-window": "^1.8.8",
     "@types/vscode": "~1.100.0",
     "@vitejs/plugin-react": "^6.3.0",
+    "@vscode/codicons": "^0.0.36",
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^4.1.0",

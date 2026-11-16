@@ -170,6 +170,11 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
     return this.loading;
   }
 
+  /** Color (id del tema) de un repo. */
+  colorIdOf(repo: Repo): string {
+    return this.manager.colorIdOf(repo);
+  }
+
   isChecked(ref: FileRef): boolean {
     // Como IntelliJ: por defecto entran los cambios de la changelist activa.
     return this.overrides.get(keyOf(ref)) ?? (ref.file.kind === 'tracked' && this.listOfRef(ref) === this.lists.active);

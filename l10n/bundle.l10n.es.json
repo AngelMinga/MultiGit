@@ -834,5 +834,6 @@
   "Revert Selected Changes of {0} in {1}": "Revert Selected Changes de {0} en {1}",
   "Cherry-Pick Selected Changes of {0} in {1}": "Cherry-Pick Selected Changes de {0} en {1}",
   "$(copy) Hash {0} copied": "$(copy) Hash {0} copiado",
-  "Reset of '{0}' to {1} — {2}": "Reset de '{0}' a {1} — {2}"
+  "Reset of '{0}' to {1} — {2}": "Reset de '{0}' a {1} — {2}",
+  "There are no uncommitted changes in the repositories.": "No hay cambios sin commit en los repositorios."
 }

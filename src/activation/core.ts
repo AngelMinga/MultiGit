@@ -14,4 +14,9 @@ export interface Core {
   openPush(repos?: readonly Repo[], branch?: string): Promise<void>;
   /** Registra disposables en la extensión. */
   track(...disposables: vscode.Disposable[]): void;
+  /**
+   * Número del icono de MultiGit (archivos con cambios). Va en la vista Repositorios, que existe desde
+   * que arranca la extensión (un webview no existe hasta que se abre).
+   */
+  setBadge(badge: vscode.ViewBadge | undefined): void;
 }

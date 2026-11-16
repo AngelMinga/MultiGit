@@ -547,17 +547,17 @@ describe('Número del icono de MultiGit', () => {
     const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga-multigit.multigit')!.activate();
     // Otro panel en la barra lateral: la vista Changes queda oculta.
     await vscode.commands.executeCommand('workbench.view.explorer');
-    const before = api.changesView.badge?.value ?? 0;
+    const before = api.badgeView.badge?.value ?? 0;
     const repo = api.manager.all.find((r) => r.name === 'shell')!;
     const file = path.join(repo.root, 'e2e-badge.txt');
     writeFileSync(path.join(repo.root, 'package.json'), readFileSync(path.join(repo.root, 'package.json'), 'utf8') + ' ');
     writeFileSync(file, 'nuevo\n');
     try {
       // Sin forzar nada: MultiGit tiene que notar el cambio en disco por su cuenta.
-      let badge = api.changesView.badge?.value ?? 0;
+      let badge = api.badgeView.badge?.value ?? 0;
       for (let i = 0; i < 60 && badge === before; i++) {
         await new Promise((r) => setTimeout(r, 100));
-        badge = api.changesView.badge?.value ?? 0;
+        badge = api.badgeView.badge?.value ?? 0;
       }
       // El modificado cuenta; el archivo nuevo sin versionar no.
       assert.equal(badge, before + 1);
@@ -567,5 +567,26 @@ describe('Número del icono de MultiGit', () => {
       execFileSync('rm', ['-f', file]);
       await api.manager.refreshStatusesNow([repo]);
     }
+  });
+});
+
+describe('Vista Changes (webview como IntelliJ)', () => {
+  it('se abre con las filas del árbol y el contexto de una fila del menú da su archivo', async () => {
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga-multigit.multigit')!.activate();
+    await vscode.commands.executeCommand('multigit.changes.focus');
+    let ids = api.changesView.rowIds;
+    for (let i = 0; i < 80 && !ids.some((id) => id.startsWith('file/')); i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      ids = api.changesView.rowIds;
+    }
+    assert.ok(api.changesView.visible, 'la vista está visible');
+    const fileId = ids.find((id) => id.startsWith('file/'));
+    assert.ok(fileId, `filas: ${ids.join(', ')}`);
+    // Lo que VS Code pasa al comando desde el menú contextual de una fila.
+    const node = api.changesView.resolve({ viewItem: 'multigit.changes.file.tracked', nodeId: fileId, preventDefaultContextMenuItems: true });
+    assert.equal(node?.kind, 'file');
+    // Un nodo del árbol también vale (otras vistas y tests).
+    assert.equal(api.changesView.resolve(node), node);
+    assert.equal(api.changesView.resolve({ nodeId: 'no-existe' }), undefined);
   });
 });
