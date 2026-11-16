@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.22.2
+
+- README: título y descripción de cada captura.
+- Publisher del Marketplace: `angelminga-multigit` (identificador `angelminga-multigit.multigit`).
+
 ## 0.22.1
 
 - README en inglés (la versión en español está en `README.es.md`) con capturas.
