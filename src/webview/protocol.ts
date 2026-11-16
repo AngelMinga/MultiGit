@@ -248,6 +248,8 @@ export interface CommitState {
   generating: boolean;
   /** Texto con el que se rellena la caja vacía (ticket de la rama según la plantilla), o ''. */
   prefix: string;
+  /** Extensión que genera el mensaje ("Commit Messages for Claude Code 0.2.0"), o null = copia integrada. */
+  claudeEngine: string | null;
 }
 
 // ------------------------------------------------------------------ Log

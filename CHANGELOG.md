@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.1
+
+- El botón **Generar con Claude** indica quién genera el mensaje: con la extensión *Commit Messages for
+  Claude Code* (0.2.0 o posterior) muestra la etiqueta **extensión** y su versión en el tooltip; sin
+  ella, el tooltip dice que usa el generador integrado.
+
 ## 0.20.0
 
 - **Generar con Claude** usa la extensión *Commit Messages for Claude Code* (0.2.0 o posterior) cuando

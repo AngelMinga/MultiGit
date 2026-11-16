@@ -78,6 +78,17 @@ interface ClaudeCommitApi {
 /** Ids de la extensión: el actual del Marketplace y el de la 0.1.0. */
 const CLAUDE_COMMIT_IDS = ['angelminga.commit-messages-for-claude-code', 'angelminga.claude-commit'];
 
+/** La extensión instalada con API (0.2.0 o posterior), para mostrar en el botón cuál se usa. */
+export function claudeCommitExtension(): { name: string; version: string } | undefined {
+  for (const id of CLAUDE_COMMIT_IDS) {
+    const ext = vscode.extensions.getExtension(id);
+    const version = String(ext?.packageJSON?.version ?? '');
+    const [major = 0, minor = 0] = version.split('.').map(Number);
+    if (ext && (major > 0 || minor >= 2)) return { name: 'Commit Messages for Claude Code', version };
+  }
+  return undefined;
+}
+
 /**
  * La extensión Commit Messages for Claude Code, si está instalada y tiene la API (v1). Si no, MultiGit usa
  * su copia de esos módulos (src/ai).

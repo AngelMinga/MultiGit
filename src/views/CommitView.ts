@@ -14,6 +14,7 @@ import {
 } from '../git/commitMessage';
 import {
   CancelledError,
+  claudeCommitExtension,
   generateCommitMessage,
   NoChangesError,
   readClaudeSettings,
@@ -51,6 +52,8 @@ export class CommitView implements vscode.WebviewViewProvider, vscode.Disposable
       tree.onDidChangeChecked(() => this.postState()),
       // La rama (y con ella el ticket) puede cambiar.
       manager.onDidChange(() => this.postState()),
+      // Instalar o quitar Commit Messages for Claude Code cambia quién genera el mensaje.
+      vscode.extensions.onDidChange(() => this.postState()),
       vscode.workspace.onDidChangeConfiguration((e) => {
         if (e.affectsConfiguration('multigit.commit')) this.postState();
       }),
@@ -363,6 +366,7 @@ export class CommitView implements vscode.WebviewViewProvider, vscode.Disposable
       busy: this.busy,
       generating: this.generation !== undefined,
       prefix: this.prefix(),
+      claudeEngine: ((ext) => (ext ? `${ext.name} ${ext.version}` : null))(claudeCommitExtension()),
     };
     void postToWebview(this.view.webview, { type: 'commit/state', payload: state });
   }

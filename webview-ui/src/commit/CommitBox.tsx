@@ -11,7 +11,7 @@ const OPTIONS_KEY = 'multigit.commitOptions';
 const AUTHOR_RE = /^[^<>\n]+ <[^<>\s@]+@[^<>\s]+>$/;
 
 export function CommitBox() {
-  const [state, setState] = useState<CommitState>({ repos: [], total: 0, summary: '', busy: false, generating: false, prefix: '' });
+  const [state, setState] = useState<CommitState>({ repos: [], total: 0, summary: '', busy: false, generating: false, prefix: '', claudeEngine: null });
   const [message, setMessage] = useState(() => readDraft());
   const [amend, setAmend] = useState(false);
   // Opciones del commit (engranaje, como "Commit Options" de IntelliJ). Sign-off y hooks se recuerdan;
@@ -115,11 +115,17 @@ export function CommitBox() {
         ) : (
           <button
             className="claude-btn"
-            title={t('Write the message with Claude from the checked files (⌘G). Click again for another proposal.')}
+            title={[
+              t('Write the message with Claude from the checked files (⌘G). Click again for another proposal.'),
+              state.claudeEngine
+                ? t('Uses the extension {0}.', state.claudeEngine)
+                : t('Uses the built-in generator (install Commit Messages for Claude Code 0.2.0 or later to use the extension).'),
+            ].join('\n')}
             disabled={state.busy || state.total === 0}
             onClick={generate}
           >
             <ClaudeIcon /> {t('Generate with Claude')}
+            {state.claudeEngine && <span className="claude-engine" title={state.claudeEngine}>{t('extension')}</span>}
           </button>
         )}
       </div>

@@ -1949,3 +1949,13 @@ body.vscode-light .mg-word {
   padding: 2px 12px 4px;
   white-space: nowrap;
 }
+
+/* "Generate with Claude" con la extensión Commit Messages for Claude Code instalada. */
+.claude-engine {
+  font-size: 10px;
+  padding: 0 4px;
+  border-radius: 3px;
+  border: 1px solid #d97757;
+  color: #d97757;
+  line-height: 14px;
+}

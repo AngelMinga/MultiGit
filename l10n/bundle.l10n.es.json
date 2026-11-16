@@ -809,5 +809,8 @@
   "{0} commits in {1}": "{0} commits en {1}",
   "{0} commits in {1} repositories": "{0} commits en {1} repositorios",
   "{0} did not exist after {1}: it will be deleted from your working tree.": "{0} no existía tras {1}: se borrará de tu working tree.",
-  "{0} is replaced with its version of {1}. Your uncommitted changes to that file are lost.": "{0} se reemplaza por su versión de {1}. Se pierden los cambios sin commit de ese archivo."
+  "{0} is replaced with its version of {1}. Your uncommitted changes to that file are lost.": "{0} se reemplaza por su versión de {1}. Se pierden los cambios sin commit de ese archivo.",
+  "Uses the extension {0}.": "Usa la extensión {0}.",
+  "Uses the built-in generator (install Commit Messages for Claude Code 0.2.0 or later to use the extension).": "Usa el generador integrado (instala Commit Messages for Claude Code 0.2.0 o posterior para usar la extensión).",
+  "extension": "extensión"
 }
