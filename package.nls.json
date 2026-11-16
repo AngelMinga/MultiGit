@@ -169,7 +169,7 @@
   "setting.commitChecks.largeFileMB": "Warn about files larger than this size (MB). `0`: do not check.",
   "command.selectRepoGroup": "Select Repository Group…",
   "command.newRepoGroup": "New Repository Group…",
-  "setting.repoGroups": "Repository groups: group name → repository names (`*` allowed), e.g. `{ \"front\": [\"mftheme\", \"mf*\"] }`. With an active group (filter button in Repositories), MultiGit works only with its repositories.",
+  "setting.repoGroups": "Repository groups: group name → repository names (`*` allowed), e.g. `{ \"front\": [\"web-theme\", \"web-*\"] }`. With an active group (filter button in Repositories), MultiGit works only with its repositories.",
   "view.compareFiles": "Compare",
   "command.branch.compareFiles": "Compare Files with Current",
   "command.compareFiles.show": "Compare Files",
@@ -238,5 +238,6 @@
   "command.shelf.unshelveFiles": "Unshelve Selected Files",
   "command.shelf.rename": "Rename Shelf…",
   "command.shelf.delete": "Delete Shelf…",
-  "command.shelf.openDiff": "Show Diff"
+  "command.shelf.openDiff": "Show Diff",
+  "command.blame.close": "Close Annotations"
 }

@@ -563,7 +563,7 @@ export class BranchActions {
       title: t('New worktree from \'{0}\' — {1}', refName(ref), scope.label),
       prompt: single
         ? t('Worktree folder')
-        : t('Base folder: each repository goes in a subfolder with its relative path (e.g. <base>/mftheme)'),
+        : t('Base folder: each repository goes in a subfolder with its relative path (e.g. <base>/web-theme)'),
       value: `${anchor}-worktrees${path.sep}${folder}`,
       validateInput: (v) => (path.isAbsolute(v.trim()) ? undefined : t('Use an absolute path')),
     });

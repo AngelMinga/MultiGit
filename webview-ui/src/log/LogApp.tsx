@@ -66,7 +66,7 @@ const MULTI_MENU: MultiItem[] = [
   { action: 'squash', label: 'Squash Commits…', when: (s) => s.repos === 1 },
 ];
 
-type FileItem = { action: LogFileAction; label: string; when?: (f: PushFile, web: string | null) => boolean } | 'sep';
+type FileItem = { action: LogFileAction; label: string; when?: (f: PushFile, web: string | null) => boolean; /** Vale con varios archivos elegidos. */ multi?: boolean } | 'sep';
 
 /** Menú de un archivo del detalle del commit. */
 const FILE_MENU: FileItem[] = [
@@ -75,6 +75,9 @@ const FILE_MENU: FileItem[] = [
   { action: 'openRevision', label: 'Open Repository Version', when: (f) => f.status !== 'D' },
   'sep',
   { action: 'getFromRevision', label: 'Get from Revision…' },
+  'sep',
+  { action: 'cherryPickFiles', label: 'Cherry-Pick Selected Changes', multi: true },
+  { action: 'revertFiles', label: 'Revert Selected Changes', multi: true },
   'sep',
   { action: 'showHistory', label: 'Show History', when: (f) => f.status !== 'D' },
   { action: 'openOnRemote', label: 'Open on {web}', when: (_f, web) => !!web },
@@ -147,7 +150,9 @@ export function LogApp() {
       return next;
     });
   const [menu, setMenu] = useState<{ row: LogRow; x: number; y: number } | null>(null);
-  const [fileMenu, setFileMenu] = useState<{ file: PushFile; base: string | null | undefined; x: number; y: number } | null>(null);
+  const [fileMenu, setFileMenu] = useState<{ file: PushFile; base: string | null | undefined; files: PushFile[]; x: number; y: number } | null>(null);
+  /** Archivos elegidos en el detalle (Ctrl/Cmd+clic): por commit y grupo (`hash:índice`). */
+  const [fileSel, setFileSel] = useState<{ key: string; paths: Set<string> }>({ key: '', paths: new Set() });
   const [branchMenu, setBranchMenu] = useState<{ target: BranchTarget; x: number; y: number } | null>(null);
   // Los menús contextuales se cierran al pulsar fuera (también fuera del panel: el webview pierde el
   // foco), con Escape, al desplazar o al cambiar el tamaño.
@@ -534,11 +539,22 @@ export function LogApp() {
                             depth={g.title ? 1 : 0}
                             collapsed={!!g.title}
                             onOpen={(f) => post({ type: 'log/openDiff', payload: { repoId: selected.repoId, hash: selected.hash, file: f, base: g.base } })}
+                            selected={fileSel.key === key ? fileSel.paths : undefined}
+                            onSelect={(f, toggle) =>
+                              setFileSel((prev) => {
+                                const paths = new Set(prev.key === key && toggle ? prev.paths : []);
+                                if (toggle && paths.has(f.path)) paths.delete(f.path);
+                                else paths.add(f.path);
+                                return { key, paths };
+                              })
+                            }
                             onContextMenu={(f, x, y) => {
                               setMenu(null);
                               setBranchMenu(null);
+                              // Clic derecho fuera de la selección: se elige solo ese archivo.
+                              if (!(fileSel.key === key && fileSel.paths.has(f.path))) setFileSel({ key, paths: new Set([f.path]) });
                               // En un commit normal el diff es contra su padre (sin base explícita).
-                              setFileMenu({ file: f, base: details!.groups.length > 1 ? g.base : undefined, x, y });
+                              setFileMenu({ file: f, base: details!.groups.length > 1 ? g.base : undefined, files: fileSel.key === key && fileSel.paths.has(f.path) ? g.files.filter((x) => fileSel.paths.has(x.path)) : [f], x, y });
                             }}
                           />
                         ) : null,
@@ -677,10 +693,11 @@ export function LogApp() {
       {/* ---------------------------------------------------- menú contextual de un archivo del commit */}
       {fileMenu && selected && (() => {
         const web = repoMap.get(selected.repoId)?.web ?? null;
-        const items = tidy(FILE_MENU.filter((i) => i === 'sep' || !i.when || i.when(fileMenu.file, web)));
+        const many = fileMenu.files.length > 1;
+        const items = tidy(FILE_MENU.filter((i) => i === 'sep' || ((!many || i.multi) && (!i.when || i.when(fileMenu.file, web)))));
         return (
           <div className="menu context" style={{ left: Math.min(fileMenu.x, window.innerWidth - 240), top: Math.max(4, Math.min(fileMenu.y, window.innerHeight - 240)) }} role="menu">
-            <div className="menu-title muted small">{fileMenu.file.path.split('/').pop()}</div>
+            <div className="menu-title muted small">{many ? t('{0} file(s)', fileMenu.files.length) : fileMenu.file.path.split('/').pop()}</div>
             {items.map((item, i) =>
               item === 'sep' ? (
                 <div key={`sep${i}`} className="menu-sep" />
@@ -692,7 +709,14 @@ export function LogApp() {
                     setFileMenu(null);
                     post({
                       type: 'log/fileAction',
-                      payload: { action: item.action, repoId: selected.repoId, hash: selected.hash, file: fileMenu.file, ...(fileMenu.base !== undefined ? { base: fileMenu.base } : {}) },
+                      payload: {
+                        action: item.action,
+                        repoId: selected.repoId,
+                        hash: selected.hash,
+                        file: fileMenu.file,
+                        files: fileMenu.files,
+                        ...(fileMenu.base !== undefined ? { base: fileMenu.base } : {}),
+                      },
                     });
                   }}
                 >

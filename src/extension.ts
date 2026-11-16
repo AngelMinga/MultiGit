@@ -4,6 +4,7 @@ import type { Core } from './activation/core';
 import { registerBranches } from './activation/branches';
 import { registerChanges } from './activation/changes';
 import { registerFileActions } from './activation/files';
+import type { BlameAnnotations } from './views/blameAnnotations';
 import { registerLog } from './activation/log';
 import { registerOperations } from './activation/operations';
 import { registerRepositories } from './activation/repositories';
@@ -42,6 +43,8 @@ export interface MultiGitTestApi {
   compareFiles: CompareFilesTree;
   /** Acciones de ramas (checkout, merge…) de todos los repos. */
   branchActions: BranchActions;
+  /** Annotate with Git Blame del editor. */
+  blame: BlameAnnotations;
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<MultiGitTestApi> {
@@ -92,7 +95,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
   const changes = logView && area('Changes', () => registerChanges(core, logView));
   const stashes = area('Stashes', () => registerStashes(core));
   const compareFiles = area(t('Compare'), () => registerCompare(core));
-  if (logView && changes) area(t('File actions'), () => registerFileActions(core, logView, changes));
+  const fileArea = logView && changes ? area(t('File actions'), () => registerFileActions(core, logView, changes)) : undefined;
   if (repositories) area(t('Operations'), () => registerOperations(core, repositories.treeView));
   area(t('Project'), () => registerToolbar(core));
   if (failed.length) {
@@ -155,6 +158,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
     branchActions: actions,
     stashes: stashes?.tree as StashesTree,
     compareFiles: compareFiles as CompareFilesTree,
+    blame: fileArea?.blame as BlameAnnotations,
   };
 }
 

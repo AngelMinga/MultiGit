@@ -23,6 +23,16 @@ export class GitContentProvider implements vscode.TextDocumentContentProvider {
     return vscode.Uri.from({ scheme: GitContentProvider.scheme, path: `/${filePath}`, query: JSON.stringify(query) });
   }
 
+  /** Datos de una uri de este esquema (repo, revisión y ruta). */
+  static parse(uri: vscode.Uri): Query | undefined {
+    if (uri.scheme !== GitContentProvider.scheme) return undefined;
+    try {
+      return JSON.parse(uri.query) as Query;
+    } catch {
+      return undefined;
+    }
+  }
+
   async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
     const { root, ref, path: filePath } = JSON.parse(uri.query) as Query;
     if (!ref) return '';

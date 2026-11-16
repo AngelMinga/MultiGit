@@ -506,3 +506,38 @@ describe('package.json', () => {
     assert.deepEqual(repeated, []);
   });
 });
+
+describe('Annotate with Git Blame', () => {
+  it('anota el archivo con el autor de cada línea, se actualiza al editar y se cierra', async () => {
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga.multigit')!.activate();
+    const repo = api.manager.all.find((r) => r.name === 'shell')!;
+    const file = vscode.Uri.file(path.join(repo.root, 'package.json'));
+    await vscode.commands.executeCommand('multigit.file.blame', file);
+    // El comando no espera a terminar: se espera a que el archivo quede anotado.
+    let lines = api.blame.linesOf(file);
+    for (let i = 0; i < 50 && !lines; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      lines = api.blame.linesOf(file);
+    }
+    const editor = vscode.window.activeTextEditor!;
+    assert.equal(editor.document.uri.fsPath, file.fsPath);
+    assert.ok(lines?.length, 'el archivo queda anotado');
+    // VS Code cuenta la línea vacía tras el último salto de línea; git blame no.
+    assert.equal(lines.length, editor.document.lineCount - (editor.document.getText().endsWith('\n') ? 1 : 0));
+    assert.ok(lines.every((l) => l.hash.length === 40 && l.summary !== undefined));
+
+    // Una línea nueva sin guardar aparece como "sin commit".
+    await editor.edit((b) => b.insert(new vscode.Position(0, 0), 'nueva\n'));
+    let fresh: readonly { hash: string }[] | undefined;
+    for (let i = 0; i < 40 && fresh?.[0]?.hash !== '0'.repeat(40); i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      fresh = api.blame.linesOf(file);
+    }
+    assert.equal(fresh?.[0]?.hash, '0'.repeat(40));
+    await vscode.commands.executeCommand('undo');
+
+    await vscode.commands.executeCommand('multigit.blame.close');
+    assert.equal(api.blame.linesOf(file), undefined);
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+  });
+});

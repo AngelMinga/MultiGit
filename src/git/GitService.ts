@@ -300,6 +300,17 @@ export class GitService {
     return parseNameStatusZ(await this.exec(['diff', '--name-status', '-z', '-M', ref, '--']));
   }
 
+  /**
+   * `git blame --line-porcelain` de un archivo: en `rev`, o del working tree; con `contents`, del texto
+   * del editor aunque no esté guardado.
+   */
+  blame(filePath: string, options: { rev?: string; contents?: string } = {}): Promise<string> {
+    const args = ['-c', 'core.quotepath=false', 'blame', '--line-porcelain'];
+    if (options.rev) args.push(options.rev);
+    else if (options.contents !== undefined) args.push('--contents', '-');
+    return this.exec([...args, '--', filePath], options.contents !== undefined && !options.rev ? { input: options.contents } : {});
+  }
+
   /** Contenido de `filePath` en `ref` (`git show ref:path`). */
   showFile(ref: string, filePath: string): Promise<string> {
     return this.exec(['show', `${ref}:${filePath}`]);
@@ -932,6 +943,16 @@ export class GitService {
   /** Patch de un commit (`git format-patch -1 --stdout`): con autor, fecha y mensaje, como "Create Patch" del log. */
   commitPatch(hash: string): Promise<string> {
     return this.exec(['-c', 'core.quotepath=false', 'format-patch', '-1', '--stdout', '--binary', '--no-color', hash]);
+  }
+
+  /**
+   * Patch de algunos archivos de un commit (Cherry-Pick / Revert Selected Changes): contra `base` (otro
+   * padre de un merge) o el primer padre; `reverse` lo da al revés, para deshacer esos cambios.
+   */
+  async commitFilesPatch(hash: string, base: string | null | undefined, paths: readonly string[], reverse: boolean): Promise<string> {
+    const from = base ?? ((await this.revisionExists(`${hash}^`)) ? `${hash}^` : (await this.exec(['hash-object', '-t', 'tree', '--stdin'], { input: '' })).trim());
+    const [a, b] = reverse ? [hash, from] : [from, hash];
+    return this.exec(['-c', 'core.quotepath=false', 'diff', '--binary', '--no-color', '--no-ext-diff', '-M', a, b, '--', ...paths]);
   }
 
   /** Patch de varios commits: uno tras otro, del más viejo al más nuevo (`git apply` los aplica en orden). */

@@ -341,8 +341,9 @@ export class CommitView implements vscode.WebviewViewProvider, vscode.Disposable
         return;
       }
       const text = error instanceof Error ? error.message : String(error);
-      const retry = await vscode.window.showErrorMessage(`MultiGit (Claude): ${text}`, 'Reintentar');
-      if (retry) {
+      const RETRY = t('Retry');
+      const retry = await vscode.window.showErrorMessage(`MultiGit (Claude): ${text}`, RETRY);
+      if (retry === RETRY) {
         this.generation = undefined;
         await this.generate(current);
       }

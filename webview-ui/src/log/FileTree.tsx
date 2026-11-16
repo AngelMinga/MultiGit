@@ -41,7 +41,14 @@ function buildTree(files: readonly PushFile[]): Dir {
   return compact(root);
 }
 
-export function FileTree(props: { files: readonly PushFile[]; onOpen: (file: PushFile) => void; onContextMenu?: (file: PushFile, x: number, y: number) => void; depth?: number; /** Carpetas plegadas al empezar. */ collapsed?: boolean }) {
+export function FileTree(props: {
+  files: readonly PushFile[];
+  onOpen: (file: PushFile) => void;
+  onContextMenu?: (file: PushFile, x: number, y: number) => void;
+  /** Archivos elegidos (por ruta) y clic: normal o Ctrl/Cmd (añadir o quitar). */
+  selected?: ReadonlySet<string>;
+  onSelect?: (file: PushFile, toggle: boolean) => void;
+  depth?: number; /** Carpetas plegadas al empezar. */ collapsed?: boolean }) {
   const tree = useMemo(() => buildTree(props.files), [props.files]);
   // Plegadas si se pide (grupos de un merge) o si hay muchos archivos (como IntelliJ).
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(props.collapsed || props.files.length > 25 ? allDirs(tree) : []));
@@ -70,8 +77,9 @@ export function FileTree(props: { files: readonly PushFile[]; onOpen: (file: Pus
     ...dir.files.map((f) => (
       <li
         key={`f:${f.status}:${f.oldPath ?? ''}:${f.path}`}
-        className="row file-row"
+        className={`row file-row${props.selected?.has(f.path) ? ' selected' : ''}`}
         style={{ paddingLeft: 8 + depth * 14 + 14 }}
+        onClick={(e) => props.onSelect?.(f, e.metaKey || e.ctrlKey)}
         title={f.oldPath ? `${f.oldPath} → ${f.path}` : f.path}
         onDoubleClick={() => props.onOpen(f)}
         onContextMenu={(e) => {

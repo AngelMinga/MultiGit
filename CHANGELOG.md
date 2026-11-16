@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.22.0
+
+- **Annotate with Git Blame** propio, como IntelliJ: fecha y autor por bloque de líneas con color según la
+  antigüedad, líneas sin commit, actualización al editar y, al pasar el ratón, Show in Git Log, Show Diff,
+  Annotate Previous Revision y Copy hash. También con clic derecho en los números de línea.
+- Git Log: **Cherry-Pick Selected Changes** y **Revert Selected Changes** con uno o varios archivos de un
+  commit (Ctrl/Cmd+clic en el detalle).
+- Textos que faltaba traducir (copiar hash, título del Reset, Reintentar de Claude) y ejemplos genéricos en
+  la documentación.
+
 ## 0.21.0
 
 - Vista **Shelf** (como IntelliJ), separada de Stashes: Unshelve, **Unshelve de archivos sueltos**
@@ -428,7 +438,7 @@ Primera versión completa (Fases 0 a 8 de PLAN.md).
 ## 0.0.3
 
 - Fase 2: popup de ramas multi-repo (ramas comunes, favoritas, checkout, new branch, merge, rebase, compare, worktree, update, push, rename y delete) con preflight y resumen.
-- mflogin y el resto de repos con color 11 pasan de marrón a gris azulado.
+- Los repos con color 11 pasan de marrón a gris azulado.
 
 ## 0.0.1
 

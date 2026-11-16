@@ -83,7 +83,7 @@
   "Applying stashed changes on {0}": "Aplicando los cambios guardados en {0}",
   "Asking Claude…": "Consultando a Claude…",
   "Back to Resolving": "Volver a resolver",
-  "Base folder: each repository goes in a subfolder with its relative path (e.g. <base>/mftheme)": "Carpeta base: cada repo irá en una subcarpeta con su ruta relativa (p. ej. <base>/mftheme)",
+  "Base folder: each repository goes in a subfolder with its relative path (e.g. <base>/web-theme)": "Carpeta base: cada repo irá en una subcarpeta con su ruta relativa (p. ej. <base>/web-theme)",
   "Binary files cannot be committed partially.": "Los archivos binarios no admiten commit parcial.",
   "Branch": "Rama",
   "Branch '{0}' of {1} → {2} (reset --{3}).": "Rama '{0}' de {1} → {2} (reset --{3}).",
@@ -823,5 +823,16 @@
   "shelf emptied and deleted": "shelf vacío y borrado",
   "{0} file(s) left in the shelf": "quedan {0} archivo(s) en el shelf",
   "Rename Shelf": "Renombrar shelf",
-  "Rename shelf '{0}' to '{1}'": "Renombrar el shelf '{0}' a '{1}'"
+  "Rename shelf '{0}' to '{1}'": "Renombrar el shelf '{0}' a '{1}'",
+  "Not Committed Yet": "Sin commit todavía",
+  "Show in Git Log": "Ver en el Git Log",
+  "Annotate Previous Revision": "Anotar la revisión anterior",
+  "MultiGit: {0} is not in Git yet: there is nothing to annotate.": "MultiGit: {0} todavía no está en Git: no hay nada que anotar.",
+  "MultiGit: could not annotate {0}: {1}": "MultiGit: no se pudo anotar {0}: {1}",
+  "The changes of {0} cannot be reverted cleanly": "Los cambios de {0} no se pueden revertir limpio",
+  "The changes of {0} do not apply cleanly": "Los cambios de {0} no encajan limpio",
+  "Revert Selected Changes of {0} in {1}": "Revert Selected Changes de {0} en {1}",
+  "Cherry-Pick Selected Changes of {0} in {1}": "Cherry-Pick Selected Changes de {0} en {1}",
+  "$(copy) Hash {0} copied": "$(copy) Hash {0} copiado",
+  "Reset of '{0}' to {1} — {2}": "Reset de '{0}' a {1} — {2}"
 }

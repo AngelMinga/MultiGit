@@ -169,7 +169,7 @@
   "setting.commitChecks.largeFileMB": "Avisar de archivos de más de este tamaño (MB). `0`: no revisar.",
   "command.selectRepoGroup": "Elegir grupo de repositorios…",
   "command.newRepoGroup": "Nuevo grupo de repositorios…",
-  "setting.repoGroups": "Grupos de repositorios: nombre del grupo → nombres de repos (admite `*`), p. ej. `{ \"front\": [\"mftheme\", \"mf*\"] }`. Con un grupo activo (botón de filtro en Repositorios), MultiGit trabaja solo con sus repositorios.",
+  "setting.repoGroups": "Grupos de repositorios: nombre del grupo → nombres de repos (admite `*`), p. ej. `{ \"front\": [\"web-theme\", \"web-*\"] }`. Con un grupo activo (botón de filtro en Repositorios), MultiGit trabaja solo con sus repositorios.",
   "view.compareFiles": "Comparar",
   "command.branch.compareFiles": "Comparar archivos con la actual",
   "command.compareFiles.show": "Comparar archivos",
@@ -238,5 +238,6 @@
   "command.shelf.unshelveFiles": "Unshelve de los archivos elegidos",
   "command.shelf.rename": "Renombrar shelf…",
   "command.shelf.delete": "Borrar shelf…",
-  "command.shelf.openDiff": "Ver diff"
+  "command.shelf.openDiff": "Ver diff",
+  "command.blame.close": "Cerrar anotaciones"
 }

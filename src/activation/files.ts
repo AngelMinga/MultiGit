@@ -3,19 +3,30 @@ import * as vscode from 'vscode';
 import type { ChangesActions } from '../views/changesActions';
 import type { ChangeNode, ChangesTree } from '../views/ChangesTree';
 import { FileActions } from '../views/fileActions';
+import { BlameAnnotations } from '../views/blameAnnotations';
 import type { LogView } from '../webview/LogView';
 import type { Core } from './core';
 import { t } from '../i18n';
 
 type FileArg = vscode.Uri | ChangeNode | undefined;
 
-export function registerFileActions(core: Core, logView: LogView, changes: { tree: ChangesTree; actions: ChangesActions }): void {
+export function registerFileActions(core: Core, logView: LogView, changes: { tree: ChangesTree; actions: ChangesActions }): { blame: BlameAnnotations } {
   const fileActions = new FileActions(core.manager, logView, changes.actions, changes.tree);
+  const blame = new BlameAnnotations(core.manager, (repo, hash) => logView.navigateTo(hash, [repo.root]));
+  /** Annotate: el archivo pedido (se abre si hace falta) o el editor activo (también una revisión). */
+  const annotate = async (arg: FileArg) => {
+    const active = vscode.window.activeTextEditor;
+    if (!arg && active) return blame.toggle(active);
+    const target = fileActions.resolve(arg);
+    if (!target) return undefined;
+    return blame.toggle(await vscode.window.showTextDocument(target.uri, { preview: false }));
+  };
   core.track(
+    blame,
     ...(
       [
         ['showHistory', (a) => fileActions.showHistory(a)],
-        ['blame', (a) => fileActions.blame(a)],
+        ['blame', (a) => annotate(a)],
         ['showDiff', (a) => fileActions.showDiff(a)],
         ['compareRevision', (a) => fileActions.compareWithRevision(a)],
         ['compareRef', (a) => fileActions.compareWithRef(a)],
@@ -49,4 +60,5 @@ export function registerFileActions(core: Core, logView: LogView, changes: { tre
       vscode.commands.registerCommand(`multigit.file.${id}`, (arg?: FileArg) => void core.popup.safely(async () => run(arg))),
     ),
   );
+  return { blame };
 }

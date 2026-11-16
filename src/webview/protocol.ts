@@ -355,7 +355,15 @@ export type LogAction =
 export type LogMultiAction = 'copyHashes' | 'cherryPick' | 'revert' | 'createPatch' | 'compareVersions' | 'squash';
 
 /** Acciones de un archivo del detalle de un commit (menú contextual). */
-export type LogFileAction = 'showDiff' | 'compareWithLocal' | 'openRevision' | 'getFromRevision' | 'showHistory' | 'openOnRemote';
+export type LogFileAction =
+  | 'showDiff'
+  | 'compareWithLocal'
+  | 'openRevision'
+  | 'getFromRevision'
+  | 'showHistory'
+  | 'openOnRemote'
+  | 'cherryPickFiles'
+  | 'revertFiles';
 
 // ------------------------------------------------------------------ Toolbar (Proyecto)
 
@@ -467,7 +475,7 @@ export type WebviewMessage =
   | { type: 'log/branchAction'; payload: { action: LogBranchAction; branch: string; repoIds: string[] } }
   /** `commits` en el orden del log (del más nuevo al más viejo). */
   | { type: 'log/multiAction'; payload: { action: LogMultiAction; commits: Array<{ repoId: string; hash: string }> } }
-  | { type: 'log/fileAction'; payload: { action: LogFileAction; repoId: string; hash: string; file: PushFile; base?: string | null } }
+  | { type: 'log/fileAction'; payload: { action: LogFileAction; repoId: string; hash: string; file: PushFile; base?: string | null; /** Archivos elegidos (Cherry-Pick / Revert Selected Changes). */ files?: PushFile[] } }
   | { type: 'log/refresh'; payload: Record<string, never> }
   | { type: 'log/resolveRef'; payload: { ref: string; repoIds: string[] } }
   | { type: 'toolbar/action'; payload: { action: ToolbarAction } }

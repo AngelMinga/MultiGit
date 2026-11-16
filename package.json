@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -943,6 +943,11 @@
         "title": "%command.shelf.openDiff%",
         "category": "MultiGit",
         "icon": "$(diff)"
+      },
+      {
+        "command": "multigit.blame.close",
+        "title": "%command.blame.close%",
+        "category": "MultiGit"
       }
     ],
     "menus": {
@@ -1978,6 +1983,10 @@
         {
           "command": "multigit.shelf.openDiff",
           "when": "false"
+        },
+        {
+          "command": "multigit.blame.close",
+          "when": "multigit.blameActive"
         }
       ],
       "multigit.changes.groupBy": [
@@ -2201,6 +2210,11 @@
           "submenu": "multigit.file.localHistoryMenu",
           "when": "resourceScheme == file && multigit.hasRepos",
           "group": "9_multigit@2"
+        },
+        {
+          "command": "multigit.blame.close",
+          "when": "multigit.blameActive",
+          "group": "multigit@9"
         }
       ],
       "multigit.changes.groupByMore": [
@@ -2287,6 +2301,18 @@
           "command": "multigit.patch.apply",
           "when": "resourceExtname =~ /^\\.(patch|diff)$/",
           "group": "7_multigit@1"
+        }
+      ],
+      "editor/lineNumber/context": [
+        {
+          "command": "multigit.file.blame",
+          "when": "!multigit.blameActive && multigit.hasRepos",
+          "group": "multigit@1"
+        },
+        {
+          "command": "multigit.blame.close",
+          "when": "multigit.blameActive",
+          "group": "multigit@1"
         }
       ]
     },

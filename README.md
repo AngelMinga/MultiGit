@@ -68,12 +68,12 @@ Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
   changelist; y en un commit del Git Log) lo guarda en un archivo o lo copia al portapapeles. **Apply
   Patch…** / **Apply Patch from Clipboard…** (⋯ de Changes, paleta, o clic derecho en un `.patch` /
   `.diff`) lo aplica al working tree. Un patch de varios repos lleva las rutas desde la carpeta común
-  (`mftheme/src/…`, igual que IntelliJ) y al aplicarlo cada archivo va a su repo; uno de un solo repo
+  (`web-theme/src/…`, igual que IntelliJ) y al aplicarlo cada archivo va a su repo; uno de un solo repo
   pregunta en cuál, marcando dónde encaja. Si no encaja limpio, ofrece **merge a 3 bandas** (deja
   conflictos para resolver).
 - **Repositorios**: cada repo con su color, rama actual, `↑` commits por subir / `↓` por bajar
   y un badge con los cambios sin commit.
-- **Grupos de repos** (botón de filtro en Repositorios): por ejemplo *front* = `mftheme`, `mf*`. Con un
+- **Grupos de repos** (botón de filtro en Repositorios): por ejemplo *front* = `web-theme`, `web-*`. Con un
   grupo activo, MultiGit trabaja solo con sus repos: vistas, popup de ramas, checkout, commit, push,
   pull, fetch, Git Log… El grupo se ve en la barra de estado y en el título de Repositorios. Se crean
   con *Nuevo grupo…* (o en `multigit.repoGroups`) y se borran con el ícono de papelera.
@@ -116,6 +116,12 @@ Annotate with Git Blame, Show Diff, Compare with Revision…, Compare with Branc
 **Show History** (Git Log de ese archivo; al elegir un commit se abre su diff), Show Current
 Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (historial local de VS Code).
 
+**Annotate with Git Blame** (también clic derecho en los números de línea), como IntelliJ: a la izquierda
+de cada bloque de líneas, fecha y autor del último cambio, con el fondo más intenso cuanto más reciente;
+las líneas sin commit se marcan aparte y se actualiza al editar. Al pasar el ratón: el commit y enlaces a
+**Show in Git Log**, **Show Diff**, **Annotate Previous Revision** (el archivo como estaba antes de ese
+cambio, también anotado) y Copy hash. *Close Annotations* en el mismo menú.
+
 ### Push y Pull
 
 - **Push Commits**: como IntelliJ, cada repo con su checkbox, destino `rama → origin : rama` (**New**
@@ -154,6 +160,9 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
   que elijas, aunque no sean seguidos).
 - Clic derecho en un archivo del detalle: Show Diff, **Compare with Local**, **Open Repository Version**,
   **Get from Revision…** (deja el archivo como estaba en ese commit), Show History y Open on GitHub / GitLab.
+  Con uno o varios archivos elegidos (Ctrl/Cmd+clic): **Cherry-Pick Selected Changes** y **Revert Selected
+  Changes**: solo esos cambios van a tu working tree (sin commit; merge a 3 bandas si no encajan) y el
+  mensaje queda propuesto en la caja de commit.
 - Tags (árbol de ramas del log y vista Ramas): **Push Tag…** y **Delete Tag…** (en local, o en local y
   en el remoto), en todos los repos que lo tienen.
 - Como IntelliJ, sobre un commit de la rama actual:
@@ -207,7 +216,7 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
 - **Preflight**: antes de una operación en varios repos (checkout, merge, rebase, pull, push…) se
   revisa el estado de todos. Si alguno la impide (conflictos, merge/rebase a medias, cambios sin
   commit cuando hacen falta), se muestra cuál y por qué y **no se toca ninguno**.
-- **Repo por repo**, con progreso (`3/9 mftheme…`). Si uno falla, se detiene y muestra el resumen
+- **Repo por repo**, con progreso (`3/9 web-theme…`). Si uno falla, se detiene y muestra el resumen
   ✅ ok / ❌ falló + motivo / ⏭ no ejecutado. En **merge, pull, update y rebase**, si un repo queda con
   **conflictos** se sigue con los demás y al final se resuelven todos juntos en la ventana Conflictos.
 - **Cambios sin commit**: pull y rebase usan `--autostash` (git aparta los cambios y los vuelve a

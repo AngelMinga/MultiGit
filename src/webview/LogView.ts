@@ -191,8 +191,9 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
           await this.runMultiAction(message.payload.action, message.payload.commits);
           break;
         case 'log/fileAction': {
-          const { action, repoId, hash, file, base } = message.payload;
-          await this.runFileAction(action, repoId, hash, file, base);
+          const { action, repoId, hash, file, base, files } = message.payload;
+          if (action === 'cherryPickFiles' || action === 'revertFiles') await this.applySelectedChanges(action === 'revertFiles', repoId, hash, files ?? [file], base);
+          else await this.runFileAction(action, repoId, hash, file, base);
           break;
         }
         default:
@@ -428,7 +429,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
     switch (action) {
       case 'copyHash':
         await vscode.env.clipboard.writeText(hash);
-        vscode.window.setStatusBarMessage(`$(copy) Hash ${short} copiado`, 3000);
+        vscode.window.setStatusBarMessage(t('$(copy) Hash {0} copied', short), 3000);
         return;
       case 'checkout':
         await runInRepos(this.manager, {
@@ -749,7 +750,7 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
         { label: 'Mixed', description: t('moves the branch; the changes stay unstaged (default)'), mode: 'mixed' as const },
         { label: 'Hard', description: t('moves the branch and DISCARDS all changes'), mode: 'hard' as const },
       ],
-      { title: `Reset de '${status.branch}' a ${hash.slice(0, 7)} — ${repo.name}`, placeHolder: t('Reset mode') },
+      { title: t("Reset of '{0}' to {1} — {2}", status.branch, hash.slice(0, 7), repo.name), placeHolder: t('Reset mode') },
     );
     if (!mode) return false;
 
@@ -950,7 +951,64 @@ export class LogView implements vscode.WebviewViewProvider, vscode.Disposable {
       case 'openOnRemote':
         await this.openOnRemote(repo, file.status === 'D' && base ? base : hash, file.status === 'D' ? (file.oldPath ?? file.path) : file.path);
         return;
+      default:
+        return;
     }
+  }
+
+  /**
+   * Cherry-Pick / Revert Selected Changes (como IntelliJ): solo esos archivos del commit van al working
+   * tree (sin commit). Si no encajan limpio se ofrece el merge a 3 bandas; el mensaje del commit queda
+   * propuesto en la caja de commit.
+   */
+  private async applySelectedChanges(reverse: boolean, repoId: string, hash: string, files: readonly PushFile[], base?: string | null): Promise<void> {
+    const repo = this.repoById(repoId);
+    if (!repo || !files.length) return;
+    const short = hash.slice(0, 7);
+    const paths = [...new Set(files.flatMap((f) => (f.oldPath ? [f.oldPath, f.path] : [f.path])))];
+    const patch = await repo.git.commitFilesPatch(hash, base, paths, reverse);
+    if (!patch.trim()) {
+      void vscode.window.showInformationMessage(t('MultiGit: there are no differences for a patch.'));
+      return;
+    }
+    let threeWay = false;
+    try {
+      await repo.git.applyPatch(patch, 'check');
+    } catch (error) {
+      const MERGE = t('Apply with 3-way Merge');
+      const choice = await vscode.window.showWarningMessage(
+        reverse ? t('The changes of {0} cannot be reverted cleanly', short) : t('The changes of {0} do not apply cleanly', short),
+        {
+          modal: true,
+          detail: [
+            ...files.map((f) => `  • ${f.path}`),
+            '',
+            errorText(error).split('\n').slice(0, 3).join(' '),
+            '',
+            t('With a 3-way merge the changes are combined with your versions; where they collide, conflicts are left to resolve.'),
+          ].join('\n'),
+        },
+        MERGE,
+      );
+      if (choice !== MERGE) return;
+      threeWay = true;
+    }
+    const results = await runInRepos(this.manager, {
+      title: reverse ? t('Revert Selected Changes of {0} in {1}', short, repo.name) : t('Cherry-Pick Selected Changes of {0} in {1}', short, repo.name),
+      repos: [repo],
+      continueAfterConflict: true,
+      run: async (r) => {
+        await r.git.applyPatch(patch, threeWay ? 'threeWay' : 'apply');
+        return t('{0} file(s)', files.length);
+      },
+    });
+    await this.manager.refreshStatusesNow([repo]);
+    if (!results?.length) return;
+    // Mensaje propuesto, como la changelist que crea IntelliJ.
+    const body = (await repo.git.commitInfo(hash).catch(() => undefined))?.body.trim() ?? '';
+    const subject = body.split('\n')[0] ?? '';
+    const message = reverse ? `Revert "${subject}"\n\nThis reverts part of commit ${hash}.` : body;
+    if (message) await vscode.commands.executeCommand('multigit.commit.prefill', message);
   }
 
   // ------------------------------------------------------------------ varios commits

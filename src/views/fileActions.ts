@@ -54,20 +54,6 @@ export class FileActions {
     if (target) await this.log.showFileHistory(target.repo.root, target.rel);
   }
 
-  /** Annotate with Git Blame: el blame integrado de VS Code en el editor. */
-  async blame(arg?: vscode.Uri | ChangeNode): Promise<void> {
-    const target = this.resolve(arg);
-    if (!target) return;
-    await vscode.window.showTextDocument(target.uri, { preview: false });
-    try {
-      await vscode.commands.executeCommand('git.blame.toggleEditorDecoration');
-    } catch {
-      void vscode.window.showWarningMessage(
-        t('MultiGit: this VS Code version has no built-in blame. Update VS Code or use Show History.'),
-      );
-    }
-  }
-
   /** Show Diff: cambios locales del archivo contra HEAD. */
   async showDiff(arg?: vscode.Uri | ChangeNode): Promise<void> {
     const target = this.resolve(arg);
