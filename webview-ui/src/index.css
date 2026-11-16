@@ -2320,3 +2320,34 @@ body.vscode-light .merge {
 .merge .mg-arrows button {
   padding: 0 2px;
 }
+/* Tintes suaves (como IntelliJ): en bloques grandes el color no debe tapar el código. */
+.merge {
+  --mg-conflict: rgba(255, 95, 95, 0.075);
+  --mg-conflict-edge: rgba(255, 110, 110, 0.45);
+  --mg-conflict-word: rgba(255, 110, 110, 0.28);
+  --mg-change: rgba(90, 145, 255, 0.075);
+  --mg-change-edge: rgba(110, 160, 255, 0.45);
+  --mg-change-word: rgba(110, 160, 255, 0.28);
+  --mg-insert: rgba(90, 200, 120, 0.075);
+  --mg-insert-edge: rgba(100, 200, 130, 0.45);
+}
+body.vscode-light .merge {
+  --mg-conflict: rgba(230, 60, 40, 0.06);
+  --mg-conflict-edge: rgba(220, 70, 60, 0.45);
+  --mg-conflict-word: rgba(220, 70, 60, 0.2);
+  --mg-change: rgba(40, 100, 220, 0.06);
+  --mg-change-edge: rgba(40, 100, 220, 0.4);
+  --mg-change-word: rgba(40, 100, 220, 0.18);
+  --mg-insert: rgba(40, 160, 70, 0.06);
+  --mg-insert-edge: rgba(40, 160, 70, 0.4);
+}
+/* Franja del color del bloque junto a los números (como el margen de IntelliJ). */
+.merge .mg-row:not(.mg-stable):not(.mg-done) .mg-nums {
+  box-shadow: inset -2px 0 0 var(--mg-change-edge);
+}
+.merge .mg-row.mg-conflict:not(.mg-done) .mg-nums {
+  box-shadow: inset -2px 0 0 var(--mg-conflict-edge);
+}
+.merge .mg-row.mg-same:not(.mg-done) .mg-nums {
+  box-shadow: inset -2px 0 0 var(--mg-insert-edge);
+}

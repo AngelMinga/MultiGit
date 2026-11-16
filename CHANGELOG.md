@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.24.2
+
+- Ventana de merge: colores mucho más suaves (un tinte sobre el fondo del editor), con el borde y una franja
+  junto a los números para marcar cada bloque, como IntelliJ. En bloques grandes el color ya no tapa el
+  código.
+
 ## 0.24.1
 
 - Conflictos sin operación de git en curso (al volver a aplicar cambios con Smart Checkout, Unshelve o un
