@@ -8,13 +8,19 @@ todos los repos juntos y haces checkout, commit, push, pull o un merge en todos 
 Language*) en menús, mensajes, diálogos y paneles. Los nombres de acciones heredados de IntelliJ
 (*Checkout*, *Rollback*, *Show Diff*…) se mantienen en inglés.
 
-<!--
-Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
-![Panel MultiGit: Changes, Commit, Repositorios y Ramas](images/panel.png)
-![Popup de ramas](images/branches-popup.png)
-![Git Log con grafo](images/git-log.png)
-![Diálogo Push Commits](images/push.png)
--->
+![Git Log de todos los repos: grafo, ramas locales y remotas por repo y filtro Repo con sus colores](images/git-log-branches.png)
+
+<p>
+  <img src="images/panel.png" alt="Panel MultiGit: Repositorios, Changes de varios repos, Commit con Generate with Claude y Ramas" width="260" align="top">
+  <img src="images/push.png" alt="Push Commits: los commits por subir de cada repo y sus archivos" width="560" align="top">
+</p>
+
+![Git Log de todos los repos mezclados por fecha, con la franja de color de cada uno](images/git-log.png)
+
+<p>
+  <img src="images/repo-menu.png" alt="Menú de un repositorio: ramas, Pull, Push, remotos y pull requests" width="320" align="top">
+  <img src="images/pull.png" alt="Pull con Merge, Rebase o --ff-only en uno o todos los repos" width="500" align="top">
+</p>
 
 ## Funciones
 
