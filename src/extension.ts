@@ -6,6 +6,7 @@ import { registerChanges } from './activation/changes';
 import { registerFileActions } from './activation/files';
 import type { BlameAnnotations } from './views/blameAnnotations';
 import type { ChangesPanel } from './views/ChangesPanel';
+import { ConflictNotice } from './views/conflictNotice';
 import { registerLog } from './activation/log';
 import { registerOperations } from './activation/operations';
 import { registerRepositories } from './activation/repositories';
@@ -130,6 +131,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
     return MergePanel.open(context.extensionUri, manager, repo, path.relative(repo.root, uri.fsPath).split(path.sep).join('/'));
   });
   core.track(vscode.commands.registerCommand('multigit.resolveConflicts', () => ConflictsPanel.open()));
+  // Aviso arriba de un archivo en conflicto y botón en la barra del editor, como IntelliJ.
+  core.track(new ConflictNotice(manager));
 
   // Botones del merge editor como la ventana de IntelliJ (↑↓ conflictos, Accept Left/Right, varita,
   // Apply Changes): cada uno ejecuta la acción equivalente del merge editor de VS Code.

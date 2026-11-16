@@ -159,22 +159,18 @@ export function MergeDialog() {
       }}
     >
       <div className="pane-toolbar mg-toolbar">
-        <button className="icon-btn" title={t('Previous conflict (Shift+F7)')} onClick={() => go(-1)} disabled={!unresolved.length}>
-          ↑
-        </button>
-        <button className="icon-btn" title={t('Next conflict (F7)')} onClick={() => go(1)} disabled={!unresolved.length}>
-          ↓
-        </button>
+        <button className="icon-btn codicon codicon-arrow-up" title={t('Previous conflict (Shift+F7)')} onClick={() => go(-1)} disabled={!unresolved.length} />
+        <button className="icon-btn codicon codicon-arrow-down" title={t('Next conflict (F7)')} onClick={() => go(1)} disabled={!unresolved.length} />
         <span className="mg-sep" />
         <span className="small muted">{t('Apply non-conflicting changes:')}</span>
-        <button className="link" disabled={!pendingChanges} onClick={() => applyNonConflicting('ours')}>
-          » {t('Left')}
+        <button className="link mg-tool" disabled={!pendingChanges} onClick={() => applyNonConflicting('ours')}>
+          <span className="codicon codicon-chevron-right" /> {t('Left')}
         </button>
-        <button className="link" disabled={!pendingChanges} onClick={() => applyNonConflicting('all')}>
-          ⇉ {t('All')}
+        <button className="link mg-tool" disabled={!pendingChanges} onClick={() => applyNonConflicting('all')}>
+          <span className="codicon codicon-merge" /> {t('All')}
         </button>
-        <button className="link" disabled={!pendingChanges} onClick={() => applyNonConflicting('theirs')}>
-          « {t('Right')}
+        <button className="link mg-tool" disabled={!pendingChanges} onClick={() => applyNonConflicting('theirs')}>
+          <span className="codicon codicon-chevron-left" /> {t('Right')}
         </button>
         <span className="mg-sep" />
         <button
@@ -183,7 +179,7 @@ export function MergeDialog() {
           onClick={resolveSimple}
           title={t('Resolve the conflicts where each side changed different words of the same lines')}
         >
-          🪄 {t('Resolve simple conflicts')}
+          <span className="codicon codicon-wand" /> {t('Resolve simple conflicts')}
           {simplePending.length ? ` (${simplePending.length})` : ''}
         </button>
         <span className="spacer" />
@@ -194,13 +190,13 @@ export function MergeDialog() {
 
       <div className="mg-head">
         <div title={state.yours}>
-          🔒 {t('Changes from')} <strong>{state.yours}</strong>
+          <span className="codicon codicon-lock mg-lock" /> {t('Changes from')} <strong>{state.yours}</strong>
         </div>
         <div>
           {t('Result')} <span className="muted small">{state.path}</span>
         </div>
         <div title={state.theirs}>
-          🔒 {t('Changes from')} <strong>{state.theirs}</strong>
+          <span className="codicon codicon-lock mg-lock" /> {t('Changes from')} <strong>{state.theirs}</strong>
         </div>
       </div>
 
@@ -268,7 +264,7 @@ export function MergeDialog() {
                       »
                     </button>
                     <button title={t('Ignore this change')} onClick={() => ignore(i, 'ours')}>
-                      ✕
+                      ×
                     </button>
                   </span>
                 )}
@@ -284,7 +280,7 @@ export function MergeDialog() {
                       «
                     </button>
                     <button title={t('Ignore this change')} onClick={() => ignore(i, 'theirs')}>
-                      ✕
+                      ×
                     </button>
                   </span>
                 )}

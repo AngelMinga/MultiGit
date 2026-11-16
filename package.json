@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.23.1",
+  "version": "0.24.0",
   "publisher": "angelminga-multigit",
   "license": "MIT",
   "repository": {
@@ -945,6 +945,12 @@
         "command": "multigit.blame.close",
         "title": "%command.blame.close%",
         "category": "MultiGit"
+      },
+      {
+        "command": "multigit.resolveFileConflicts",
+        "title": "%command.resolveFileConflicts%",
+        "category": "MultiGit",
+        "icon": "$(git-merge)"
       }
     ],
     "menus": {
@@ -1889,6 +1895,10 @@
         {
           "command": "multigit.blame.close",
           "when": "multigit.blameActive"
+        },
+        {
+          "command": "multigit.resolveFileConflicts",
+          "when": "multigit.activeFileConflicted"
         }
       ],
       "multigit.changes.groupBy": [
@@ -2196,6 +2206,11 @@
           "command": "multigit.merge.complete",
           "when": "isMergeEditor",
           "group": "navigation@7"
+        },
+        {
+          "command": "multigit.resolveFileConflicts",
+          "when": "multigit.activeFileConflicted",
+          "group": "navigation@-10"
         }
       ],
       "editor/title/context": [

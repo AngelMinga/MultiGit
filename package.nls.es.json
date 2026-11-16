@@ -238,5 +238,6 @@
   "command.shelf.rename": "Renombrar shelf…",
   "command.shelf.delete": "Borrar shelf…",
   "command.shelf.openDiff": "Ver diff",
-  "command.blame.close": "Cerrar anotaciones"
+  "command.blame.close": "Cerrar anotaciones",
+  "command.resolveFileConflicts": "Resolve Conflicts…"
 }

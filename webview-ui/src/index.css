@@ -2231,3 +2231,92 @@ body.resizing * {
     display: none;
   }
 }
+
+/* Ventana de merge con los colores de IntelliJ (nuevo tema): bloques con fondo suave y borde del mismo tono,
+   sin rayado; las palabras que cambian, un poco más intensas. */
+.merge {
+  --mg-conflict: #4a2d30;
+  --mg-conflict-edge: #7a3d42;
+  --mg-conflict-word: rgba(240, 110, 110, 0.32);
+  --mg-change: #26354d;
+  --mg-change-edge: #3d5a8a;
+  --mg-change-word: rgba(110, 160, 255, 0.32);
+  --mg-insert: #26402d;
+  --mg-insert-edge: #3f6b4b;
+  --mg-done: transparent;
+}
+body.vscode-light .merge {
+  --mg-conflict: #fde3df;
+  --mg-conflict-edge: #f0a49a;
+  --mg-conflict-word: rgba(220, 70, 60, 0.22);
+  --mg-change: #e1ebff;
+  --mg-change-edge: #9fbbef;
+  --mg-change-word: rgba(40, 100, 220, 0.2);
+  --mg-insert: #e3f6e3;
+  --mg-insert-edge: #9bd3a3;
+}
+.merge .mg-cell {
+  background: none;
+}
+.merge .mg-row:not(.mg-stable) {
+  border-top: 1px solid var(--mg-change-edge);
+  border-bottom: 1px solid var(--mg-change-edge);
+}
+.merge .mg-row.mg-conflict:not(.mg-done) {
+  border-color: var(--mg-conflict-edge);
+}
+.merge .mg-row.mg-done {
+  border-color: var(--vscode-panel-border, rgba(128, 128, 128, 0.25));
+}
+.merge .mg-row:not(.mg-stable) .mg-cell {
+  background: var(--mg-change);
+}
+.merge .mg-row.mg-conflict:not(.mg-done) .mg-cell {
+  background: var(--mg-conflict);
+}
+.merge .mg-row.mg-same .mg-cell {
+  background: var(--mg-insert);
+}
+.merge .mg-row.mg-done .mg-cell,
+.merge .mg-row .mg-cell.mg-handled {
+  background: none;
+}
+.merge .mg-row .mg-text,
+.merge .mg-row:not(.mg-stable) .mg-text,
+.merge .mg-conflict:not(.mg-done) .mg-text,
+.merge .mg-same .mg-text,
+.merge .mg-row.mg-done .mg-side .mg-text {
+  background: none;
+}
+.merge .mg-word {
+  background: var(--mg-change-word);
+}
+.merge .mg-conflict:not(.mg-done) .mg-word {
+  background: var(--mg-conflict-word);
+}
+.merge .mg-arrows button {
+  font-size: 14px;
+  font-weight: 400;
+  opacity: 0.85;
+}
+.merge .mg-arrows button:hover {
+  opacity: 1;
+}
+.merge .mg-tool .codicon,
+.merge .mg-lock {
+  font-size: 13px;
+  vertical-align: -2px;
+}
+.merge .mg-lock {
+  color: var(--vscode-editorWarning-foreground, #cca700);
+}
+.merge .mg-head > div {
+  background: var(--vscode-editorGroupHeader-tabsBackground, transparent);
+}
+.merge .mg-arrows {
+  flex-direction: row;
+  align-items: flex-start;
+}
+.merge .mg-arrows button {
+  padding: 0 2px;
+}

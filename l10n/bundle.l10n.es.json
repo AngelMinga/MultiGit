@@ -838,5 +838,8 @@
   "There are no uncommitted changes in the repositories.": "No hay cambios sin commit en los repositorios.",
   "Subject": "Asunto",
   "Date": "Fecha",
-  "Drag to resize · double-click to reset": "Arrastra para cambiar el ancho · doble clic para restablecerlo"
+  "Drag to resize · double-click to reset": "Arrastra para cambiar el ancho · doble clic para restablecerlo",
+  "File has unresolved merge conflicts": "El archivo tiene conflictos de merge sin resolver",
+  "Open Conflicts Window": "Abrir la ventana Conflicts",
+  "Merge Revisions for {0}": "Merge Revisions de {0}"
 }

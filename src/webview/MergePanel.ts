@@ -61,7 +61,7 @@ export class MergePanel implements vscode.Disposable {
     private readonly key: string,
   ) {
     MergePanel.open_.set(key, this);
-    const title = t('Merge: {0}', path.posix.basename(filePath));
+    const title = t('Merge Revisions for {0}', filePath);
     this.panel = vscode.window.createWebviewPanel('multigit.merge', title, vscode.ViewColumn.Active, {
       ...webviewOptions(extensionUri),
       retainContextWhenHidden: true,

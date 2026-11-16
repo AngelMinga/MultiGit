@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.24.0
+
+- **Ventana de merge** más parecida a IntelliJ: bloques con fondo suave (rojo en conflictos, azul en
+  cambios, verde si los dos lados hicieron lo mismo) y borde fino, sin rayado; iconos en la barra; » y ×
+  juntos; título *Merge Revisions for <archivo>*.
+- **Aviso de conflictos en el editor**, como IntelliJ: al abrir un archivo con conflictos sin resolver
+  aparece arriba *File has unresolved merge conflicts · Resolve Conflicts… · Open Conflicts Window*, y un
+  botón *Resolve Conflicts…* en la barra del editor.
+
 ## 0.23.1
 
 - Git Log con tamaño ajustable, como IntelliJ: bordes arrastrables de los paneles de ramas y de detalle, y

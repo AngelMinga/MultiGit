@@ -550,12 +550,22 @@ describe('Número del icono de MultiGit', () => {
     const before = api.badgeView.badge?.value ?? 0;
     const repo = api.manager.all.find((r) => r.name === 'shell')!;
     const file = path.join(repo.root, 'e2e-badge.txt');
-    writeFileSync(path.join(repo.root, 'package.json'), readFileSync(path.join(repo.root, 'package.json'), 'utf8') + ' ');
+    // Un archivo versionado y sin cambios (si ya estuviera modificado por otra prueba, el número no subiría).
+    const dirty = new Set(
+      execFileSync('git', ['status', '--porcelain'], { cwd: repo.root, encoding: 'utf8' })
+        .split('\n')
+        .map((l) => l.slice(3).trim())
+        .filter(Boolean),
+    );
+    const clean = execFileSync('git', ['ls-files'], { cwd: repo.root, encoding: 'utf8' })
+      .split('\n')
+      .find((f) => f && !dirty.has(f))!;
+    writeFileSync(path.join(repo.root, clean), readFileSync(path.join(repo.root, clean), 'utf8') + ' ');
     writeFileSync(file, 'nuevo\n');
     try {
       // Sin forzar nada: MultiGit tiene que notar el cambio en disco por su cuenta.
       let badge = api.badgeView.badge?.value ?? 0;
-      for (let i = 0; i < 60 && badge === before; i++) {
+      for (let i = 0; i < 150 && badge === before; i++) {
         await new Promise((r) => setTimeout(r, 100));
         badge = api.badgeView.badge?.value ?? 0;
       }
@@ -563,7 +573,7 @@ describe('Número del icono de MultiGit', () => {
       assert.equal(badge, before + 1);
       assert.equal(api.changesView.visible, false);
     } finally {
-      execFileSync('git', ['checkout', '-q', '--', 'package.json'], { cwd: repo.root });
+      execFileSync('git', ['checkout', '-q', '--', clean], { cwd: repo.root });
       execFileSync('rm', ['-f', file]);
       await api.manager.refreshStatusesNow([repo]);
     }

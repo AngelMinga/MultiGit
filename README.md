@@ -237,7 +237,9 @@ change, also annotated) and Copy hash. *Close Annotations* is in the same menu.
   `multigit.mergeTool: vscode` uses VS Code's merge editor.
 - **Conflicts** (like IntelliJ): the *Conflicts* window lists the conflicted files of every repo with the
   *Yours* / *Theirs* columns (with each branch's name). **Accept** one side (also several files at once),
-  **Resolve Manually** in the merge editor and **Finish** to continue the merge or rebase.
+  **Resolve Manually** in the merge editor and **Finish** to continue the merge or rebase. A file with
+  unresolved conflicts shows *File has unresolved merge conflicts · Resolve Conflicts…* at the top and a
+  *Resolve Conflicts…* button in the editor title bar, like IntelliJ.
 
 - **Credentials**: if git or ssh need a username, a password/token, the key passphrase or to confirm a
   server fingerprint, MultiGit asks in a VS Code input box (like the built-in Git extension). In a
