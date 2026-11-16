@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.22.0",
+  "version": "0.22.1",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -2342,8 +2342,8 @@
             "type": "string"
           },
           "default": [
-            "develop",
-            "production-lt"
+            "main",
+            "develop"
           ],
           "order": 2,
           "markdownDescription": "%setting.favoriteBranches%"

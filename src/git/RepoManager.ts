@@ -188,7 +188,7 @@ export class RepoManager implements vscode.Disposable {
 
   /** Ramas favoritas configuradas (`multigit.favoriteBranches`). */
   get favoriteBranches(): string[] {
-    return vscode.workspace.getConfiguration('multigit').get<string[]>('favoriteBranches', ['develop', 'production-lt']);
+    return vscode.workspace.getConfiguration('multigit').get<string[]>('favoriteBranches', ['main', 'develop']);
   }
 
   private async flushStatusRefresh(): Promise<void> {

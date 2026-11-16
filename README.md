@@ -1,331 +1,332 @@
 # MultiGit
 
-**Git multi-repositorio al estilo IntelliJ IDEA para VS Code.** Pensado para workspaces con varios
-repos independientes (por ejemplo, micro-frontends) que casi siempre están en la misma rama: ves
-todos los repos juntos y haces checkout, commit, push, pull o un merge en todos a la vez.
+**English** | [Español](README.es.md)
 
-**Idiomas**: inglés (por defecto) y español. MultiGit usa el idioma de VS Code (*Configure Display
-Language*) en menús, mensajes, diálogos y paneles. Los nombres de acciones heredados de IntelliJ
-(*Checkout*, *Rollback*, *Show Diff*…) se mantienen en inglés.
+**IntelliJ IDEA-style multi-repository Git for VS Code.** Built for workspaces with several independent
+repos (for example, micro-frontends) that are almost always on the same branch: you see all the repos
+together and check out, commit, push, pull or merge in all of them at once.
 
-![Git Log de todos los repos: grafo, ramas locales y remotas por repo y filtro Repo con sus colores](images/git-log-branches.png)
+**Languages**: English (default) and Spanish. MultiGit follows the VS Code display language
+(*Configure Display Language*) in menus, messages, dialogs and panels. Action names inherited from
+IntelliJ (*Checkout*, *Rollback*, *Show Diff*…) stay in English.
 
-<p>
-  <img src="images/panel.png" alt="Panel MultiGit: Repositorios, Changes de varios repos, Commit con Generate with Claude y Ramas" width="260" align="top">
-  <img src="images/push.png" alt="Push Commits: los commits por subir de cada repo y sus archivos" width="560" align="top">
-</p>
-
-![Git Log de todos los repos mezclados por fecha, con la franja de color de cada uno](images/git-log.png)
+![Git Log of every repo: graph, local and remote branches per repo, and the Repo filter with its colors](images/git-log-branches.png)
 
 <p>
-  <img src="images/repo-menu.png" alt="Menú de un repositorio: ramas, Pull, Push, remotos y pull requests" width="320" align="top">
-  <img src="images/pull.png" alt="Pull con Merge, Rebase o --ff-only en uno o todos los repos" width="500" align="top">
+  <img src="images/panel.png" alt="MultiGit panel: Repositories, Changes from several repos, Commit with Generate with Claude, and Branches" width="260" align="top">
+  <img src="images/push.png" alt="Push Commits: the commits to push in each repo and their files" width="560" align="top">
 </p>
 
-## Funciones
+![Git Log with the commits of every repo merged by date, each with its color stripe](images/git-log.png)
 
-### Panel MultiGit (barra lateral)
+<p>
+  <img src="images/repo-menu.png" alt="Repository menu: branches, Pull, Push, remotes and pull requests" width="320" align="top">
+  <img src="images/pull.png" alt="Pull with Merge, Rebase or --ff-only in one or all repos" width="500" align="top">
+</p>
 
-- **Proyecto** (en el Explorer): botones como la barra superior de IntelliJ, `[B] proyecto ⌄` (proyectos recientes)
-  y `⎇ rama ⌄` (popup de ramas; `⎇ 3 ramas` si difieren), y un resumen que abre el Git Log.
-- **Changes**: archivos con cambios de todos los repos, con checkboxes, en *Changes* y
-  *Unversioned Files* (y *Ignored Files* con *Show Ignored Files*). *Group By* Repository, Module y/o
-  Directory, como IntelliJ. Clic → diff
-  contra HEAD; los archivos en conflicto se abren en el merge editor.
-- **Commit**: mensaje, *Amend last commit*, contador de archivos marcados, **Commit** y
-  **Commit and Push…**. Hace commit solo de los archivos marcados, en cada repo que tenga
-  alguno, con el mismo mensaje.
-- **Opciones del commit** (engranaje ⚙ de la caja, como *Commit Options* de IntelliJ): **Autor** (commit
-  en nombre de otra persona, con los autores recientes de los repos para elegir), **Sign-off commit**
-  (`Signed-off-by:` al final del mensaje) y **Run Git hooks** (desmarcado = `--no-verify`). Sign-off y
-  hooks se recuerdan; el autor vale para el siguiente commit. Debajo de la caja se ve un resumen.
-- **Changelists** (como IntelliJ): Changes se divide en listas con nombre (*Changes* es la de por
-  defecto). **New Changelist…** (⋯ de Changes o clic derecho en una lista), **Move to Another
-  Changelist…** (`F6` o clic derecho; también **arrastrando** archivos de una lista a otra), **Set Active
-  Changelist**, **Edit Changelist…** (nombre y descripción) y **Delete Changelist** (sus archivos pasan a
-  *Changes*). Los cambios nuevos van a la lista activa y solo los de la activa entran marcados en el
-  commit. Si todos los archivos marcados son de una lista con descripción, esa descripción se propone
-  como mensaje. Mover un archivo sin versionar a una lista lo añade a Git. Se guardan por workspace.
-- **Comprobaciones antes del commit** (como las *Commit Checks* de IntelliJ): problemas que informa
-  VS Code (errores; también avisos si quieres), `TODO`/`FIXME` nuevos, marcas de conflicto, posibles
-  secretos (claves privadas, tokens, API keys, contraseñas) y archivos grandes. Si encuentra algo,
-  pregunta **Revisar** (lista para ir a cada línea) o **Commit igualmente**. Se configuran en
-  `multigit.commitChecks.*`.
-- **Commit parcial** (ícono ☑ en un archivo modificado, o *Select Changes to Commit…* en su menú):
-  el diff del archivo con una casilla por cambio (hunk) y otra por línea. Solo las líneas marcadas
-  entran en el commit; el resto queda como cambio sin commit y el archivo en disco no se toca. En
-  Changes se ve `2/4 líneas` junto al archivo. Si el archivo cambia después de elegir, el commit se
-  bloquea en ese repo (sin tocar ninguno) hasta volver a elegir.
-- **Generar con Claude** (`⌘G` en la caja de mensaje): escribe el mensaje en formato Conventional
-  Commits a partir de los archivos marcados de **todos** los repos, con el CLI de
-  [Claude Code](https://claude.com/claude-code) (`claude -p`, usa tu suscripción, sin API key).
-  El mensaje aparece mientras se genera; púlsalo otra vez para pedir otra propuesta. Si tienes
-  instalada la extensión *Commit Messages for Claude Code* (0.2.0 o posterior), MultiGit usa la suya
-  (su API); si no, una copia interna de la misma lógica. Toma su configuración (`claudeCommit.*`)
-  salvo lo que cambies en `multigit.claude.*`.
-- **Historial de mensajes** (botón 🕘 o `Ctrl+M` en la caja, o *Commit Message History…*): los
-  mensajes usados en MultiGit y tus últimos commits en los repos; elige uno para reutilizarlo.
-- **Ticket de la rama**: si la rama es `feature/ABC-123-login`, la caja vacía empieza con `ABC-123 `
-  y los mensajes de Claude lo llevan. Se configura con `multigit.commit.ticketTemplate` (por
-  ejemplo `{ticket}: {message}` o `{message} [{ticket}]`) y `multigit.commit.ticketPattern`.
-- **Rollback…** (con selección de archivos y confirmación que lista lo que se pierde) y
-  **Shelve / Unshelve** con nombre.
-- **Patches** (como IntelliJ): **Create Patch…** (clic derecho en archivos, carpetas, repos o una
-  changelist; y en un commit del Git Log) lo guarda en un archivo o lo copia al portapapeles. **Apply
-  Patch…** / **Apply Patch from Clipboard…** (⋯ de Changes, paleta, o clic derecho en un `.patch` /
-  `.diff`) lo aplica al working tree. Un patch de varios repos lleva las rutas desde la carpeta común
-  (`web-theme/src/…`, igual que IntelliJ) y al aplicarlo cada archivo va a su repo; uno de un solo repo
-  pregunta en cuál, marcando dónde encaja. Si no encaja limpio, ofrece **merge a 3 bandas** (deja
-  conflictos para resolver).
-- **Repositorios**: cada repo con su color, rama actual, `↑` commits por subir / `↓` por bajar
-  y un badge con los cambios sin commit.
-- **Grupos de repos** (botón de filtro en Repositorios): por ejemplo *front* = `web-theme`, `web-*`. Con un
-  grupo activo, MultiGit trabaja solo con sus repos: vistas, popup de ramas, checkout, commit, push,
-  pull, fetch, Git Log… El grupo se ve en la barra de estado y en el título de Repositorios. Se crean
-  con *Nuevo grupo…* (o en `multigit.repoGroups`) y se borran con el ícono de papelera.
-- **Ramas**: árbol Local / Remote agrupado por repositorio o por rama (`3/9` repos donde existe).
-- **Comparar** (*Compare Files with Current* en una rama, en la vista Ramas o en el popup): los
-  archivos distintos entre esa rama y la actual, por repo, con su estado; clic → diff. Los repos sin
-  diferencias se listan juntos. Se cierra con ✕.
-- **Stashes**: los stashes de todos los repos. Un stash creado a la vez en varios repos (mismo
-  mensaje) aparece una sola vez, con un hijo por repo. **Stash Changes…** (`+`, también en el menú ⋯
-  de Changes) guarda los cambios de los repos elegidos con un mismo mensaje, con o sin archivos sin
-  versionar y *Keep index*. Por stash: **Apply**, **Pop**, **Unstash as Branch…** y **Drop…** (con
-  confirmación), en todos sus repos o solo en uno. Clic en un archivo → diff contra la base del
-  stash. **Clear All Stashes…** en el menú ⋯ (no borra los shelves).
-- **Shelf** (como la pestaña Shelf de IntelliJ): los cambios apartados con *Shelve*, separados de los
-  stashes. Por shelf: **Unshelve** (todo, en todos sus repos), **Rename Shelf…** y **Delete Shelf…**.
-  Clic en un archivo → diff. **Unshelve parcial**: elige uno o varios archivos (Ctrl/Cmd+clic) y
-  *Unshelve Selected Files*; se aplican (con merge a 3 bandas si no encajan limpio) y se quitan del
-  shelf, que se borra cuando queda vacío.
+## Features
 
-### Barra de estado y popup de ramas
+### MultiGit panel (sidebar)
 
-`⎇ rama` si todos los repos están en la misma rama, o `⎇ N ramas` si difieren. Al hacer clic se
-abre el popup de ramas, como el de IntelliJ:
+- **Project** (in the Explorer): buttons like IntelliJ's top toolbar, `[B] project ⌄` (recent projects)
+  and `⎇ branch ⌄` (branch popup; `⎇ 3 branches` when they differ), plus a summary that opens the Git Log.
+- **Changes**: changed files from every repo, with checkboxes, in *Changes* and *Unversioned Files*
+  (and *Ignored Files* with *Show Ignored Files*). *Group By* Repository, Module and/or Directory, like
+  IntelliJ. Click → diff against HEAD; conflicted files open in the merge editor.
+- **Commit**: message, *Amend last commit*, a counter of checked files, **Commit** and
+  **Commit and Push…**. Only the checked files are committed, in every repo that has any, with the
+  same message.
+- **Commit options** (the ⚙ gear in the commit box, like IntelliJ's *Commit Options*): **Author** (commit
+  on behalf of someone else, picking from the repos' recent authors), **Sign-off commit**
+  (`Signed-off-by:` at the end of the message) and **Run Git hooks** (unchecked = `--no-verify`). Sign-off
+  and hooks are remembered; the author applies to the next commit. A summary is shown under the box.
+- **Changelists** (like IntelliJ): Changes is split into named lists (*Changes* is the default one).
+  **New Changelist…** (Changes ⋯ menu or right-click a list), **Move to Another Changelist…** (`F6` or
+  right-click; you can also **drag** files from one list to another), **Set Active Changelist**,
+  **Edit Changelist…** (name and description) and **Delete Changelist** (its files go back to
+  *Changes*). New changes go to the active list, and only the active list's files are checked for the
+  commit. If every checked file belongs to a list with a description, that description is proposed as
+  the message. Moving an unversioned file to a list adds it to Git. Lists are saved per workspace.
+- **Pre-commit checks** (like IntelliJ's *Commit Checks*): problems reported by VS Code (errors, and
+  warnings if you want), new `TODO`/`FIXME`, conflict markers, possible secrets (private keys, tokens,
+  API keys, passwords) and large files. If something turns up, it asks **Review** (a list to jump to
+  each line) or **Commit Anyway**. Configured in `multigit.commitChecks.*`.
+- **Partial commit** (☑ icon on a modified file, or *Select Changes to Commit…* in its menu): the
+  file's diff with a checkbox per change (hunk) and per line. Only the checked lines go into the commit;
+  the rest stays as an uncommitted change and the file on disk is not touched. Changes shows
+  `2/4 lines` next to the file. If the file changes after you pick, the commit is blocked in that repo
+  (without touching any) until you pick again.
+- **Generate with Claude** (`⌘G` in the message box): writes a Conventional Commits message from the
+  checked files of **all** the repos, using the [Claude Code](https://claude.com/claude-code) CLI
+  (`claude -p`, uses your subscription, no API key). The message streams in as it is generated; click
+  again for another proposal. If the *Commit Messages for Claude Code* extension (0.2.0 or later) is
+  installed, MultiGit uses it (through its API); otherwise, a built-in copy of the same logic. It takes
+  that extension's settings (`claudeCommit.*`) unless you change them in `multigit.claude.*`.
+- **Message history** (🕘 button or `Ctrl+M` in the box, or *Commit Message History…*): messages used in
+  MultiGit and your latest commits in the repos; pick one to reuse it.
+- **Branch ticket**: if the branch is `feature/ABC-123-login`, the empty box starts with `ABC-123 ` and
+  Claude's messages include it. Configured with `multigit.commit.ticketTemplate` (for example
+  `{ticket}: {message}` or `{message} [{ticket}]`) and `multigit.commit.ticketPattern`.
+- **Rollback…** (with file selection and a confirmation listing what is lost) and named
+  **Shelve / Unshelve**.
+- **Patches** (like IntelliJ): **Create Patch…** (right-click files, folders, repos or a changelist; and
+  a commit in the Git Log) saves it to a file or copies it to the clipboard. **Apply Patch…** /
+  **Apply Patch from Clipboard…** (Changes ⋯ menu, Command Palette, or right-click a `.patch` / `.diff`)
+  applies it to the working tree. A patch from several repos uses paths from the common folder
+  (`web-theme/src/…`, same as IntelliJ) and each file goes to its repo when applied; a single-repo patch
+  asks which repo, marking where it applies. If it does not apply cleanly, it offers a **3-way merge**
+  (leaving conflicts to resolve).
+- **Repositories**: each repo with its color, current branch, `↑` commits to push / `↓` to pull and a
+  badge with uncommitted changes.
+- **Repository groups** (filter button in Repositories): for example *front* = `web-theme`, `web-*`. With
+  an active group, MultiGit works only with its repos: views, branch popup, checkout, commit, push, pull,
+  fetch, Git Log… The group is shown in the status bar and in the Repositories title. Create them with
+  *New Group…* (or in `multigit.repoGroups`) and delete them with the trash icon.
+- **Branches**: Local / Remote tree grouped by repository or by branch (`3/9` repos where it exists).
+- **Compare** (*Compare Files with Current* on a branch, in the Branches view or the popup): the files
+  that differ between that branch and the current one, per repo, with their status; click → diff. Repos
+  with no differences are listed together. Close it with ✕.
+- **Stashes**: the stashes of every repo. A stash created at the same time in several repos (same
+  message) shows up once, with a child per repo. **Stash Changes…** (`+`, also in the Changes ⋯ menu)
+  stashes the chosen repos' changes with one message, with or without untracked files and *Keep index*.
+  Per stash: **Apply**, **Pop**, **Unstash as Branch…** and **Drop…** (with confirmation), in all its
+  repos or just one. Click a file → diff against the stash base. **Clear All Stashes…** in the ⋯ menu
+  (it does not delete shelves).
+- **Shelf** (like IntelliJ's Shelf tab): changes put aside with *Shelve*, separate from stashes. Per
+  shelf: **Unshelve** (everything, in all its repos), **Rename Shelf…** and **Delete Shelf…**. Click a
+  file → diff. **Partial unshelve**: pick one or more files (Ctrl/Cmd+click) and *Unshelve Selected
+  Files*; they are applied (with a 3-way merge if they do not apply cleanly) and removed from the shelf,
+  which is deleted once empty.
 
-- **Acciones**: Update Project, Commit…, Pull…, Push…, New Branch…, Checkout Tag or Revision…
-- **Update Project** (como IntelliJ): pregunta **Merge** o **Rebase** (con *Siempre Merge / Siempre
-  Rebase* no vuelve a preguntar; ajuste `multigit.update.method`). Al terminar, **Ver actualizaciones**
-  abre la ventana *Update Info*: los repos que recibieron commits, esos commits y los archivos que
-  cambiaron (de todo lo que llegó o de un commit), con doble clic → diff.
-- **Repositorios**: entra a las ramas de un solo repo.
-- **Common Local / Remote Branches**: ramas que existen en todos los repos; favoritas arriba con ★.
-- Por rama: Checkout, New Branch from…, Checkout and Rebase, Compare, Show in Git Log, Rebase,
-  Merge, New Worktree, Update, Push…, Rename… (F2) y Delete. En una rama remota, además, **Pull into
-  Current Using Merge / Using Rebase**.
+### Status bar and branch popup
 
-### Historial y acciones por archivo
+`⎇ branch` when every repo is on the same branch, or `⎇ N branches` when they differ. Clicking it opens
+the branch popup, like IntelliJ's:
 
-Clic derecho en un archivo (Explorer, editor o Changes) → **Git (MultiGit)**: Commit File…, Add,
-Annotate with Git Blame, Show Diff, Compare with Revision…, Compare with Branch or Tag…,
-**Show History** (Git Log de ese archivo; al elegir un commit se abre su diff), Show Current
-Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (historial local de VS Code).
+- **Actions**: Update Project, Commit…, Pull…, Push…, New Branch…, Checkout Tag or Revision…
+- **Update Project** (like IntelliJ): asks **Merge** or **Rebase** (*Always Merge / Always Rebase* stops
+  asking; setting `multigit.update.method`). When it finishes, **View Updates** opens the *Update Info*
+  window: the repos that received commits, those commits and the files that changed (in everything that
+  arrived or in one commit), double-click → diff.
+- **Repositories**: opens the branches of a single repo.
+- **Common Local / Remote Branches**: branches that exist in every repo; favorites on top with ★.
+- Per branch: Checkout, New Branch from…, Checkout and Rebase, Compare, Show in Git Log, Rebase, Merge,
+  New Worktree, Update, Push…, Rename… (F2) and Delete. On a remote branch, also **Pull into Current
+  Using Merge / Using Rebase**.
 
-**Annotate with Git Blame** (también clic derecho en los números de línea), como IntelliJ: a la izquierda
-de cada bloque de líneas, fecha y autor del último cambio, con el fondo más intenso cuanto más reciente;
-las líneas sin commit se marcan aparte y se actualiza al editar. Al pasar el ratón: el commit y enlaces a
-**Show in Git Log**, **Show Diff**, **Annotate Previous Revision** (el archivo como estaba antes de ese
-cambio, también anotado) y Copy hash. *Close Annotations* en el mismo menú.
+### History and per-file actions
 
-### Push y Pull
+Right-click a file (Explorer, editor or Changes) → **Git (MultiGit)**: Commit File…, Add, Annotate with
+Git Blame, Show Diff, Compare with Revision…, Compare with Branch or Tag…, **Show History** (Git Log of
+that file; picking a commit opens its diff), Show Current Revision, Rollback…, Push…, Pull… and
+Branches…. Plus **Local History** (VS Code's local history).
 
-- **Push Commits**: como IntelliJ, cada repo con su checkbox, destino `rama → origin : rama` (**New**
-  si la rama no existe en el remote, con `push -u`) y sus commits por subir debajo; clic en un repo o
-  en un commit → sus archivos (doble clic → diff). *Solo con commits*, *Edit all targets*,
-  *Push tags*, **Force push (with lease)** con confirmación y **Pull y reintentar** si el remote
-  rechaza el push.
-- **Pull…**: como IntelliJ, en una línea `[repositorio ▾] git pull [remote ▾] [rama ▾]` (la rama con
-  búsqueda; por defecto el upstream) y Merge / Rebase / `--ff-only`. Si quedan conflictos, **Resolver conflictos** abre el merge editor.
-- **Administrar remotos…** (como IntelliJ): los remotos de cada repo con su URL; añadir, quitar y
-  editar, y **añadir el mismo remoto a todos los repos** con una plantilla de URL (`…/{repo}.git`).
-- **Crear pull requests…** (menú ⋯ de Repositorios, clic derecho en un repo o el popup de una rama):
-  un PR por repo hacia la misma rama destino (las ramas por defecto de los remotos y las favoritas),
-  solo en los repos con commits para integrar, con el mismo título y descripción. En **GitHub** se
-  crea directamente con tu cuenta de GitHub de VS Code (si ya existía, se muestra ese); en **GitLab**,
-  **Bitbucket** y **Azure DevOps** se abre la página de creación con todo puesto. Si la rama no está
-  subida, ofrece hacer push primero. Al final, una lista con el enlace de cada PR.
+**Annotate with Git Blame** (also by right-clicking the line numbers), like IntelliJ: next to each block
+of lines, the date and author of the last change, with a stronger background the more recent it is;
+uncommitted lines are marked separately and it updates as you edit. On hover: the commit and links to
+**Show in Git Log**, **Show Diff**, **Annotate Previous Revision** (the file as it was before that
+change, also annotated) and Copy hash. *Close Annotations* is in the same menu.
 
-### Git Log (panel inferior)
+### Push and Pull
 
-- Commits de todos los repos mezclados por fecha, con la franja de color del repo, **grafo de
-  ramas** (las aristas largas se cortan con flechas, como IntelliJ), etiquetas, autor y fecha.
-- Ramas a la izquierda (HEAD / Local / Remote, con buscador); clic → filtra el log; clic derecho → el
-  mismo menú que la vista Ramas.
-- Filtros: texto o hash (regex y mayúsculas), Branch, User (botón **Yo**), Date, Paths y Repo (cada
-  repo con su color y una casilla, como *Roots* de IntelliJ: se pueden ver varios). Elegir una rama no
-  cambia el filtro Repo.
-- Detalle del commit como IntelliJ: archivos en árbol de carpetas (en un merge, agrupados por padre)
-  y debajo mensaje, autor, refs y en qué ramas está; doble clic → diff.
-- Clic derecho: Copy hash, Create Patch…, **Show Repository at Revision…**, **Open on GitHub / GitLab**,
-  Checkout revision, Cherry-pick, Revert, Reset current branch to here, New branch here, New tag y
+- **Push Commits**: like IntelliJ, each repo with its checkbox, the target `branch → origin : branch`
+  (**New** if the branch does not exist on the remote, with `push -u`) and its commits to push below;
+  click a repo or a commit → its files (double-click → diff). *Only with commits*, *Edit all targets*,
+  *Push tags*, **Force push (with lease)** with confirmation, and **Pull and Retry** if the remote
+  rejects the push.
+- **Pull…**: like IntelliJ, on one line `[repository ▾] git pull [remote ▾] [branch ▾]` (searchable
+  branch; the upstream by default) and Merge / Rebase / `--ff-only`. If conflicts remain, **Resolve
+  Conflicts** opens the merge editor.
+- **Manage Remotes…** (like IntelliJ): each repo's remotes with their URL; add, remove and edit, and
+  **add the same remote to every repo** with a URL template (`…/{repo}.git`).
+- **Create Pull Requests…** (Repositories ⋯ menu, right-click a repo, or a branch's popup): one PR per
+  repo to the same target branch (the remotes' default branches and the favorites), only in repos with
+  commits to integrate, with the same title and description. On **GitHub** it is created directly with
+  your VS Code GitHub account (an existing one is shown instead); on **GitLab**, **Bitbucket** and
+  **Azure DevOps** the creation page opens with everything filled in. If the branch is not pushed, it
+  offers to push first. At the end, a list with each PR's link.
+
+### Git Log (bottom panel)
+
+- Commits from every repo merged by date, with the repo's color stripe, a **branch graph** (long edges
+  are cut with arrows, like IntelliJ), labels, author and date.
+- Branches on the left (HEAD / Local / Remote, with search); click → filters the log; right-click → the
+  same menu as the Branches view.
+- Filters: text or hash (regex and match case), Branch, User (**Me** button), Date, Paths and Repo (each
+  repo with its color and a checkbox, like IntelliJ's *Roots*: several can be shown). Picking a branch
+  does not change the Repo filter.
+- Commit details like IntelliJ: files in a folder tree (grouped by parent in a merge) and below them the
+  message, author, refs and the branches that contain it; double-click → diff.
+- Right-click: Copy hash, Create Patch…, **Show Repository at Revision…**, **Open on GitHub / GitLab**,
+  Checkout revision, Cherry-pick, Revert, Reset current branch to here, New branch here, New tag and
   **Go to Parent / Child Commit**.
-- **Varios commits** (Ctrl/Cmd+clic, Mayús+clic para un rango, también de repos distintos): Copy hashes,
-  Create Patch…, Cherry-pick y Revert de todos (cada repo los suyos, en orden), **Compare Versions** (dos
-  commits del mismo repo, en la vista Compare) y **Squash Commits…** (los junta en uno con el mensaje
-  que elijas, aunque no sean seguidos).
-- Clic derecho en un archivo del detalle: Show Diff, **Compare with Local**, **Open Repository Version**,
-  **Get from Revision…** (deja el archivo como estaba en ese commit), Show History y Open on GitHub / GitLab.
-  Con uno o varios archivos elegidos (Ctrl/Cmd+clic): **Cherry-Pick Selected Changes** y **Revert Selected
-  Changes**: solo esos cambios van a tu working tree (sin commit; merge a 3 bandas si no encajan) y el
-  mensaje queda propuesto en la caja de commit.
-- Tags (árbol de ramas del log y vista Ramas): **Push Tag…** y **Delete Tag…** (en local, o en local y
-  en el remoto), en todos los repos que lo tienen.
-- Como IntelliJ, sobre un commit de la rama actual:
-  - **Undo Commit…**: la rama vuelve al commit anterior y sus cambios quedan para volver a hacer
-    commit (el mensaje vuelve a la caja de commit).
-  - **Edit Commit Message…**: ventana con el mensaje completo; en HEAD es un amend solo del mensaje y en
-    uno anterior, un rebase que rehace los posteriores.
-  - **Fixup… / Squash Into…**: la caja de commit se llena con `fixup! <asunto>` (o `squash!`); al hacer
-    ese commit, **Integrar ahora** lo mete en el commit elegido (rebase con autosquash).
-  - **Drop Commit…**: quita el commit de la rama (con confirmación).
-  - **Push All up to Here…**: sube hasta ese commit; los posteriores se quedan en local.
-  - Avisa si el commit ya está subido (hará falta force push) y los cambios sin commit se apartan y se
-    restauran solos (`--autostash`).
-- **Interactively rebase from here…** (clic derecho en un commit de la rama actual): los commits desde
-  ese hasta HEAD, del más viejo al más nuevo, con **Pick**, **Reword** (mensaje nuevo ahí mismo),
-  **Squash**, **Fixup** y **Drop**, y ↑/↓ para reordenar (teclas P R S F D y Alt+↑/↓). Pide el working
-  tree limpio; si hay conflictos, el rebase queda a medias y se sigue desde la barra de operaciones.
-  No admite rangos con commits de merge.
-- Lista virtualizada: carga de 300 en 300 y se mantiene fluida con miles de commits.
+- **Several commits** (Ctrl/Cmd+click, Shift+click for a range, also across repos): Copy hashes, Create
+  Patch…, Cherry-pick and Revert all of them (each repo its own, in order), **Compare Versions** (two
+  commits of the same repo, in the Compare view) and **Squash Commits…** (joins them into one with the
+  message you choose, even if they are not consecutive).
+- Right-click a file in the details: Show Diff, **Compare with Local**, **Open Repository Version**,
+  **Get from Revision…** (restores the file as it was in that commit), Show History and Open on
+  GitHub / GitLab. With one or more files selected (Ctrl/Cmd+click): **Cherry-Pick Selected Changes** and
+  **Revert Selected Changes**: only those changes go to your working tree (no commit; 3-way merge if they
+  do not apply) and the message is proposed in the commit box.
+- Tags (the log's branch tree and the Branches view): **Push Tag…** and **Delete Tag…** (locally, or
+  locally and on the remote), in every repo that has it.
+- Like IntelliJ, on a commit of the current branch:
+  - **Undo Commit…**: the branch goes back to the previous commit and its changes are kept to commit
+    again (the message goes back to the commit box).
+  - **Edit Commit Message…**: a window with the full message; on HEAD it amends only the message, and on
+    an earlier one it rebases to recreate the later commits.
+  - **Fixup… / Squash Into…**: the commit box is filled with `fixup! <subject>` (or `squash!`); after that
+    commit, **Integrate Now** folds it into the chosen commit (rebase with autosquash).
+  - **Drop Commit…**: removes the commit from the branch (with confirmation).
+  - **Push All up to Here…**: pushes up to that commit; later commits stay local.
+  - It warns if the commit is already pushed (a force push will be needed), and uncommitted changes are
+    put aside and restored automatically (`--autostash`).
+- **Interactively rebase from here…** (right-click a commit of the current branch): the commits from that
+  one to HEAD, oldest first, with **Pick**, **Reword** (new message right there), **Squash**, **Fixup**
+  and **Drop**, and ↑/↓ to reorder (keys P R S F D and Alt+↑/↓). It needs a clean working tree; on
+  conflicts the rebase stays in progress and continues from the operations bar. Ranges with merge
+  commits are not supported.
+- Virtualized list: loads 300 at a time and stays smooth with thousands of commits.
 
-## Credenciales, conflictos y ramas desalineadas
+## Credentials, conflicts and misaligned branches
 
-- **Ventana de merge** (como *Merge Revisions* de IntelliJ): Tuyos | Resultado | Otros con colores de
-  sintaxis y la palabra que cambia resaltada, » « ✕ en cada cambio, aplicar los cambios sin conflicto
-  de un lado o de los dos, **varita** para los conflictos simples, Resultado editable entero, F7 /
-  Shift+F7 entre conflictos, Aceptar izquierda / derecha y Aplicar cambios.
-- **Merge…** (menú ⋯ de Repositorios, como *Git → Merge…* de IntelliJ): elegir la rama y las opciones
-  `--no-ff`, `--ff-only`, `--squash`, `--no-commit` o mensaje propio. Desde el menú de una rama, el
-  merge es directo. No hace falta tener el working tree limpio: los cambios sin commit se apartan y
-  vuelven solos (`--autostash`); si hay conflictos, vuelven al terminar o abortar el merge. `multigit.mergeTool: vscode` usa el merge
-  editor de VS Code.
-- **Conflictos** (como IntelliJ): la ventana *Conflicts* lista los archivos en conflicto de todos los
-  repos con las columnas *Tuyos* / *Otros* (con el nombre de cada rama). **Aceptar** un lado (también
-  varios archivos a la vez), **Resolver a mano** en el merge editor y **Terminar** para continuar el
-  merge o rebase.
+- **Merge window** (like IntelliJ's *Merge Revisions*): Yours | Result | Theirs with syntax colors and the
+  changed word highlighted, » « ✕ on each change, apply the non-conflicting changes from one side or both,
+  a **magic wand** for simple conflicts, a fully editable Result, F7 / Shift+F7 between conflicts, Accept
+  Left / Right and Apply.
+- **Merge…** (Repositories ⋯ menu, like IntelliJ's *Git → Merge…*): pick the branch and the options
+  `--no-ff`, `--ff-only`, `--squash`, `--no-commit` or a custom message. From a branch's menu the merge is
+  direct. A clean working tree is not required: uncommitted changes are put aside and come back on their
+  own (`--autostash`); if there are conflicts, they come back when the merge is finished or aborted.
+  `multigit.mergeTool: vscode` uses VS Code's merge editor.
+- **Conflicts** (like IntelliJ): the *Conflicts* window lists the conflicted files of every repo with the
+  *Yours* / *Theirs* columns (with each branch's name). **Accept** one side (also several files at once),
+  **Resolve Manually** in the merge editor and **Finish** to continue the merge or rebase.
 
-- **Credenciales**: si git o ssh necesitan usuario, contraseña/token, la passphrase de la clave o
-  confirmar la huella de un servidor, MultiGit lo pide en un cuadro de VS Code (como la extensión
-  Git integrada). En un fetch/push de varios repos al mismo servidor pregunta una sola vez (la
-  respuesta se recuerda unos minutos, solo en memoria). Si tus credenciales están en el llavero o en
-  el agente SSH, no pregunta nada.
-- **Operaciones a medias**: si un merge, rebase, cherry-pick o revert queda en conflicto, el repo se
-  marca `⚠ REBASE · 2 conflictos` y la barra de estado muestra el aviso, con **Resolve Conflicts**,
-  **Continue** (marca los resueltos y continúa), **Skip** y **Abort**, por repo o en todos.
-- **Ramas desalineadas**: si la mayoría de los repos está en una rama y algunos en otra, la barra de
-  estado muestra `⎇ dev-x ⚠1`, el repo se marca `≠` y el popup de ramas ofrece **Alinear** (checkout
-  de la rama, o creándola desde `origin`). Aviso desactivable con `multigit.warnBranchMismatch`.
+- **Credentials**: if git or ssh need a username, a password/token, the key passphrase or to confirm a
+  server fingerprint, MultiGit asks in a VS Code input box (like the built-in Git extension). In a
+  fetch/push of several repos to the same server it asks only once (the answer is remembered for a few
+  minutes, in memory only). If your credentials are in the keychain or the SSH agent, it asks nothing.
+- **Operations in progress**: if a merge, rebase, cherry-pick or revert stops on conflicts, the repo is
+  marked `⚠ REBASE · 2 conflicts` and the status bar shows a warning, with **Resolve Conflicts**,
+  **Continue** (marks the resolved files and continues), **Skip** and **Abort**, per repo or in all.
+- **Misaligned branches**: if most repos are on one branch and some on another, the status bar shows
+  `⎇ dev-x ⚠1`, the repo is marked `≠` and the branch popup offers **Align** (checkout of the branch, or
+  creating it from `origin`). The warning can be turned off with `multigit.warnBranchMismatch`.
 
-## Operaciones seguras
+## Safe operations
 
-- **Preflight**: antes de una operación en varios repos (checkout, merge, rebase, pull, push…) se
-  revisa el estado de todos. Si alguno la impide (conflictos, merge/rebase a medias, cambios sin
-  commit cuando hacen falta), se muestra cuál y por qué y **no se toca ninguno**.
-- **Repo por repo**, con progreso (`3/9 web-theme…`). Si uno falla, se detiene y muestra el resumen
-  ✅ ok / ❌ falló + motivo / ⏭ no ejecutado. En **merge, pull, update y rebase**, si un repo queda con
-  **conflictos** se sigue con los demás y al final se resuelven todos juntos en la ventana Conflictos.
-- **Cambios sin commit**: pull y rebase usan `--autostash` (git aparta los cambios y los vuelve a
-  aplicar); checkout, *Nueva rama* y *Alinear* usan Smart Checkout si el cambio de rama los pisaría.
-- **Checkout con cambios locales** (como el *Git Checkout Problem* de IntelliJ): antes de tocar nada
-  se detecta en todos los repos qué archivos sobrescribiría el checkout. Si hay alguno, se listan por
-  repo con **Smart Checkout** (aparta tus cambios en un stash, cambia de rama y los vuelve a aplicar;
-  si chocan, se resuelven en el merge editor y el stash queda como copia), **Force Checkout** (los
-  descarta, con segunda confirmación) o no hacer el checkout. Así el checkout no se queda a medias.
-- **Confirmación obligatoria** en lo destructivo (rollback, delete, reset, force push), listando
-  exactamente qué se pierde.
-- Git se ejecuta siempre con `execFile` y argumentos separados (nunca una línea de shell), sin
-  pedir credenciales en una terminal oculta.
+- **Preflight**: before an operation on several repos (checkout, merge, rebase, pull, push…) the state of
+  all of them is checked. If any prevents it (conflicts, a merge/rebase in progress, uncommitted changes
+  when they matter), you see which one and why, and **none is touched**.
+- **Repo by repo**, with progress (`3/9 web-theme…`). If one fails, it stops and shows the summary
+  ✅ ok / ❌ failed + reason / ⏭ not run. In **merge, pull, update and rebase**, if a repo ends up with
+  **conflicts** the others go on and at the end they are all resolved together in the Conflicts window.
+- **Uncommitted changes**: pull and rebase use `--autostash` (git puts the changes aside and reapplies
+  them); checkout, *New Branch* and *Align* use Smart Checkout if switching branches would overwrite them.
+- **Checkout with local changes** (like IntelliJ's *Git Checkout Problem*): before touching anything, it
+  detects in every repo which files the checkout would overwrite. If there are any, they are listed per
+  repo with **Smart Checkout** (stashes your changes, switches branch and reapplies them; if they clash,
+  they are resolved in the merge editor and the stash is kept as a copy), **Force Checkout** (discards
+  them, with a second confirmation) or not checking out. This way a checkout never stops halfway.
+- **Mandatory confirmation** for anything destructive (rollback, delete, reset, force push), listing
+  exactly what is lost.
+- Git always runs with `execFile` and separate arguments (never a shell line), without asking for
+  credentials in a hidden terminal.
 
-## Atajos de teclado
+## Keyboard shortcuts
 
-| Atajo (macOS / Windows-Linux) | Acción | Cuándo |
+| Shortcut (macOS / Windows-Linux) | Action | When |
 | --- | --- | --- |
-| `⌘K` / `Ctrl+K` | Commit… (caja de commit) | con el foco en una vista de MultiGit |
-| `⌘⇧K` / `Ctrl+Shift+K` | Push Commits… | con el foco en una vista de MultiGit |
-| `⌘T` / `Ctrl+T` | Update Project | con el foco en una vista de MultiGit |
-| `⌘⇧⌥B` / `Ctrl+Shift+Alt+B` | Popup de ramas | siempre |
-| `F2` | Renombrar rama | en el popup o en la vista Ramas |
-| `⌘Enter` / `⌘⇧Enter` | Commit / Commit and Push… | en la caja de commit |
-| `⌘G` / `Ctrl+G` | Generar el mensaje con Claude | en la caja de commit |
+| `⌘K` / `Ctrl+K` | Commit… (commit box) | with focus in a MultiGit view |
+| `⌘⇧K` / `Ctrl+Shift+K` | Push Commits… | with focus in a MultiGit view |
+| `⌘T` / `Ctrl+T` | Update Project | with focus in a MultiGit view |
+| `⌘⇧⌥B` / `Ctrl+Shift+Alt+B` | Branch popup | always |
+| `F2` | Rename branch | in the popup or the Branches view |
+| `⌘Enter` / `⌘⇧Enter` | Commit / Commit and Push… | in the commit box |
+| `⌘G` / `Ctrl+G` | Generate the message with Claude | in the commit box |
 
-Los atajos estilo IntelliJ solo se activan con el foco en MultiGit, así no reemplazan los de VS Code.
-Para usarlos en todas partes, cámbialos en *Preferences → Keyboard Shortcuts* (busca `MultiGit`).
+The IntelliJ-style shortcuts only work with focus in MultiGit, so they do not replace VS Code's. To use
+them everywhere, change them in *Preferences → Keyboard Shortcuts* (search for `MultiGit`).
 
-## Configuración
+## Settings
 
-| Clave | Por defecto | Descripción |
+| Key | Default | Description |
 | --- | --- | --- |
-| `multigit.scanDepth` | `2` | Profundidad para buscar carpetas `.git` en cada carpeta del workspace. |
-| `multigit.ignoredRepos` | `[]` | Repos a ocultar, por nombre o ruta; admite `*` y `**`. |
-| `multigit.favoriteBranches` | `["develop", "production-lt"]` | Ramas que van arriba con ★. |
-| `multigit.autoFetchMinutes` | `0` | `git fetch --all --prune` periódico (`0` = desactivado). |
-| `multigit.confirmCheckoutWithChanges` | `true` | Avisar antes de un checkout en repos con cambios que no chocan con la otra rama (si chocan, siempre se muestra *Smart Checkout*). |
-| `multigit.warnBranchMismatch` | `true` | Avisar cuando algún repo queda en otra rama que la mayoría. |
-| `multigit.commit.ticketPattern` | `[A-Z][A-Z0-9]+-\d+` | Regex que saca el ticket del nombre de la rama (`feature/ABC-123-login` → `ABC-123`). Vacío: sin ticket. |
-| `multigit.pullRequests.*` | — | `useGitHubApi` (`true`), `draft` (`false`) y `providers` (servicio de tus servidores Git propios por host, p. ej. `{ "git.empresa.com": "gitlab" }`). |
-| `multigit.dialogs` | `floating` | Diálogos (Conflictos, Merge, Push, Pull, Rebase, Rollback…) en ventana flotante propia, como IntelliJ, o como pestaña (`tab`). `multigit.dialogsAlwaysOnTop` los deja siempre delante. |
-| `multigit.mergeTool` | `multigit` | Dónde se resuelven los conflictos: la ventana de MultiGit (como IntelliJ) o el merge editor de VS Code. |
-| `multigit.mergeEditorLayout` | `columns` | Merge editor en tres columnas con el resultado en el centro, como IntelliJ (`mixed` = el de VS Code, `keep` = no tocarlo). |
-| `multigit.repoGroups` | `{}` | Grupos de repos: nombre → repos (admite `*`). |
-| `multigit.commitChecks.*` | activadas | Comprobaciones antes del commit: `enabled`, `diagnostics` (`off`/`errors`/`warnings`), `todo`, `conflictMarkers`, `secrets`, `largeFileMB` (`5`; `0` = no). |
-| `multigit.commit.ticketTemplate` | `{ticket} {message}` | Dónde va el ticket en el mensaje (`{ticket}`, `{branch}`, `{message}`). Vacío: desactivado. |
-| `multigit.claude.*` | — | Modelo, esfuerzo, idioma, modo rápido, estilo del repo, scope, instrucciones, timeout y ruta de `claude` para *Generar con Claude*. |
+| `multigit.scanDepth` | `2` | Depth to look for `.git` folders in each workspace folder. |
+| `multigit.ignoredRepos` | `[]` | Repos to hide, by name or path; `*` and `**` are allowed. |
+| `multigit.favoriteBranches` | `["main", "develop"]` | Branches shown on top with ★. |
+| `multigit.autoFetchMinutes` | `0` | Periodic `git fetch --all --prune` (`0` = off). |
+| `multigit.confirmCheckoutWithChanges` | `true` | Warn before a checkout in repos with changes that do not clash with the other branch (if they clash, *Smart Checkout* is always shown). |
+| `multigit.warnBranchMismatch` | `true` | Warn when a repo is on a different branch than most. |
+| `multigit.commit.ticketPattern` | `[A-Z][A-Z0-9]+-\d+` | Regex that extracts the ticket from the branch name (`feature/ABC-123-login` → `ABC-123`). Empty: no ticket. |
+| `multigit.pullRequests.*` | — | `useGitHubApi` (`true`), `draft` (`false`) and `providers` (service of your self-hosted Git servers by host, e.g. `{ "git.company.com": "gitlab" }`). |
+| `multigit.dialogs` | `floating` | Dialogs (Conflicts, Merge, Push, Pull, Rebase, Rollback…) in their own floating window, like IntelliJ, or as a tab (`tab`). `multigit.dialogsAlwaysOnTop` keeps them in front. |
+| `multigit.mergeTool` | `multigit` | Where conflicts are resolved: MultiGit's window (like IntelliJ) or VS Code's merge editor. |
+| `multigit.mergeEditorLayout` | `columns` | Three-column merge editor with the result in the middle, like IntelliJ (`mixed` = VS Code's, `keep` = leave it alone). |
+| `multigit.repoGroups` | `{}` | Repository groups: name → repos (`*` allowed). |
+| `multigit.commitChecks.*` | on | Pre-commit checks: `enabled`, `diagnostics` (`off`/`errors`/`warnings`), `todo`, `conflictMarkers`, `secrets`, `largeFileMB` (`5`; `0` = off). |
+| `multigit.commit.ticketTemplate` | `{ticket} {message}` | Where the ticket goes in the message (`{ticket}`, `{branch}`, `{message}`). Empty: off. |
+| `multigit.claude.*` | — | Model, effort, language, fast mode, repo style, scope, instructions, timeout and `claude` path for *Generate with Claude*. |
 
-Los colores de los repos (`multigit.repo0` … `multigit.repo11`) se pueden cambiar en
-`workbench.colorCustomizations`.
+The repo colors (`multigit.repo0` … `multigit.repo11`) can be changed in `workbench.colorCustomizations`.
 
-MultiGit cambia además el valor por defecto de dos ajustes de VS Code para que los diffs se abran
-siempre en dos paneles (original | cambios), como IntelliJ, aunque el editor sea angosto:
-`diffEditor.renderSideBySide: true` y `diffEditor.useInlineViewWhenSpaceIsLimited: false`. Si
-tienes un valor propio en tu `settings.json`, ese manda.
+MultiGit also changes the default of two VS Code settings so diffs always open in two panes
+(original | changes), like IntelliJ, even in a narrow editor: `diffEditor.renderSideBySide: true` and
+`diffEditor.useInlineViewWhenSpaceIsLimited: false`. Your own value in `settings.json` wins.
 
-## Instalación
+## Installation
 
 ```bash
-code --install-extension multigit-0.1.0.vsix
+code --install-extension angelminga.multigit
 ```
 
-Requisitos: VS Code 1.100 o superior y Git 2.24 o superior en el `PATH` (o el que use la extensión
-Git de VS Code).
+Requirements: VS Code 1.100 or later and Git 2.24 or later on the `PATH` (or the one used by VS Code's
+Git extension).
 
-## Privacidad
+## Privacy
 
-MultiGit no tiene telemetría ni se conecta a ningún servidor propio. Ejecuta `git` en tu equipo; las
-operaciones de red (fetch, pull, push) van a los remotes de tus repositorios con tus credenciales.
+MultiGit has no telemetry and does not connect to any server of its own. It runs `git` on your machine;
+network operations (fetch, pull, push) go to your repositories' remotes with your credentials.
 
-**Generar con Claude** solo envía datos cuando pulsas el botón: pasa al CLI `claude` de tu equipo el
-diff de los archivos marcados (hasta 15 000 caracteres por archivo y 100 000 en total; de los locks,
-minificados y carpetas generadas solo la ruta), los nombres de los repos y la rama, los títulos de
-los últimos 20 commits (desactivable con `multigit.claude.imitateRepoStyle`), tus instrucciones
-adicionales y, en modo rápido, la sección de commits del `CLAUDE.md` del proyecto. El CLI lo envía a
-**Anthropic** con tu cuenta de Claude, bajo tu acuerdo con Anthropic y su
-[política de privacidad](https://www.anthropic.com/legal/privacy). No marques archivos con secretos
-si no quieres que se envíen.
+**Generate with Claude** only sends data when you click the button: it passes to the `claude` CLI on your
+machine the diff of the checked files (up to 15,000 characters per file and 100,000 in total; for lock
+files, minified files and generated folders, only the path), the repo and branch names, the subjects of
+the last 20 commits (can be turned off with `multigit.claude.imitateRepoStyle`), your additional
+instructions and, in fast mode, the commit section of the project's `CLAUDE.md`. The CLI sends it to
+**Anthropic** with your Claude account, under your agreement with Anthropic and its
+[privacy policy](https://www.anthropic.com/legal/privacy). Do not check files with secrets if you do not
+want them sent.
 
-## Desarrollo
+## Development
 
 ```bash
 npm install
-npm run build          # typecheck + extensión (esbuild) + webviews (React + Vite)
-npm run watch          # extensión en modo watch (y npm run watch:webview)
-npm test               # vitest: parsers, ramas comunes, grafo e integración con git real
-npm run test:e2e       # tests dentro de un VS Code real (descarga VS Code la primera vez)
-npm run package        # genera multigit-x.y.z.vsix
-npm run dev -- <ruta>  # abre una ventana con la extensión en desarrollo
+npm run build          # typecheck + extension (esbuild) + webviews (React + Vite)
+npm run watch          # extension in watch mode (and npm run watch:webview)
+npm test               # vitest: parsers, common branches, graph and integration with real git
+npm run test:e2e       # tests inside a real VS Code (downloads VS Code the first time)
+npm run package        # builds multigit-x.y.z.vsix
+npm run dev -- <path>  # opens a window with the extension in development
 ```
 
-O abre esta carpeta en VS Code y pulsa **F5**.
+Or open this folder in VS Code and press **F5**.
 
-**Traducciones**: el texto se escribe en inglés con `t('…')` (`src/i18n.ts` en la extensión,
-`webview-ui/src/i18n.ts` en los webviews) y la traducción va en `l10n/bundle.l10n.<idioma>.json`; los
-menús y comandos están en `package.nls.<idioma>.json`. `test/i18n.test.ts` comprueba que cada clave
-del bundle tiene los mismos `{n}` que su traducción.
+**Screenshots**: `python3 tools/demo-workspace.py <folder>` creates a sample workspace with 9 repos and
+made-up data (branches, merges, tags, commits to push, changes, a stash and a shelf) to take screenshots.
 
-**CI**: cada push a `main` y cada PR corre typecheck, tests (Linux, macOS y Windows), los tests e2e y empaqueta el `.vsix`.
-**Release**: con un tag `vX.Y.Z` igual a la versión de `package.json` se publica en el VS Code
-Marketplace (secreto `VSCE_PAT`), en Open VSX (`OVSX_PAT`) y se crea el GitHub Release con el `.vsix`. La hoja de ruta por fases está en [PLAN.md](PLAN.md).
+**Translations**: text is written in English with `t('…')` (`src/i18n.ts` in the extension,
+`webview-ui/src/i18n.ts` in the webviews) and the translation goes in `l10n/bundle.l10n.<language>.json`;
+menus and commands are in `package.nls.<language>.json`. `test/i18n.test.ts` checks that every bundle key
+has the same `{n}` placeholders as its translation.
 
-## Licencia
+**CI**: every push to `main` and every PR runs the typecheck, tests (Linux, macOS and Windows), the e2e
+tests and packages the `.vsix`.
+**Release**: a `vX.Y.Z` tag matching the `package.json` version publishes to the VS Code Marketplace
+(`VSCE_PAT` secret) and Open VSX (`OVSX_PAT`), and creates the GitHub Release with the `.vsix`. The phased
+roadmap is in [PLAN.md](PLAN.md).
+
+## License
 
 [MIT](LICENSE)

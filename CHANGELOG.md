@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.22.1
+
+- README en inglés (la versión en español está en `README.es.md`) con capturas.
+- `multigit.favoriteBranches` tiene por defecto `["main", "develop"]`.
+
 ## 0.22.0
 
 - **Annotate with Git Blame** propio, como IntelliJ: fecha y autor por bloque de líneas con color según la
