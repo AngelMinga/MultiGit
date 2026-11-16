@@ -45,6 +45,8 @@ export interface MultiGitTestApi {
   branchActions: BranchActions;
   /** Annotate with Git Blame del editor. */
   blame: BlameAnnotations;
+  /** Vista Changes (su `badge` es el número del icono de MultiGit). */
+  changesView: vscode.TreeView<unknown>;
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<MultiGitTestApi> {
@@ -159,6 +161,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<MultiG
     stashes: stashes?.tree as StashesTree,
     compareFiles: compareFiles as CompareFilesTree,
     blame: fileArea?.blame as BlameAnnotations,
+    changesView: changes?.view as vscode.TreeView<unknown>,
   };
 }
 

@@ -541,3 +541,31 @@ describe('Annotate with Git Blame', () => {
     await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
   });
 });
+
+describe('Número del icono de MultiGit', () => {
+  it('se actualiza con el panel cerrado', async () => {
+    const api = await vscode.extensions.getExtension<MultiGitTestApi>('angelminga-multigit.multigit')!.activate();
+    // Otro panel en la barra lateral: la vista Changes queda oculta.
+    await vscode.commands.executeCommand('workbench.view.explorer');
+    const before = api.changesView.badge?.value ?? 0;
+    const repo = api.manager.all.find((r) => r.name === 'shell')!;
+    const file = path.join(repo.root, 'e2e-badge.txt');
+    writeFileSync(path.join(repo.root, 'package.json'), readFileSync(path.join(repo.root, 'package.json'), 'utf8') + ' ');
+    writeFileSync(file, 'nuevo\n');
+    try {
+      // Sin forzar nada: MultiGit tiene que notar el cambio en disco por su cuenta.
+      let badge = api.changesView.badge?.value ?? 0;
+      for (let i = 0; i < 60 && badge === before; i++) {
+        await new Promise((r) => setTimeout(r, 100));
+        badge = api.changesView.badge?.value ?? 0;
+      }
+      // El modificado cuenta; el archivo nuevo sin versionar no.
+      assert.equal(badge, before + 1);
+      assert.equal(api.changesView.visible, false);
+    } finally {
+      execFileSync('git', ['checkout', '-q', '--', 'package.json'], { cwd: repo.root });
+      execFileSync('rm', ['-f', file]);
+      await api.manager.refreshStatusesNow([repo]);
+    }
+  });
+});

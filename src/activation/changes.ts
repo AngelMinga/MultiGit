@@ -38,8 +38,13 @@ export function registerChanges(
       stale = true;
     }
   };
+  /**
+   * Número del icono de MultiGit: archivos con cambios (sin los no versionados) de todos los repos. Sale
+   * del estado de los repos, que se mantiene al día aunque el panel esté cerrado (la lista de Changes
+   * solo se relee con la vista visible).
+   */
   const updateBadge = () => {
-    const n = tree.trackedFiles.length;
+    const n = manager.all.reduce((sum, r) => sum + Math.max(0, (r.status?.changes.total ?? 0) - (r.status?.changes.untracked ?? 0)), 0);
     view.badge = n ? { value: n, tooltip: t('{0} file(s) with changes', n) } : undefined;
   };
   const fileNode = (node?: ChangeNode) => (node?.kind === 'file' ? node.ref : undefined);
@@ -52,7 +57,10 @@ export function registerChanges(
     view,
     commitView,
     vscode.window.registerWebviewViewProvider(CommitView.viewId, commitView, { webviewOptions: { retainContextWhenHidden: true } }),
-    manager.onDidChange(refresh),
+    manager.onDidChange(() => {
+      refresh();
+      updateBadge();
+    }),
     tree.onDidChangeChecked(updateBadge),
     view.onDidChangeVisibility((e) => {
       if (e.visible && stale) refresh();
@@ -168,6 +176,7 @@ export function registerChanges(
       if (ref) void actions.openFile(ref);
     }),
   );
+  updateBadge();
   return { tree, view, actions };
 }
 

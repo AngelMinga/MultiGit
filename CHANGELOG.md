@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.22.3
+
+- El número del icono de MultiGit (archivos con cambios) se actualiza aunque el panel esté cerrado; antes
+  había que abrirlo para verlo al día.
+
 ## 0.22.2
 
 - README: título y descripción de cada captura.
