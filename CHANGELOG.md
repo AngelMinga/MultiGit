@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.20.0
+
+- **Generar con Claude** usa la extensión *Commit Messages for Claude Code* (0.2.0 o posterior) cuando
+  está instalada, a través de su API; sin ella sigue funcionando con la copia interna.
+
 ## 0.19.0
 
 - **Git Log con varios commits** (Ctrl/Cmd+clic y Mayús+clic): Copy hashes, Create Patch…, Cherry-pick

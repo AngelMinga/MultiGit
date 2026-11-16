@@ -4,7 +4,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { commitSection, parseRecentCommits, RECENT_COMMITS, suggest, type ClientSettings } from '../ai/client';
+import { commitSection, parseRecentCommits, RECENT_COMMITS, suggest, type ClientSettings, type SuggestRequest } from '../ai/client';
 import { git } from '../ai/diff';
 import { setTranslator } from '../ai/l10n';
 import { setTranslator as setAppTranslator } from '../i18n';
@@ -69,6 +69,33 @@ export interface GenerateRequest {
 export class NoChangesError extends Error {}
 export { CancelledError };
 
+/** API de la extensión "Commit Messages for Claude Code" (ver su src/extension.ts, `ClaudeCommitApi`). */
+interface ClaudeCommitApi {
+  readonly version: number;
+  suggest(settings: ClientSettings, request: SuggestRequest): Promise<CommitSuggestion>;
+}
+
+/** Ids de la extensión: el actual del Marketplace y el de la 0.1.0. */
+const CLAUDE_COMMIT_IDS = ['angelminga.commit-messages-for-claude-code', 'angelminga.claude-commit'];
+
+/**
+ * La extensión Commit Messages for Claude Code, si está instalada y tiene la API (v1). Si no, MultiGit usa
+ * su copia de esos módulos (src/ai).
+ */
+export async function claudeCommitApi(): Promise<ClaudeCommitApi | undefined> {
+  for (const id of CLAUDE_COMMIT_IDS) {
+    const ext = vscode.extensions.getExtension<ClaudeCommitApi | undefined>(id);
+    if (!ext) continue;
+    try {
+      const api = ext.isActive ? ext.exports : await ext.activate();
+      if (api?.version === 1 && typeof api.suggest === 'function') return api;
+    } catch {
+      // No se pudo activar: se usa la copia interna.
+    }
+  }
+  return undefined;
+}
+
 /** Arma el diff de los repos elegidos y pide el mensaje a Claude. */
 export async function generateCommitMessage(settings: ClaudeSettings, req: GenerateRequest): Promise<CommitSuggestion> {
   req.onStep(t('Preparing the diff…'));
@@ -87,8 +114,21 @@ export async function generateCommitMessage(settings: ClaudeSettings, req: Gener
     .join('\n');
 
   req.onStep(t('Claude is writing the message…'));
-  return suggest(
-    { ...settings, extraInstructions: extra },
+  // Con la extensión instalada se usa la suya (misma versión del prompt y del CLI que su botón).
+  const api = await claudeCommitApi();
+  const run = api ? api.suggest.bind(api) : suggest;
+  const clientSettings: ClientSettings = {
+    model: settings.model,
+    effort: settings.effort,
+    claudePath: settings.claudePath,
+    language: settings.language,
+    extraInstructions: extra,
+    alwaysIncludeScope: settings.alwaysIncludeScope,
+    fastMode: settings.fastMode,
+    timeoutSec: settings.timeoutSec,
+  };
+  return run(
+    clientSettings,
     {
       diff: collected.diff,
       branch,
@@ -102,7 +142,11 @@ export async function generateCommitMessage(settings: ClaudeSettings, req: Gener
         if (text !== null) req.onPartialMessage(text);
       },
     },
-  );
+  ).catch((error: unknown) => {
+    // El CancelledError de la otra extensión es de otra clase: se reconoce por el nombre.
+    if (error instanceof Error && error.name === 'CancelledError' && !(error instanceof CancelledError)) throw new CancelledError();
+    throw error;
+  });
 }
 
 /** El diff de lo no guardado se lee del disco: guarda primero los editores modificados de esos repos. */

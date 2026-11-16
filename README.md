@@ -53,9 +53,10 @@ Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
 - **Generar con Claude** (`⌘G` en la caja de mensaje): escribe el mensaje en formato Conventional
   Commits a partir de los archivos marcados de **todos** los repos, con el CLI de
   [Claude Code](https://claude.com/claude-code) (`claude -p`, usa tu suscripción, sin API key).
-  El mensaje aparece mientras se genera; púlsalo otra vez para pedir otra propuesta. Usa la misma
-  lógica que la extensión *Commit Messages for Claude Code* y, si la tienes configurada, su
-  configuración (`claudeCommit.*`); la propia de MultiGit está en `multigit.claude.*`.
+  El mensaje aparece mientras se genera; púlsalo otra vez para pedir otra propuesta. Si tienes
+  instalada la extensión *Commit Messages for Claude Code* (0.2.0 o posterior), MultiGit usa la suya
+  (su API); si no, una copia interna de la misma lógica. Toma su configuración (`claudeCommit.*`)
+  salvo lo que cambies en `multigit.claude.*`.
 - **Historial de mensajes** (botón 🕘 o `Ctrl+M` en la caja, o *Commit Message History…*): los
   mensajes usados en MultiGit y tus últimos commits en los repos; elige uno para reutilizarlo.
 - **Ticket de la rama**: si la rama es `feature/ABC-123-login`, la caja vacía empieza con `ABC-123 `
