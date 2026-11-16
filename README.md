@@ -86,7 +86,12 @@ Capturas: agrega las imágenes en `images/` y descomenta estas líneas.
   de Changes) guarda los cambios de los repos elegidos con un mismo mensaje, con o sin archivos sin
   versionar y *Keep index*. Por stash: **Apply**, **Pop**, **Unstash as Branch…** y **Drop…** (con
   confirmación), en todos sus repos o solo en uno. Clic en un archivo → diff contra la base del
-  stash. **Clear All Stashes…** en el menú ⋯.
+  stash. **Clear All Stashes…** en el menú ⋯ (no borra los shelves).
+- **Shelf** (como la pestaña Shelf de IntelliJ): los cambios apartados con *Shelve*, separados de los
+  stashes. Por shelf: **Unshelve** (todo, en todos sus repos), **Rename Shelf…** y **Delete Shelf…**.
+  Clic en un archivo → diff. **Unshelve parcial**: elige uno o varios archivos (Ctrl/Cmd+clic) y
+  *Unshelve Selected Files*; se aplican (con merge a 3 bandas si no encajan limpio) y se quitan del
+  shelf, que se borra cuando queda vacío.
 
 ### Barra de estado y popup de ramas
 
@@ -177,7 +182,8 @@ Revision, Rollback…, Push…, Pull… y Branches…. Y **Local History** (hist
   Shift+F7 entre conflictos, Aceptar izquierda / derecha y Aplicar cambios.
 - **Merge…** (menú ⋯ de Repositorios, como *Git → Merge…* de IntelliJ): elegir la rama y las opciones
   `--no-ff`, `--ff-only`, `--squash`, `--no-commit` o mensaje propio. Desde el menú de una rama, el
-  merge es directo. `multigit.mergeTool: vscode` usa el merge
+  merge es directo. No hace falta tener el working tree limpio: los cambios sin commit se apartan y
+  vuelven solos (`--autostash`); si hay conflictos, vuelven al terminar o abortar el merge. `multigit.mergeTool: vscode` usa el merge
   editor de VS Code.
 - **Conflictos** (como IntelliJ): la ventana *Conflicts* lista los archivos en conflicto de todos los
   repos con las columnas *Tuyos* / *Otros* (con el nombre de cada rama). **Aceptar** un lado (también

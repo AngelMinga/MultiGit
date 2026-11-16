@@ -377,7 +377,7 @@ export class BranchActions {
       title: t('Merge of \'{0}\' into \'{1}\'', source, currentLabel(scope)),
       repos: scope.repos,
       continueAfterConflict: true,
-      requireClean: true,
+      // Sin requireClean: los cambios sin commit se apartan y se restauran solos (`--autostash`).
       check: async (repo, status) => {
         if (!status.branch) return { block: 'HEAD detached' };
         if (status.branch === source) return { skip: t('it is the current branch') };

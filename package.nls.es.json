@@ -230,5 +230,13 @@
   "command.changelist.move": "Move to Another Changelist…",
   "command.changelist.setActive": "Set Active Changelist",
   "command.changelist.edit": "Edit Changelist…",
-  "command.changelist.delete": "Delete Changelist"
+  "command.changelist.delete": "Delete Changelist",
+  "view.shelf": "Shelf",
+  "welcome.shelf": "No hay cambios apartados. En Changes, marca archivos y usa Shelve Changes para guardarlos aparte.",
+  "command.shelf.refresh": "Refrescar Shelf",
+  "command.shelf.unshelve": "Unshelve",
+  "command.shelf.unshelveFiles": "Unshelve de los archivos elegidos",
+  "command.shelf.rename": "Renombrar shelf…",
+  "command.shelf.delete": "Borrar shelf…",
+  "command.shelf.openDiff": "Ver diff"
 }

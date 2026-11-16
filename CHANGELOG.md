@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.21.0
+
+- Vista **Shelf** (como IntelliJ), separada de Stashes: Unshelve, **Unshelve de archivos sueltos**
+  (Ctrl/Cmd+clic; los aplicados se quitan del shelf), Rename Shelf… y Delete Shelf…, con diff de cada
+  archivo. *Clear All Stashes* ya no borra los shelves.
+- **Merge con cambios sin commit** (`--autostash`): se apartan y vuelven solos; con conflictos, al
+  terminar o abortar el merge.
+- Shelve de un archivo borrado con `git rm` ya no falla.
+
 ## 0.20.3
 
 - Sección **Commit** baja: además de encoger la caja del mensaje, se ocultan enteras las filas menos

@@ -2,7 +2,7 @@
   "name": "multigit",
   "displayName": "MultiGit",
   "description": "%extension.description%",
-  "version": "0.20.3",
+  "version": "0.21.0",
   "publisher": "angelminga",
   "license": "MIT",
   "repository": {
@@ -92,6 +92,12 @@
           "visibility": "collapsed"
         },
         {
+          "id": "multigit.shelf",
+          "name": "%view.shelf%",
+          "icon": "$(archive)",
+          "visibility": "collapsed"
+        },
+        {
           "id": "multigit.compareFiles",
           "name": "%view.compareFiles%",
           "icon": "$(git-compare)",
@@ -129,6 +135,10 @@
       {
         "view": "multigit.stashes",
         "contents": "%welcome.stashes%"
+      },
+      {
+        "view": "multigit.shelf",
+        "contents": "%welcome.shelf%"
       }
     ],
     "commands": [
@@ -897,6 +907,42 @@
         "command": "multigit.branch.mergeWithOptions",
         "title": "%command.branch.mergeWithOptions%",
         "category": "MultiGit"
+      },
+      {
+        "command": "multigit.shelf.refresh",
+        "title": "%command.shelf.refresh%",
+        "category": "MultiGit",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "multigit.shelf.unshelve",
+        "title": "%command.shelf.unshelve%",
+        "category": "MultiGit",
+        "icon": "$(git-stash-pop)"
+      },
+      {
+        "command": "multigit.shelf.unshelveFiles",
+        "title": "%command.shelf.unshelveFiles%",
+        "category": "MultiGit",
+        "icon": "$(git-stash-apply)"
+      },
+      {
+        "command": "multigit.shelf.rename",
+        "title": "%command.shelf.rename%",
+        "category": "MultiGit",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "multigit.shelf.delete",
+        "title": "%command.shelf.delete%",
+        "category": "MultiGit",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "multigit.shelf.openDiff",
+        "title": "%command.shelf.openDiff%",
+        "category": "MultiGit",
+        "icon": "$(diff)"
       }
     ],
     "menus": {
@@ -1135,6 +1181,11 @@
           "command": "multigit.patch.applyClipboard",
           "when": "view == multigit.changes",
           "group": "patch@2"
+        },
+        {
+          "command": "multigit.shelf.refresh",
+          "when": "view == multigit.shelf",
+          "group": "navigation@9"
         }
       ],
       "view/item/context": [
@@ -1457,6 +1508,46 @@
           "command": "multigit.changelist.delete",
           "when": "view == multigit.changes && viewItem =~ /^multigit\\.changes\\.section\\.changes(\\.active)?$/",
           "group": "0_changelist@4"
+        },
+        {
+          "command": "multigit.shelf.unshelve",
+          "when": "view == multigit.shelf && viewItem =~ /^multigit\\.shelf\\.(group|entry)$/",
+          "group": "inline@1"
+        },
+        {
+          "command": "multigit.shelf.unshelve",
+          "when": "view == multigit.shelf && viewItem =~ /^multigit\\.shelf\\.(group|entry)$/",
+          "group": "1_apply@1"
+        },
+        {
+          "command": "multigit.shelf.rename",
+          "when": "view == multigit.shelf && viewItem =~ /^multigit\\.shelf\\.(group|entry)$/",
+          "group": "2_edit@1"
+        },
+        {
+          "command": "multigit.shelf.delete",
+          "when": "view == multigit.shelf && viewItem =~ /^multigit\\.shelf\\.(group|entry)$/",
+          "group": "9_delete@1"
+        },
+        {
+          "command": "multigit.shelf.unshelveFiles",
+          "when": "view == multigit.shelf && viewItem == multigit.shelf.file",
+          "group": "inline@1"
+        },
+        {
+          "command": "multigit.shelf.openDiff",
+          "when": "view == multigit.shelf && viewItem == multigit.shelf.file",
+          "group": "inline@2"
+        },
+        {
+          "command": "multigit.shelf.openDiff",
+          "when": "view == multigit.shelf && viewItem == multigit.shelf.file",
+          "group": "1_diff@1"
+        },
+        {
+          "command": "multigit.shelf.unshelveFiles",
+          "when": "view == multigit.shelf && viewItem == multigit.shelf.file",
+          "group": "2_apply@1"
         }
       ],
       "commandPalette": [
@@ -1866,6 +1957,26 @@
         },
         {
           "command": "multigit.changelist.delete",
+          "when": "false"
+        },
+        {
+          "command": "multigit.shelf.unshelve",
+          "when": "false"
+        },
+        {
+          "command": "multigit.shelf.unshelveFiles",
+          "when": "false"
+        },
+        {
+          "command": "multigit.shelf.rename",
+          "when": "false"
+        },
+        {
+          "command": "multigit.shelf.delete",
+          "when": "false"
+        },
+        {
+          "command": "multigit.shelf.openDiff",
           "when": "false"
         }
       ],

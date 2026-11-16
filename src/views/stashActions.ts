@@ -142,12 +142,15 @@ export class StashActions {
       CLEAR,
     );
     if (choice !== CLEAR) return;
+    // Uno a uno (no `git stash clear`): los shelves también son stashes y no se tocan.
+    const hashes = new Map<Repo, string[]>();
+    for (const g of groups) for (const e of g.entries) hashes.set(e.repo, [...(hashes.get(e.repo) ?? []), e.stash.hash]);
     await runInRepos(this.manager, {
       title: t('Clear stashes'),
       repos: this.manager.all.filter((r) => counts.has(r)),
       check: () => undefined,
       run: async (repo) => {
-        await repo.git.stashClear();
+        for (const hash of hashes.get(repo) ?? []) await repo.git.stashDrop(await this.resolve(repo, hash));
       },
     });
     this.tree.refresh();
@@ -198,7 +201,7 @@ export class StashActions {
   }
 
   /** `stash@{n}` actual del stash con ese hash (los índices cambian al borrar otros). */
-  private async resolve(repo: Repo, hash: string): Promise<string> {
+  async resolve(repo: Repo, hash: string): Promise<string> {
     const entry = (await repo.git.listStashes()).find((s) => s.hash === hash);
     if (!entry) throw new Error(t('the stash no longer exists'));
     return entry.ref;

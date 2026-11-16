@@ -397,9 +397,13 @@ export class GitService {
     return this.exec(['push', remote, '--delete', name], { timeoutMs: NETWORK_TIMEOUT_MS });
   }
 
-  /** `git merge --no-edit [opciones] [-m mensaje] <ref>` (opciones: --no-ff, --ff-only, --squash, --no-commit). */
+  /**
+   * `git merge --no-edit --autostash [opciones] [-m mensaje] <ref>` (opciones: --no-ff, --ff-only,
+   * --squash, --no-commit). Los cambios sin commit se guardan antes y se vuelven a aplicar al terminar; si
+   * hay conflictos, git los guarda aparte y los reaplica al hacer el commit del merge (o al abortarlo).
+   */
   merge(ref: string, options: readonly string[] = [], message?: string): Promise<string> {
-    return this.exec(['merge', '--no-edit', ...options, ...(message ? ['-m', message] : []), ref]);
+    return this.exec(['merge', '--no-edit', '--autostash', ...options, ...(message ? ['-m', message] : []), ref]);
   }
 
   /** `git rebase <onto>` (rama actual) o `git rebase <onto> <branch>` (checkout + rebase). */
@@ -948,6 +952,10 @@ export class GitService {
 
   /** Shelve: `git stash push -u -m "MultiGit: <nombre>" -- <paths>`. */
   async stashPush(name: string, paths: readonly string[]): Promise<void> {
+    // Un borrado preparado (`git rm`) no está ni en el índice ni en disco y el pathspec del stash falla:
+    // se saca del índice antes (el borrado se guarda igual, como cambio sin preparar).
+    const stagedDeletions = (await this.exec(['diff', '--cached', '--name-only', '-z', '--diff-filter=D', '--', ...paths])).split('\0').filter(Boolean);
+    if (stagedDeletions.length) await this.exec(['reset', '-q', '--', ...stagedDeletions]);
     await this.exec(['stash', 'push', '--include-untracked', '-m', `${SHELF_PREFIX}${name}`, '--', ...paths]);
   }
 
@@ -992,6 +1000,78 @@ export class GitService {
     return [...tracked, ...untracked.map((p) => ({ status: 'A', path: p, untracked: true }))];
   }
 
+
+  /**
+   * Patch con algunos archivos de un stash (Unshelve de archivos sueltos): los versionados contra la base
+   * del stash y los sin versionar (tercer padre) como archivos nuevos.
+   */
+  async stashPatch(hash: string, files: ReadonlyArray<{ path: string; oldPath?: string; untracked?: boolean }>): Promise<string> {
+    const tracked = files.filter((f) => !f.untracked).flatMap((f) => (f.oldPath ? [f.oldPath, f.path] : [f.path]));
+    const untracked = files.filter((f) => f.untracked).map((f) => f.path);
+    const base = ['-c', 'core.quotepath=false', 'diff', '--binary', '--no-color', '--no-ext-diff', '-M'];
+    let patch = '';
+    if (tracked.length) patch += await this.exec([...base, `${hash}^1`, hash, '--', ...tracked]);
+    if (untracked.length) {
+      const empty = (await this.exec(['hash-object', '-t', 'tree', '--stdin'], { input: '' })).trim();
+      patch += await this.exec([...base, empty, `${hash}^3`, '--', ...untracked]);
+    }
+    return patch;
+  }
+
+  /**
+   * Rehace un stash solo con algunos de sus archivos (`keep`) y lo guarda arriba de la lista con `subject`
+   * (el asunto completo, "On rama: MultiGit: nombre"). El original no se toca: hay que borrarlo después.
+   * Árboles hechos con un índice temporal, sin tocar el working tree ni el índice del repo.
+   */
+  async rebuildStash(hash: string, keep: ReadonlyArray<{ path: string; oldPath?: string; status: string; untracked?: boolean }>, subject: string): Promise<string> {
+    const indexFile = path.resolve(this.root, (await this.exec(['rev-parse', '--git-path', 'multigit-shelf-index'])).trim());
+    const env = { GIT_INDEX_FILE: indexFile };
+    const tree = async (start: string | null, from: string, files: typeof keep): Promise<string> => {
+      await fs.rm(indexFile, { force: true });
+      if (start) await this.exec(['read-tree', start], { env });
+      else await this.exec(['read-tree', '--empty'], { env });
+      for (const f of files) {
+        if (f.oldPath) await this.exec(['update-index', '--force-remove', '--', f.oldPath], { env });
+        if (f.status === 'D') {
+          await this.exec(['update-index', '--force-remove', '--', f.path], { env });
+          continue;
+        }
+        const [mode, , blob] = (await this.exec(['ls-tree', from, '--', f.path])).trim().split(/\s+/);
+        if (mode && blob) await this.exec(['update-index', '--add', '--cacheinfo', `${mode},${blob},${f.path}`], { env });
+      }
+      const out = (await this.exec(['write-tree'], { env })).trim();
+      await fs.rm(indexFile, { force: true });
+      return out;
+    };
+    const base = (await this.exec(['rev-parse', `${hash}^1`])).trim();
+    const tracked = keep.filter((f) => !f.untracked);
+    const untracked = keep.filter((f) => f.untracked);
+    const workTree = await tree(`${base}^{tree}`, hash, tracked);
+    const commit = (t: string, parents: string[], message: string) =>
+      this.exec(['commit-tree', t, ...parents.flatMap((p) => ['-p', p]), '-m', message]).then((s) => s.trim());
+    const index = await commit(workTree, [base], `index on ${subject}`);
+    const parents = [base, index];
+    if (untracked.length) parents.push(await commit(await tree(null, `${hash}^3`, untracked), [], `untracked files on ${subject}`));
+    const stash = await commit(workTree, parents, subject);
+    await this.stashStore(stash, subject);
+    return stash;
+  }
+
+  /**
+   * Rename del shelf: un commit nuevo con el mismo contenido y padres que el stash, guardado arriba con
+   * `subject` (git no repite en la lista un commit que ya está). El viejo hay que borrarlo después.
+   */
+  async renameStash(hash: string, subject: string): Promise<string> {
+    const parents = (await this.exec(['rev-list', '--parents', '-n', '1', hash])).trim().split(/\s+/).slice(1);
+    const copy = (await this.exec(['commit-tree', `${hash}^{tree}`, ...parents.flatMap((p) => ['-p', p]), '-m', subject])).trim();
+    await this.stashStore(copy, subject);
+    return copy;
+  }
+
+  /** Guarda de nuevo un stash con otro mensaje (Rename del shelf: luego se borra el viejo). */
+  stashStore(hash: string, message: string): Promise<string> {
+    return this.exec(['stash', 'store', '-m', message, hash]);
+  }
 
   addWorktree(dir: string, branch: string): Promise<string> {
     return this.exec(['worktree', 'add', dir, branch]);

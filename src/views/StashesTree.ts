@@ -1,5 +1,6 @@
-// Vista Stashes: los stashes de todos los repos. Los creados juntos en varios repos (mismo mensaje,
-// pocos minutos de diferencia) se muestran como uno solo, con un hijo por repo.
+// Vistas Stashes y Shelf: los stashes de todos los repos (Stashes) o los guardados con Shelve (Shelf, como
+// la pestaña Shelf de IntelliJ). Los creados juntos en varios repos (mismo mensaje, pocos minutos de
+// diferencia) se muestran como uno solo, con un hijo por repo.
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { ChangedFile } from '../git/parsers';
@@ -28,7 +29,11 @@ export class StashesTree implements vscode.TreeDataProvider<StashNode>, vscode.D
   private loading: Promise<Array<StashGroup<Repo>>> | undefined;
   private readonly files = new Map<string, Promise<StashFile[]>>();
 
-  constructor(private readonly manager: RepoManager) {}
+  /** `stash`: stashes normales; `shelf`: los creados con Shelve. */
+  constructor(
+    private readonly manager: RepoManager,
+    readonly kind: 'stash' | 'shelf' = 'stash',
+  ) {}
 
   dispose(): void {
     this.emitter.dispose();
@@ -48,8 +53,9 @@ export class StashesTree implements vscode.TreeDataProvider<StashNode>, vscode.D
       const perRepo = await Promise.all(
         this.manager.all.map(async (repo) => ({ repo, stashes: await repo.git.listStashes().catch(() => []) })),
       );
-      const groups = groupStashes(perRepo);
-      void vscode.commands.executeCommand('setContext', 'multigit.hasStashes', groups.length > 0);
+      const shelf = this.kind === 'shelf';
+      const groups = groupStashes(perRepo).filter((g) => (shelfName(g.message) !== undefined) === shelf);
+      void vscode.commands.executeCommand('setContext', shelf ? 'multigit.hasShelves' : 'multigit.hasStashes', groups.length > 0);
       return groups;
     })();
     this.groups = await this.loading;
@@ -98,16 +104,16 @@ export class StashesTree implements vscode.TreeDataProvider<StashNode>, vscode.D
       item.description = `${where} · ${formatDate(group.time)}`;
       item.iconPath = new vscode.ThemeIcon(shelfName(group.message) !== undefined ? 'archive' : 'git-stash');
       item.tooltip = tooltip(group);
-      item.contextValue = 'multigit.stash.group';
-      item.id = `stash:${group.key}`;
+      item.contextValue = `multigit.${this.kind}.group`;
+      item.id = `${this.kind}:${group.key}`;
       return item;
     }
     if (node.kind === 'entry') {
       const item = new vscode.TreeItem(node.repo.name, vscode.TreeItemCollapsibleState.Collapsed);
       item.description = [node.stash.ref, node.stash.branch && `⎇ ${node.stash.branch}`].filter(Boolean).join(' · ');
       item.iconPath = new vscode.ThemeIcon('repo', new vscode.ThemeColor(`multigit.repo${node.repo.colorIndex}`));
-      item.contextValue = 'multigit.stash.entry';
-      item.id = `stash:${node.repo.root}:${node.stash.hash}`;
+      item.contextValue = `multigit.${this.kind}.entry`;
+      item.id = `${this.kind}:${node.repo.root}:${node.stash.hash}`;
       return item;
     }
     const { file } = node;
@@ -116,9 +122,9 @@ export class StashesTree implements vscode.TreeDataProvider<StashNode>, vscode.D
     item.description = [dir === '.' ? '' : dir, file.untracked ? t('untracked') : ''].filter(Boolean).join(' · ');
     item.resourceUri = vscode.Uri.file(path.join(node.repo.root, file.path));
     item.tooltip = `${file.oldPath ? `${file.oldPath} → ` : ''}${file.path}\n${file.untracked ? t('untracked') : statusLabel(file.status)}`;
-    item.contextValue = 'multigit.stash.file';
-    item.command = { command: 'multigit.stashes.openDiff', title: t('Show Diff'), arguments: [node] };
-    item.id = `stash:${node.repo.root}:${node.stash.hash}:${file.path}`;
+    item.contextValue = `multigit.${this.kind}.file`;
+    item.command = { command: this.kind === 'shelf' ? 'multigit.shelf.openDiff' : 'multigit.stashes.openDiff', title: t('Show Diff'), arguments: [node] };
+    item.id = `${this.kind}:${node.repo.root}:${node.stash.hash}:${file.path}`;
     return item;
   }
 }

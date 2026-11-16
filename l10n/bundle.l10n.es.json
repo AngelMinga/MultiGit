@@ -812,5 +812,16 @@
   "{0} is replaced with its version of {1}. Your uncommitted changes to that file are lost.": "{0} se reemplaza por su versión de {1}. Se pierden los cambios sin commit de ese archivo.",
   "Uses the extension {0}.": "Usa la extensión {0}.",
   "Uses the built-in generator (install Commit Messages for Claude Code 0.2.0 or later to use the extension).": "Usa el generador integrado (instala Commit Messages for Claude Code 0.2.0 o posterior para usar la extensión).",
-  "extension": "extensión"
+  "extension": "extensión",
+  "Unshelve '{0}'": "Unshelve '{0}'",
+  "Unshelve from '{0}'": "Unshelve de '{0}'",
+  "Unshelve {0} file(s) from '{1}'?": "¿Unshelve de {0} archivo(s) de '{1}'?",
+  "Unshelve": "Unshelve",
+  "In the ⚠ repositories the files do not apply cleanly: with a 3-way merge, conflicts are left to resolve.": "En los repositorios con ⚠ los archivos no encajan limpio: con un merge a 3 bandas quedan conflictos por resolver.",
+  "The changes go to your working tree.": "Los cambios van a tu working tree.",
+  "Files applied from a shelf are removed from it; when none are left, the shelf is deleted.": "Los archivos aplicados se quitan del shelf; cuando no queda ninguno, el shelf se borra.",
+  "shelf emptied and deleted": "shelf vacío y borrado",
+  "{0} file(s) left in the shelf": "quedan {0} archivo(s) en el shelf",
+  "Rename Shelf": "Renombrar shelf",
+  "Rename shelf '{0}' to '{1}'": "Renombrar el shelf '{0}' a '{1}'"
 }
