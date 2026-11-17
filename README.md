@@ -65,7 +65,11 @@ in all of them at once.
   checked, blue with "−" when only part is checked, including partial commits of lines), the repo color and
   file-type icons, in *Changes* and *Unversioned Files*
   (and *Ignored Files* with *Show Ignored Files*). *Group By* Repository, Module and/or Directory, like
-  IntelliJ. Click → diff against HEAD; conflicted files open in the merge editor.
+  IntelliJ. Click → **IntelliJ-style diff** against HEAD: side by side, a checkbox per change for the
+  partial commit (*N differences, M included*), ↑ ↓ (F7) between changes, ← → between files (*13/16
+  files*), » to revert a change and double-click to jump to the line; *Open in Editor* opens the VS Code
+  diff (editable), and `multigit.diffViewer` brings back the old behaviour. Conflicted files open in the
+  merge window.
 - **Commit**: message, *Amend last commit*, a counter of checked files, **Commit** and
   **Commit and Push…**. Only the checked files are committed, in every repo that has any, with the
   same message.

@@ -6,7 +6,7 @@ import type { LogFilters, RefLabel } from '../git/log';
 export type { LogFilters, RefLabel };
 
 /** Paneles webview que existen (el log llega en la Fase 6). */
-export type WebviewKind = 'changes' | 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks' | 'rebase' | 'pull' | 'conflicts' | 'merge' | 'remotes' | 'updateInfo' | 'message';
+export type WebviewKind = 'changes' | 'push' | 'commit' | 'log' | 'toolbar' | 'rollback' | 'hunks' | 'rebase' | 'pull' | 'conflicts' | 'merge' | 'remotes' | 'updateInfo' | 'message' | 'diff';
 
 // ------------------------------------------------------------------ Push
 
@@ -143,6 +143,54 @@ export interface ConflictRepoView {
 export interface ConflictsState {
   repos: ConflictRepoView[];
   busy: boolean;
+}
+
+// ------------------------------------------------------------------ Diff lado a lado (como IntelliJ)
+
+/** Bloque del diff lado a lado (lo calcula src/git/sideDiff.ts). */
+export type DiffBlockView =
+  | {
+      type: 'stable';
+      /** Índice (desde 0) de la primera línea en el archivo viejo y en el nuevo. */
+      oldIndex: number;
+      newIndex: number;
+      lines: string[];
+    }
+  | {
+      type: 'change';
+      /** Donde empieza el bloque (desde 0); si un lado está vacío, la línea antes de la que iría. */
+      oldIndex: number;
+      newIndex: number;
+      old: string[];
+      new: string[];
+      /** Ids de las líneas para el commit parcial (vacío si el archivo no admite commit parcial). */
+      ids: string[];
+    };
+
+export interface DiffState {
+  repo: string;
+  colorIndex: number;
+  path: string;
+  /** Ruta en HEAD si se renombró. */
+  origPath?: string;
+  /** Cabecera de la izquierda: hash corto de HEAD (o vacío si el archivo es nuevo). */
+  base: string;
+  /** Estado del archivo (Modified, Added…). */
+  status: string;
+  blocks: DiffBlockView[];
+  /** 'lines': casilla por bloque (commit parcial); 'file': las casillas marcan el archivo entero. */
+  select: 'lines' | 'file';
+  /** Ids de las líneas que entran en el commit ('lines'). */
+  selected: string[];
+  /** El archivo entra en el commit. */
+  checked: boolean;
+  /** Posición del archivo en la vista Changes (desde 0) y total. */
+  index: number;
+  count: number;
+  /** La derecha es el archivo del disco (se puede revertir un bloque o saltar a una línea). */
+  local: boolean;
+  /** Aviso (p. ej. binario o la selección anterior ya no valía). */
+  notice?: string;
 }
 
 // ------------------------------------------------------------------ Ventana de merge propia
@@ -443,6 +491,7 @@ export type HostMessage =
   | { type: 'pull/state'; payload: PullState }
   | { type: 'conflicts/state'; payload: ConflictsState }
   | { type: 'merge/state'; payload: MergeState }
+  | { type: 'diff/state'; payload: DiffState }
   | { type: 'remotes/state'; payload: RemotesState }
   | { type: 'update/state'; payload: UpdateInfoState }
   | { type: 'update/files'; payload: { repoId: string; /** Hash del commit, o '' = todo lo que llegó al repo. */ hash: string; files: PushFile[]; details?: { body: string; author: string; email: string; date: string } } }
@@ -496,6 +545,12 @@ export type WebviewMessage =
   | { type: 'merge/save'; payload: { content: string; /** Marcar el archivo como resuelto (git add). */ resolve: boolean } }
   | { type: 'merge/acceptSide'; payload: { side: 'ours' | 'theirs' } }
   | { type: 'merge/close'; payload: Record<string, never> }
+  | { type: 'diff/select'; payload: { selected: string[] } }
+  | { type: 'diff/check'; payload: { checked: boolean } }
+  | { type: 'diff/file'; payload: { delta: 1 | -1 } }
+  | { type: 'diff/openEditor'; payload: Record<string, never> }
+  | { type: 'diff/revert'; payload: { block: number } }
+  | { type: 'diff/goto'; payload: { side: 'old' | 'new'; line: number } }
   | { type: 'remotes/add'; payload: { repoId?: string } }
   | { type: 'remotes/addAll'; payload: Record<string, never> }
   | { type: 'remotes/edit'; payload: { repoId: string; name: string } }

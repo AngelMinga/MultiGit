@@ -66,8 +66,11 @@ todos a la vez.
   marcada y azul con "−" cuando solo hay una parte marcada, también con commit parcial de líneas), el color
   de cada repo e iconos por tipo de archivo, en *Changes* y
   *Unversioned Files* (y *Ignored Files* con *Show Ignored Files*). *Group By* Repository, Module y/o
-  Directory, como IntelliJ. Clic → diff
-  contra HEAD; los archivos en conflicto se abren en el merge editor.
+  Directory, como IntelliJ. Clic → **diff como el de IntelliJ** contra HEAD: lado a lado, una casilla
+  por bloque para el commit parcial (*N differences, M included*), ↑ ↓ (F7) entre cambios, ← → entre
+  los archivos (*13/16 files*), » para revertir un bloque y doble clic para ir a la línea; *Open in
+  Editor* abre el diff de VS Code (editable), y `multigit.diffViewer` lo deja como el de antes. Los
+  archivos en conflicto se abren en la ventana de merge.
 - **Commit**: mensaje, *Amend last commit*, contador de archivos marcados, **Commit** y
   **Commit and Push…**. Hace commit solo de los archivos marcados, en cada repo que tenga
   alguno, con el mismo mensaje.

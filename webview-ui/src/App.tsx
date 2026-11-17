@@ -11,6 +11,7 @@ import { RebaseDialog } from './rebase/RebaseDialog';
 import { PullDialog } from './pull/PullDialog';
 import { ConflictsDialog } from './conflicts/ConflictsDialog';
 import { MergeDialog } from './merge/MergeDialog';
+import { DiffViewer } from './diff/DiffViewer';
 import { RemotesDialog } from './remotes/RemotesDialog';
 import { UpdateInfoDialog } from './update/UpdateInfoDialog';
 import { MessageDialog } from './message/MessageDialog';
@@ -42,7 +43,7 @@ export function App() {
           </button>
         </div>
       )}
-      {kind === 'changes' ? <ChangesApp /> : kind === 'push' ? <PushDialog /> : kind === 'commit' ? <CommitBox /> : kind === 'log' ? <LogApp /> : kind === 'toolbar' ? <Toolbar /> : kind === 'rollback' ? <RollbackDialog /> : kind === 'hunks' ? <HunksDialog /> : kind === 'rebase' ? <RebaseDialog /> : kind === 'pull' ? <PullDialog /> : kind === 'conflicts' ? <ConflictsDialog /> : kind === 'merge' ? <MergeDialog /> : kind === 'remotes' ? <RemotesDialog /> : kind === 'updateInfo' ? <UpdateInfoDialog /> : kind === 'message' ? <MessageDialog /> : <p className="muted pad">{t('Loading…')}</p>}
+      {kind === 'changes' ? <ChangesApp /> : kind === 'push' ? <PushDialog /> : kind === 'commit' ? <CommitBox /> : kind === 'log' ? <LogApp /> : kind === 'toolbar' ? <Toolbar /> : kind === 'rollback' ? <RollbackDialog /> : kind === 'hunks' ? <HunksDialog /> : kind === 'rebase' ? <RebaseDialog /> : kind === 'pull' ? <PullDialog /> : kind === 'conflicts' ? <ConflictsDialog /> : kind === 'merge' ? <MergeDialog /> : kind === 'diff' ? <DiffViewer /> : kind === 'remotes' ? <RemotesDialog /> : kind === 'updateInfo' ? <UpdateInfoDialog /> : kind === 'message' ? <MessageDialog /> : <p className="muted pad">{t('Loading…')}</p>}
     </>
   );
 }

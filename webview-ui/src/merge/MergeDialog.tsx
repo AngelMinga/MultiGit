@@ -21,7 +21,7 @@ interface Resolution {
 type Change = Extract<MergeBlockView, { type: 'change' }>;
 
 /** Lenguaje para los colores de sintaxis (undefined = texto plano). */
-const Lang = createContext<string | undefined>(undefined);
+export const Lang = createContext<string | undefined>(undefined);
 /** Por encima de este tamaño no se colorea (archivos enormes como un package-lock). */
 const HIGHLIGHT_LIMIT = 400_000;
 
@@ -330,7 +330,7 @@ export function MergeDialog() {
 }
 
 /** Código coloreado (memorizado: no se vuelve a colorear si no cambia el texto). */
-const Code = memo(function Code(props: { text: string }) {
+export const Code = memo(function Code(props: { text: string }) {
   const language = useContext(Lang);
   // Un espacio si está vacío, para que la fila conserve su alto.
   return <pre className="mg-text" dangerouslySetInnerHTML={{ __html: props.text ? highlight(props.text, language) : ' ' }} />;
@@ -355,7 +355,7 @@ function EditableCode(props: { value: string; onChange: (value: string) => void 
 }
 
 /** Código coloreado y, encima, las palabras que cambian respecto a `against` resaltadas (como IntelliJ). */
-const MarkedCode = memo(function MarkedCode(props: { text: string; against: string }) {
+export const MarkedCode = memo(function MarkedCode(props: { text: string; against: string }) {
   const segments = useMemo(() => (props.text && props.against ? changedSegments(props.against, props.text) : undefined), [props.text, props.against]);
   if (!segments?.some((s) => s.changed)) return <Code text={props.text} />;
   return (

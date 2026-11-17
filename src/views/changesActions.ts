@@ -14,6 +14,7 @@ import type { Repo, RepoManager } from '../git/RepoManager';
 import type { ChangesTree, FileRef, PartialSelection } from './ChangesTree';
 import { commonAncestorDirs, gitignoreIn, ignorePattern } from '../git/ignoreTargets';
 import { RollbackPanel, rollbackKey } from '../webview/RollbackPanel';
+import { DiffPanel } from '../webview/DiffPanel';
 import { openMergeEditor } from './conflicts';
 import { t } from '../i18n';
 
@@ -387,14 +388,31 @@ export class ChangesActions {
 
   // ------------------------------------------------------------------ diff / abrir
 
-  /** Diff contra HEAD (añadidos: contra vacío; borrados: contra vacío a la derecha). Conflictos: merge editor. */
+  /**
+   * Diff contra HEAD: el propio, como IntelliJ (casillas por bloque), o el de VS Code según
+   * `multigit.diffViewer`. Conflictos: ventana de merge.
+   */
   async openDiff(ref: FileRef): Promise<void> {
     const { repo, file } = ref;
-    const abs = vscode.Uri.file(path.join(repo.root, file.path));
     if (file.kind === 'conflict') {
-      await openMergeEditor(abs);
+      await openMergeEditor(vscode.Uri.file(path.join(repo.root, file.path)));
       return;
     }
+    if (vscode.workspace.getConfiguration('multigit').get<string>('diffViewer', 'multigit') === 'vscode') {
+      await this.openNativeDiff(ref);
+      return;
+    }
+    try {
+      await DiffPanel.open(this.extensionUri, this.tree, ref, (r) => this.openNativeDiff(r));
+    } catch (error) {
+      void vscode.window.showErrorMessage(`MultiGit: ${errorText(error)}`);
+    }
+  }
+
+  /** Diff de VS Code (editable): añadidos contra vacío; borrados con vacío a la derecha. */
+  async openNativeDiff(ref: FileRef): Promise<void> {
+    const { repo, file } = ref;
+    const abs = vscode.Uri.file(path.join(repo.root, file.path));
     const isNew = file.kind === 'untracked' || file.status === 'A' || file.status === 'C';
     const left = GitContentProvider.uri(repo.root, isNew ? '' : 'HEAD', file.origPath ?? file.path);
     const right = file.status === 'D' ? GitContentProvider.uri(repo.root, '', file.path) : abs;

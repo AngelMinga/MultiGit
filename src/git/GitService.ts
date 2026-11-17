@@ -769,6 +769,11 @@ export class GitService {
     return this.exec(['diff', '-U0', '--no-color', '--no-ext-diff', '--no-textconv', 'HEAD', '--', filePath]);
   }
 
+  /** Como `diffForPartial` pero de un archivo renombrado (`origPath` en HEAD → `filePath`). */
+  diffRenamed(origPath: string, filePath: string): Promise<string> {
+    return this.exec(['diff', '-U0', '--no-color', '--no-ext-diff', '--no-textconv', '-M', 'HEAD', '--', origPath, filePath]);
+  }
+
   /**
    * Commit con archivos completos (`paths`, como `commitPaths`) y archivos con solo parte de sus
    * cambios (`partial`: contenido ya calculado). Se arma en un índice temporal a partir de HEAD, así

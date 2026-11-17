@@ -2659,6 +2659,20 @@
           "order": 35,
           "markdownDescription": "%setting.dialogs%"
         },
+        "multigit.diffViewer": {
+          "type": "string",
+          "enum": [
+            "multigit",
+            "vscode"
+          ],
+          "enumDescriptions": [
+            "%setting.diffViewer.multigit%",
+            "%setting.diffViewer.vscode%"
+          ],
+          "default": "multigit",
+          "order": 37,
+          "markdownDescription": "%setting.diffViewer%"
+        },
         "multigit.dialogsAlwaysOnTop": {
           "type": "boolean",
           "default": false,

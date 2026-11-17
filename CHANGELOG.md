@@ -1,5 +1,18 @@
 # Changelog
 
+## Sin publicar
+
+- **Diff de Changes como el de IntelliJ**: clic en un archivo abre la pestaña *Commit: <archivo>* con HEAD
+  (🔒 hash y ruta) a la izquierda y *Current version* a la derecha, lado a lado y alineados; azul en
+  líneas cambiadas, verde en añadidas, gris en borradas, rayado en el lado vacío y las palabras que
+  cambian resaltadas. Una **casilla por bloque** para el commit parcial (la misma selección que *Select
+  Changes*; con líneas sueltas elegidas sale "−") y otra junto a *Current version* para todos;
+  *N differences, M included* arriba. ↑ ↓ (F7 / Shift+F7) entre cambios y, al pasar el último, al archivo
+  siguiente; ← → (Alt+←/→) entre los archivos de Changes con *13/16 files*. » revierte un bloque (con
+  deshacer en el editor), doble clic va a la línea, los tramos sin cambios se pliegan, y *Open in Editor*
+  abre el diff de VS Code (editable). Se actualiza solo al guardar o al marcar en Changes.
+  Ajuste `multigit.diffViewer` (`multigit` / `vscode`) para volver al diff de VS Code.
+
 ## 0.24.2
 
 - Ventana de merge: colores mucho más suaves (un tinte sobre el fondo del editor), con el borde y una franja

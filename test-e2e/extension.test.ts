@@ -205,6 +205,19 @@ describe('Commit parcial', () => {
     assert.equal(readFileSync(file, 'utf8'), 'a\nB\nc\nd\ne\nf\ng\nH\n');
     assert.equal(git('status', '--porcelain', '--', 'src/app.js'), ' M src/app.js\n');
     assert.equal(api.changes.partialOf(ref), undefined);
+
+    // Clic en el archivo: se abre el diff propio (como IntelliJ), en una pestaña "Commit: app.js".
+    await api.changes.refresh();
+    const again = (await walk(api.changes)).find((i) => label(i.item) === 'app.js')!;
+    assert.equal(again.item.command?.command, 'multigit.changes.openDiff');
+    await vscode.commands.executeCommand('multigit.changes.openDiff', again.node);
+    let diffTab: vscode.Tab | undefined;
+    for (let i = 0; i < 40 && !diffTab; i++) {
+      await new Promise((r) => setTimeout(r, 50));
+      diffTab = vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((x) => x.input instanceof vscode.TabInputWebview && /^Commit: app\.js$/.test(x.label));
+    }
+    assert.ok(diffTab, 'se abre el diff de MultiGit');
+    await closeWebviewTab(/^Commit: app\.js$/);
   });
 });
 

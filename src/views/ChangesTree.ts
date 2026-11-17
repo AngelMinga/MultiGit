@@ -185,6 +185,25 @@ export class ChangesTree implements vscode.TreeDataProvider<ChangeNode>, vscode.
     return this.files.filter((f) => this.isChecked(f));
   }
 
+  /** Archivos en el orden en que se ven en el árbol (para "13/16 files" del diff). */
+  async orderedFiles(): Promise<FileRef[]> {
+    const out: FileRef[] = [];
+    const seen = new Set<string>();
+    const walk = async (nodes: ChangeNode[]): Promise<void> => {
+      for (const node of nodes) {
+        if (node.kind === 'file') {
+          const key = keyOf(node.ref);
+          if (!seen.has(key)) {
+            seen.add(key);
+            out.push(node.ref);
+          }
+        } else await walk(await this.getChildren(node));
+      }
+    };
+    await walk(await this.getChildren());
+    return out;
+  }
+
   /** Todos los archivos versionados con cambios (para Rollback). */
   get trackedFiles(): FileRef[] {
     return this.files.filter((f) => f.file.kind === 'tracked');

@@ -2351,3 +2351,148 @@ body.vscode-light .merge {
 .merge .mg-row.mg-same:not(.mg-done) .mg-nums {
   box-shadow: inset -2px 0 0 var(--mg-insert-edge);
 }
+
+/* ------------------------------------------------------------ Diff lado a lado (como IntelliJ) */
+
+.dv {
+  --dv-mod: rgba(70, 130, 240, 0.2);
+  --dv-add: rgba(90, 180, 90, 0.22);
+  --dv-del: rgba(128, 128, 128, 0.22);
+  --dv-mod-word: rgba(120, 170, 255, 0.35);
+  --dv-add-word: rgba(110, 200, 110, 0.4);
+}
+.dv-files {
+  min-width: 70px;
+  text-align: center;
+}
+.dv-head,
+.dv-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 26px minmax(0, 1fr);
+}
+.dv-head > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px 10px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dv-head > div:nth-child(2) {
+  padding: 0;
+}
+.dv-head input[type='checkbox'] {
+  margin: 0;
+}
+.dv-body {
+  flex: 1;
+  overflow: auto;
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
+  line-height: var(--mg-line);
+}
+.dv-body .mg-nums,
+.dv-body .mg-text {
+  line-height: var(--mg-line);
+}
+.dv-cell {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+.dv-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  line-height: var(--mg-line);
+  cursor: text;
+}
+.dv-text > .mg-text,
+.dv-text > .mg-marked {
+  flex: 1;
+}
+.dv-nums {
+  width: 40px;
+  padding: 0 6px;
+}
+.dv-left .dv-nums {
+  text-align: left;
+  border-left: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.25));
+}
+.dv-right .dv-nums {
+  border-right: none;
+}
+.dv-check {
+  flex: none;
+  width: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 2px;
+}
+.dv-check input {
+  margin: 0;
+}
+.dv-mid {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  border-left: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.25));
+  border-right: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.25));
+  background: var(--vscode-editorGutter-background, transparent);
+}
+/* Lado vacío de un bloque: rayado, como IntelliJ */
+.dv-gap {
+  flex: 1;
+  min-height: 2px;
+  background: var(--mg-hatch);
+}
+.dv-row:not(.dv-stable) .dv-gap {
+  border-top: 1px solid var(--dv-line, transparent);
+}
+.dv-mod .dv-text {
+  background: var(--dv-mod);
+}
+.dv-add .dv-text {
+  background: var(--dv-add);
+}
+.dv-del .dv-text {
+  background: var(--dv-del);
+}
+.dv-mod {
+  --dv-line: rgba(70, 130, 240, 0.6);
+}
+.dv-add {
+  --dv-line: rgba(90, 180, 90, 0.7);
+}
+.dv-del {
+  --dv-line: rgba(128, 128, 128, 0.6);
+}
+.dv-row:not(.dv-stable) .dv-mid {
+  background: linear-gradient(var(--dv-line), var(--dv-line)) center / 2px 100% no-repeat;
+}
+.dv-add .mg-word {
+  background: var(--dv-add-word);
+}
+.dv-current .dv-right .dv-text {
+  box-shadow: inset 2px 0 0 var(--vscode-focusBorder);
+}
+.dv-revert {
+  background: var(--vscode-editor-background);
+  border: none;
+  padding: 0 3px;
+  line-height: var(--mg-line);
+  font-weight: 700;
+  color: var(--vscode-textLink-foreground);
+  cursor: pointer;
+  border-radius: 3px;
+}
+.dv-revert:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+.dv-fold {
+  font-family: var(--vscode-font-family);
+}
